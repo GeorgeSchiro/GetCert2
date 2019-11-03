@@ -1,0 +1,234 @@
+<local:SavedWindow x:Class="GetCert2.UI"
+        xmlns:local="clr-namespace:GetCert2"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{DynamicResource SavedWindow}"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"
+        Closed="Window_Closed"
+        KeyDown="Window_KeyDown"
+        MouseDown="Window_MouseDown"
+        MouseDoubleClick="Window_MouseDoubleClick"
+        StateChanged="Window_StateChanged"
+        Visibility="Hidden"
+        >
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources\Styles.xaml"/>
+                <ResourceDictionary Source="Resources\GlassButtonStyle.xaml"/>
+                <ResourceDictionary Source="Resources\LogoSliderStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.ContextMenu>
+        <ContextMenu Name="MainWindowContextMenu" Background="#CFFFCF">
+            <MenuItem Header="Maximize" Name="mnuMaximize" Click="mnuMaximize_Click" />
+            <MenuItem Header="Restore" Name="mnuRestore" Click="mnuRestore_Click" />
+            <MenuItem Header="Minimize" Name="mnuMinimize" Click="mnuMinimize_Click" />
+            <MenuItem Header="Exit" Name="mnuExit" Click="mnuExit_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+    <Canvas Name="MainCanvas" Background="Transparent" Visibility="Hidden">
+        <Border Name="FirstBorder" BorderBrush="DarkGreen" BorderThickness="10" CornerRadius="60"
+                Height="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=Height}"
+                Width="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=Width}"
+                >
+        <Border Name="SecondBorder" Background="#CFFFCF" BorderBrush="Yellow" BorderThickness="3" CornerRadius="53">
+            <DockPanel LastChildFill="True">
+                <Canvas>
+                    <Button Name="btnShowHelp" Click="btnShowHelp_Click"
+                        ToolTip="Show Detailed Help"
+                        Style="{StaticResource MainCanvasButton}"
+                        HorizontalAlignment="Left"
+                        >
+                        Help
+                    </Button>
+                </Canvas>
+                <Grid Name="TopPanel" DockPanel.Dock="Top" Height="75" Width="500" Margin="10">
+                    <Label Content="SafeTrust Get Certificate" FontSize="36" FontWeight="ExtraBold" />
+                </Grid>
+                <Grid Name="BottomPanel" DockPanel.Dock="Bottom">
+                    <StackPanel Name="MainButtonPanel" Orientation="Horizontal" IsEnabled="False">
+                        <Button Name="btnDoMainProcessNow" Click="btnDoMainProcessNow_Click" ToolTip="Start the Process Now" Margin="10,10,5,10" FontSize="36"  Style="{StaticResource MainCanvasButton}">
+                            GO
+                        </Button>
+                        <Button Name="btnSetup" Click="btnSetup_Click" ToolTip="Toggle Setup Wizard" Margin="5,10,5,10" Style="{StaticResource MainCanvasButton}">
+                            Setup
+                        </Button>
+                        <Button Name="btnShowLogs" Click="btnShowLogs_Click" ToolTip="Show Logs" Margin="5,10,5,10" Style="{StaticResource MainCanvasButton}">
+                            Logs
+                        </Button>
+                        <Button Name="btnClearDisplay" Click="btnClearDisplay_Click" ToolTip="Clear Display" Margin="5,10,5,10" Style="{StaticResource MainCanvasButton}">
+                            Clear
+                        </Button>
+                    </StackPanel>
+                    <StackPanel Name="CloseButtonPanel" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <StackPanel Name="CloseCheckboxes" VerticalAlignment="Center" Visibility="Hidden">
+                        </StackPanel>
+                        <Button Name="btnClose" Click="mnuExit_Click" ToolTip="Exit" HorizontalAlignment="Right" Style="{StaticResource MainCanvasButton}">
+                            Exit
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <Grid Name="MiddlePanelConfigWizard" Visibility="Hidden"> <!-- This 'Visibility="Hidden"' kludge is necessary to have the panel sized correctly. -->
+                    <Border Style="{StaticResource ConfigWizardBorder}">
+                    <TabControl Name="ConfigWizardTabs"
+                                SelectionChanged="ConfigWizardTabs_SelectionChanged"
+                                Style="{StaticResource ConfigWizardTab}"
+                                >
+                        <TabItem Name="tabStep1" Header="Setup Step 1." Style="{StaticResource ConfigWizardTabItems}">
+                            <Grid>
+                                <Viewbox>
+                                    <StackPanel Style="{StaticResource ConfigWizardStackPanelTop}">
+<TextBlock Style="{StaticResource ConfigWizardTextTop}">
+    1. To get started, please provide a contact email address and the domain name to get a certificate for.
+</TextBlock>
+<Border Style="{StaticResource ConfigWizardTextBorder}">
+    <TextBlock MaxWidth="800" Style="{StaticResource ConfigWizardTextBottom}">
+    Enter a valid email address and domain name. 
+    </TextBlock>
+</Border>
+<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+    <Grid Margin="90,10,10,10">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition Name="RemoveReplacedCertRow" Height="0" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Label Grid.Row="0" Grid.Column="0">Contact Email Address</Label>   <TextBox  Grid.Row="0" Grid.Column="1" Name="ContactEmailAddress"   Style="{StaticResource ConfigWizardTextSelected}" />
+        <Label Grid.Row="1" Grid.Column="0">Certificate Domain Name</Label> <ComboBox Grid.Row="1" Grid.Column="1" Name="CertificateDomainName" Style="{StaticResource ConfigWizardComboBoxEditable}" SelectionChanged="CertificateDomainName_SelectionChanged" />
+        <Label Grid.Row="2" Grid.Column="0">Use "Stand-Alone" Mode?</Label> <CheckBox Grid.Row="2" Grid.Column="1" Name="UseStandAloneMode"     Style="{StaticResource ConfigWizardCheckBox}" Checked="UseStandAloneMode_CheckedChanged" Unchecked="UseStandAloneMode_CheckedChanged" />
+        <Label Grid.Row="3" Grid.Column="0">Do Staging Tests?</Label>       <CheckBox Grid.Row="3" Grid.Column="1" Name="DoStagingTests"        Style="{StaticResource ConfigWizardCheckBox}" />
+        <Label Grid.Row="4" Grid.Column="0">Remove Replaced Cert?</Label>   <CheckBox Grid.Row="4" Grid.Column="1" Name="RemoveReplacedCert"    Style="{StaticResource ConfigWizardCheckBox}" />
+    </Grid>  
+    <Button Name="btnEditSanList" Click="btnEditSanList_Click"
+        ToolTip="Subject Alternative Names"
+        Style="{StaticResource MainCanvasButton}"
+        VerticalAlignment="Top"
+        >
+        <TextBlock Style="{StaticResource MainCanvasButtonMultiLineText}">
+            SAN<LineBreak/>List
+        </TextBlock>
+    </Button>
+</StackPanel>
+<Border Style="{StaticResource ConfigWizardTextBorder}">
+    <TextBlock MaxWidth="800" Style="{StaticResource ConfigWizardTextBottom}">
+    Note: <LineBreak/><LineBreak/>
+
+        When you have multiple servers requiring the same certificate (eg. a server
+        farm,  SSO servers, SSO integrated application servers, load balancers, etc),
+        you may be ready for: <LineBreak/><LineBreak/>
+
+        <Bold>SafeTrust Secure Certificate Service</Bold> <LineBreak/><LineBreak/>
+
+        Ease your certificate handling hassle. Visit "<Bold>SafeTrust.org</Bold>" for more information.
+    </TextBlock>
+</Border>
+                                    </StackPanel>
+                                </Viewbox>
+                                <Button Click="btnNextSetupStep_Click" Margin="15" Style="{StaticResource ConfigWizardNextTabButton}">
+                                    <TextBlock Style="{StaticResource MainCanvasButtonMultiLineText}">
+                                        Next<LineBreak/>Step
+                                    </TextBlock>
+                                </Button>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Name="tabFinishSetup" Header="Finish Setup" Style="{StaticResource ConfigWizardTabItems}">
+                            <Viewbox>
+                            <StackPanel Style="{StaticResource ConfigWizardStackPanelTop}">
+<TextBlock Name="txtSetupDone" Style="{StaticResource ConfigWizardTextTop}">
+    Please review your choices from the previous setup steps, then click "Setup Done".
+</TextBlock>
+<Border Style="{StaticResource ConfigWizardTextBorder}">
+    <TextBlock Name="txtSetupDoneDesc" MaxWidth="800" Style="{StaticResource ConfigWizardTextBottom}">
+    </TextBlock>
+</Border>
+<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition Name="ReviewRemoveReplacedCertRow" Height="0" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Label Grid.Row="0" Grid.Column="0">Contact Email Address</Label>   <TextBox  Grid.Row="0" Grid.Column="1" Name="ReviewContactEmailAddress"     Style="{StaticResource ConfigWizardTextReadOnly}" />
+        <Label Grid.Row="1" Grid.Column="0">Certificate Domain Name</Label> <TextBox  Grid.Row="1" Grid.Column="1" Name="ReviewCertificateDomainName"   Style="{StaticResource ConfigWizardTextReadOnly}" />
+        <Label Grid.Row="2" Grid.Column="0">Use "Stand-Alone" Mode?</Label> <CheckBox Grid.Row="2" Grid.Column="1" Name="ReviewUseStandAloneMode"       Style="{StaticResource ConfigWizardCheckBoxReadOnly}" />
+        <Label Grid.Row="3" Grid.Column="0">Do Staging Tests?</Label>       <CheckBox Grid.Row="3" Grid.Column="1" Name="ReviewDoStagingTests"          Style="{StaticResource ConfigWizardCheckBoxReadOnly}" />
+        <Label Grid.Row="4" Grid.Column="0">Remove Replaced Cert?</Label>   <CheckBox Grid.Row="4" Grid.Column="1" Name="ReviewRemoveReplacedCert"      Style="{StaticResource ConfigWizardCheckBoxReadOnly}" />
+    </Grid>
+    <Button Name="btnReviewSanList" Click="btnReviewSanList_Click"
+        ToolTip="Subject Alternative Names"
+        Style="{StaticResource MainCanvasButton}"
+        VerticalAlignment="Top"
+        >
+        <TextBlock Style="{StaticResource MainCanvasButtonMultiLineText}">
+            SAN<LineBreak/>List
+        </TextBlock>
+    </Button>
+</StackPanel>
+<Button Name="btnSetupDone" Click="btnSetupDone_Click" Margin="5" Style="{StaticResource ConfigWizardButton}">
+    Setup Done
+</Button>
+<Label Height="10"></Label>
+                            </StackPanel>
+                            </Viewbox>
+                        </TabItem>
+                    </TabControl>
+                    </Border>
+                </Grid>
+                <Popup Name="MiddlePanelDomainList" Placement="Center">
+                    <StackPanel HorizontalAlignment="Center" Background="LightGreen">
+                        <TabControl Name="DomainListTabs"
+                                    SelectionChanged="DomainListTabs_SelectionChanged"
+                                    Style="{StaticResource ConfigWizardTab}"
+                                    >
+                        </TabControl>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Name="btnDomainListSave" Click="btnDomainListSave_Click" FontSize="10" Height="40" Width="40"  Margin="10,10,5,10" Style="{StaticResource MainCanvasButton}">
+                                Save
+                            </Button>
+                                <Button Name="btnDomainListCancel" Click="btnDomainListCancel_Click" FontSize="10" Height="40" Width="40"  Margin="0,10,10,10" Style="{StaticResource MainCanvasButton}">
+                                Cancel
+                            </Button>
+                            <TextBlock TextAlignment="Right" Margin="10"  Style="{StaticResource MainCanvasButtonMultiLineText}">
+                                      Note: trailing periods will have the<LineBreak/>
+                                            primary domain name appended.
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Popup>
+                <Grid Name="MiddlePanelOutputText" Visibility="Hidden">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Name="MiddlePanelProgressBar"
+                            CornerRadius="10,10,0,0" BorderThickness="0" BorderBrush="WhiteSmoke" Margin="50,0,50,0" />
+                        <Border Grid.Row="1" CornerRadius="0,0,10,10" BorderThickness="5"
+                            BorderBrush="{Binding ElementName=MiddlePanelProgressBar, Path=BorderBrush}"
+                            Margin="{Binding ElementName=MiddlePanelProgressBar, Path=Margin}"
+                            >
+                        <ScrollViewer Name="scrProcessOutput" VerticalScrollBarVisibility="Hidden">
+                            <TextBlock Name="ProcessOutput" Style="{StaticResource OutputText}" />
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </DockPanel>
+        </Border>
+        </Border>
+    </Canvas>
+</local:SavedWindow>

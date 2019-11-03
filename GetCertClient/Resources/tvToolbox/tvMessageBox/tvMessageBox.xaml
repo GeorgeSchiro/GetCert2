@@ -1,0 +1,57 @@
+<Window x:Class="tvMessageBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Name="MainWindow"
+    AllowsTransparency="True"
+    Height="Auto"
+    Width="Auto"
+    WindowStyle="None"
+    Background="Transparent"
+    Loaded="Window_Loaded"
+    MouseDown="Window_MouseDown"
+    KeyDown="Window_KeyDown"
+    >
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="GlassButtonStyle.xaml"/>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Canvas Name="MainCanvas" Background="Transparent">
+        <Border Name="FirstBorder" BorderBrush="Green" BorderThickness="7" CornerRadius="60">
+            <Border Name="SecondBorder" BorderBrush="Yellow" Background="#CFFFCF" BorderThickness="3" CornerRadius="53">
+                <StackPanel>
+                    <StackPanel Name="TopPanel" Orientation="Horizontal" >
+                        <Image Name="AlertIcon" Source="images/Alert.png" Style="{StaticResource Image}" />
+                        <Image Name="DefaultIcon" Source="images/Default.png" Style="{StaticResource Image}" />
+                        <Image Name="ErrorIcon" Source="images/Error.png" Style="{StaticResource Image}" />
+                        <Image Name="HelpIcon" Source="images/Help.png" Style="{StaticResource Image}" />
+                        <Image Name="InfoIcon" Source="images/Info.png" Style="{StaticResource Image}" />
+                        <Image Name="OkIcon" Source="images/OK.png" Style="{StaticResource Image}" />
+                        <Label Name="MessageTitle" Visibility="Hidden" Background="Transparent" FontFamily="Global San Serif" FontWeight="Bold" FontSize="24"
+                                Margin="15,0,50,0" VerticalAlignment="Center">
+                            Title Goes Here!
+                        </Label>
+                    </StackPanel>
+                    <StackPanel Name="MiddlePanel">
+                        <TextBlock Name="MessageText" Style="{StaticResource TextBlock}">
+                            Lots of text block goes here!
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Name="BottomPanel" Height="100" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                        <Button Name="btnOK"     Content="OK"     Click="btnOK_Click"     IsDefault="True"  Style="{StaticResource Button}" />
+                        <Button Name="btnYes"    Content="Yes"    Click="btnYes_Click"                      Style="{StaticResource Button}" />
+                        <Button Name="btnNo"     Content="No"     Click="btnNo_Click"                       Style="{StaticResource Button}" />
+                        <Button Name="btnCancel" Content="Cancel" Click="btnCancel_Click" IsCancel="True"   Style="{StaticResource Button}" />
+                        <Canvas VerticalAlignment="Center">
+                            <CheckBox Name="chkDontAsk" Content="Don't ask." ToolTip="Don't ask this question again." IsChecked="False" Style="{StaticResource CheckBox}" />
+                            <CheckBox Name="chkSkipThis" Content="Skip this." ToolTip="Skip this prompt from now on." IsChecked="False" Style="{StaticResource CheckBox}" />
+                        </Canvas>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Canvas>
+</Window>

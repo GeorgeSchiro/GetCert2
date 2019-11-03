@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:tns="http://tempuri.org/" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="GetCertService" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsp:Policy wsu:Id="WSHttpBinding_IGetCertService_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <sp:TransportBinding xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:TransportToken>
+              <wsp:Policy>
+                <sp:HttpsToken RequireClientCertificate="false" />
+              </wsp:Policy>
+            </sp:TransportToken>
+            <sp:AlgorithmSuite>
+              <wsp:Policy>
+                <sp:Basic256 />
+              </wsp:Policy>
+            </sp:AlgorithmSuite>
+            <sp:Layout>
+              <wsp:Policy>
+                <sp:Strict />
+              </wsp:Policy>
+            </sp:Layout>
+            <sp:IncludeTimestamp />
+          </wsp:Policy>
+        </sp:TransportBinding>
+        <sp:EndorsingSupportingTokens xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:SecureConversationToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+              <wsp:Policy>
+                <sp:BootstrapPolicy>
+                  <wsp:Policy>
+                    <sp:SignedParts>
+                      <sp:Body />
+                      <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="From" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="FaultTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="ReplyTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="MessageID" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="RelatesTo" Namespace="http://www.w3.org/2005/08/addressing" />
+                      <sp:Header Name="Action" Namespace="http://www.w3.org/2005/08/addressing" />
+                    </sp:SignedParts>
+                    <sp:EncryptedParts>
+                      <sp:Body />
+                    </sp:EncryptedParts>
+                    <sp:TransportBinding>
+                      <wsp:Policy>
+                        <sp:TransportToken>
+                          <wsp:Policy>
+                            <sp:HttpsToken RequireClientCertificate="false" />
+                          </wsp:Policy>
+                        </sp:TransportToken>
+                        <sp:AlgorithmSuite>
+                          <wsp:Policy>
+                            <sp:Basic256 />
+                          </wsp:Policy>
+                        </sp:AlgorithmSuite>
+                        <sp:Layout>
+                          <wsp:Policy>
+                            <sp:Strict />
+                          </wsp:Policy>
+                        </sp:Layout>
+                        <sp:IncludeTimestamp />
+                      </wsp:Policy>
+                    </sp:TransportBinding>
+                    <sp:EndorsingSupportingTokens>
+                      <wsp:Policy>
+                        <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                          <wsp:Policy>
+                            <sp:RequireThumbprintReference />
+                            <sp:WssX509V3Token10 />
+                          </wsp:Policy>
+                        </sp:X509Token>
+                        <sp:SignedParts>
+                          <sp:Header Name="To" Namespace="http://www.w3.org/2005/08/addressing" />
+                        </sp:SignedParts>
+                      </wsp:Policy>
+                    </sp:EndorsingSupportingTokens>
+                    <sp:Wss11>
+                      <wsp:Policy>
+                        <sp:MustSupportRefThumbprint />
+                      </wsp:Policy>
+                    </sp:Wss11>
+                    <sp:Trust10>
+                      <wsp:Policy>
+                        <sp:MustSupportIssuedTokens />
+                        <sp:RequireClientEntropy />
+                        <sp:RequireServerEntropy />
+                      </wsp:Policy>
+                    </sp:Trust10>
+                  </wsp:Policy>
+                </sp:BootstrapPolicy>
+              </wsp:Policy>
+            </sp:SecureConversationToken>
+          </wsp:Policy>
+        </sp:EndorsingSupportingTokens>
+        <sp:Wss11 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy />
+        </sp:Wss11>
+        <sp:Trust10 xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:MustSupportIssuedTokens />
+            <sp:RequireClientEntropy />
+            <sp:RequireServerEntropy />
+          </wsp:Policy>
+        </sp:Trust10>
+        <wsaw:UsingAddressing />
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import schemaLocation="https://secure_certificate_service_goes_here/GetCert/Service.svc?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="https://secure_certificate_service_goes_here/GetCert/Service.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="IGetCertService_bLockCertificateRenewal_InputMessage">
+    <wsdl:part name="parameters" element="tns:bLockCertificateRenewal" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bLockCertificateRenewal_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bLockCertificateRenewalResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_InputMessage">
+    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewal" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewalResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bNewCertificateUploaded_InputMessage">
+    <wsdl:part name="parameters" element="tns:bNewCertificateUploaded" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bNewCertificateUploaded_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bNewCertificateUploadedResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bOldCertificateRemoved_InputMessage">
+    <wsdl:part name="parameters" element="tns:bOldCertificateRemoved" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bOldCertificateRemoved_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bOldCertificateRemovedResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayGetCertExeUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayGetCertExeUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayGetCertExeUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayGetCertExeUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayGoPcBackupExeUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayGoPcBackupExeUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayGoPcBackupExeUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayGoPcBackupExeUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayNewCertificate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayNewCertificate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayNewCertificate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayNewCertificateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sCfgUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sCfgUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sCfgUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sCfgUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sDomainProfile_InputMessage">
+    <wsdl:part name="parameters" element="tns:sDomainProfile" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sDomainProfile_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sDomainProfileResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sGpcIniUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sGpcIniUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sGpcIniUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sGpcIniUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sHostsEntryUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sHostsEntryUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sHostsEntryUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sHostsEntryUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sIniUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sIniUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sIniUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sIniUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ClientCheckIn_InputMessage">
+    <wsdl:part name="parameters" element="tns:ClientCheckIn" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ClientCheckIn_OutputMessage">
+    <wsdl:part name="parameters" element="tns:ClientCheckInResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificate_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ReportErrors_InputMessage">
+    <wsdl:part name="parameters" element="tns:ReportErrors" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ReportErrors_OutputMessage">
+    <wsdl:part name="parameters" element="tns:ReportErrorsResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ReportEverything_InputMessage">
+    <wsdl:part name="parameters" element="tns:ReportEverything" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_ReportEverything_OutputMessage">
+    <wsdl:part name="parameters" element="tns:ReportEverythingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_SetAdfsThumbprint_InputMessage">
+    <wsdl:part name="parameters" element="tns:SetAdfsThumbprint" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_SetAdfsThumbprint_OutputMessage">
+    <wsdl:part name="parameters" element="tns:SetAdfsThumbprintResponse" />
+  </wsdl:message>
+  <wsdl:portType name="IGetCertService">
+    <wsdl:operation name="bLockCertificateRenewal">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bLockCertificateRenewal" message="tns:IGetCertService_bLockCertificateRenewal_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bLockCertificateRenewalResponse" message="tns:IGetCertService_bLockCertificateRenewal_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="bUnlockCertificateRenewal">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" message="tns:IGetCertService_bUnlockCertificateRenewal_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewalResponse" message="tns:IGetCertService_bUnlockCertificateRenewal_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="bNewCertificateUploaded">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bNewCertificateUploaded" message="tns:IGetCertService_bNewCertificateUploaded_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bNewCertificateUploadedResponse" message="tns:IGetCertService_bNewCertificateUploaded_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="bOldCertificateRemoved">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bOldCertificateRemoved" message="tns:IGetCertService_bOldCertificateRemoved_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bOldCertificateRemovedResponse" message="tns:IGetCertService_bOldCertificateRemoved_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArrayGetCertExeUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" message="tns:IGetCertService_btArrayGetCertExeUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse" message="tns:IGetCertService_btArrayGetCertExeUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArrayGoPcBackupExeUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdate" message="tns:IGetCertService_btArrayGoPcBackupExeUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdateResponse" message="tns:IGetCertService_btArrayGoPcBackupExeUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArrayNewCertificate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayNewCertificate" message="tns:IGetCertService_btArrayNewCertificate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayNewCertificateResponse" message="tns:IGetCertService_btArrayNewCertificate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sCfgUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sCfgUpdate" message="tns:IGetCertService_sCfgUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sCfgUpdateResponse" message="tns:IGetCertService_sCfgUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sDomainProfile">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sDomainProfile" message="tns:IGetCertService_sDomainProfile_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sDomainProfileResponse" message="tns:IGetCertService_sDomainProfile_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sGpcIniUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sGpcIniUpdate" message="tns:IGetCertService_sGpcIniUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sGpcIniUpdateResponse" message="tns:IGetCertService_sGpcIniUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sHostsEntryUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sHostsEntryUpdate" message="tns:IGetCertService_sHostsEntryUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sHostsEntryUpdateResponse" message="tns:IGetCertService_sHostsEntryUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sIniUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sIniUpdate" message="tns:IGetCertService_sIniUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sIniUpdateResponse" message="tns:IGetCertService_sIniUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ClientCheckIn">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckIn" message="tns:IGetCertService_ClientCheckIn_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckInResponse" message="tns:IGetCertService_ClientCheckIn_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificate" message="tns:IGetCertService_NotifyLoadBalancerCertificate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ReportErrors">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ReportErrors" message="tns:IGetCertService_ReportErrors_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ReportErrorsResponse" message="tns:IGetCertService_ReportErrors_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ReportEverything">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ReportEverything" message="tns:IGetCertService_ReportEverything_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ReportEverythingResponse" message="tns:IGetCertService_ReportEverything_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="SetAdfsThumbprint">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/SetAdfsThumbprint" message="tns:IGetCertService_SetAdfsThumbprint_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/SetAdfsThumbprintResponse" message="tns:IGetCertService_SetAdfsThumbprint_OutputMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WSHttpBinding_IGetCertService" type="tns:IGetCertService">
+    <wsp:PolicyReference URI="#WSHttpBinding_IGetCertService_policy" />
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="bLockCertificateRenewal">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bLockCertificateRenewal" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="bUnlockCertificateRenewal">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="bNewCertificateUploaded">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bNewCertificateUploaded" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="bOldCertificateRemoved">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bOldCertificateRemoved" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArrayGetCertExeUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArrayGoPcBackupExeUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArrayNewCertificate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayNewCertificate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sCfgUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sCfgUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sDomainProfile">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sDomainProfile" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sGpcIniUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sGpcIniUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sHostsEntryUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sHostsEntryUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sIniUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sIniUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ClientCheckIn">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/ClientCheckIn" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ReportErrors">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/ReportErrors" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ReportEverything">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/ReportEverything" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SetAdfsThumbprint">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/SetAdfsThumbprint" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="GetCertService">
+    <wsdl:port name="WSHttpBinding_IGetCertService" binding="tns:WSHttpBinding_IGetCertService">
+      <soap12:address location="https://secure_certificate_service_goes_here/GetCert/Service.svc" />
+      <wsa10:EndpointReference>
+        <wsa10:Address>https://secure_certificate_service_goes_here/GetCert/Service.svc</wsa10:Address>
+      </wsa10:EndpointReference>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,210 @@
+<ResourceDictionary
+        xmlns:local="clr-namespace:GetCert2"
+        x:Class="GetCert2.Styles"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        >
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="GlassButtonStyle.xaml"/>
+        <ResourceDictionary Source="ImageButtonStyle.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    
+    <Style x:Key="SavedWindow" TargetType="{x:Type local:SavedWindow}">
+        <Setter Property="AllowsTransparency" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="WindowStyle" Value="None" />
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Icon" Value="images/HANDSHAK.ICO" />
+        <Setter Property="Title" Value="GetCert2" />
+        <Setter Property="Top" Value="100" />
+        <Setter Property="Left" Value="100" />
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="Width" Value="Auto" />
+    </Style>
+
+    <Style x:Key="MainCanvasButton" BasedOn="{StaticResource GlassButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="LawnGreen" />
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Height" Value="75" />
+        <Setter Property="Width" Value="75" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style x:Key="MainCanvasImageButton" BasedOn="{StaticResource ImageButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="75" />
+        <Setter Property="Width" Value="75" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style x:Key="MainCanvasButtonMultiLineText" TargetType="{x:Type TextBlock}">
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style x:Key="MainCanvasCheckBox" TargetType="{x:Type CheckBox}">
+        <Setter Property="Background" Value="LawnGreen" />
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="10" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    </Style>
+
+    <Style x:Key="ConfigWizardStackPanelTop" TargetType="{x:Type StackPanel}">
+    </Style>
+
+    <Style x:Key="ConfigWizardStackPanelMiddle" TargetType="{x:Type StackPanel}">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Orientation" Value="Horizontal" />
+    </Style>
+
+    <Style x:Key="ConfigWizardStackPanelBottom" TargetType="{x:Type StackPanel}">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Orientation" Value="Horizontal" />
+    </Style>
+
+    <Style x:Key="ConfigWizardBorder" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="#CFFFCF" />
+        <Setter Property="BorderBrush" Value="YellowGreen" />
+        <Setter Property="BorderThickness" Value="{Binding ElementName=MiddlePanelProgressBar, Path=BorderThickness.Top}" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Margin" Value="{Binding ElementName=MiddlePanelProgressBar, Path=Margin}" />
+    </Style>
+
+    <Style x:Key="ConfigWizardButton" BasedOn="{StaticResource GlassButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="LawnGreen" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Height" Value="75" />
+        <Setter Property="Width" Value="250" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style x:Key="ConfigWizardCheckBox" TargetType="{x:Type CheckBox}">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ConfigWizardComboBoxEditable" TargetType="{x:Type ComboBox}">
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="IsEditable" Value="True" />
+        <Setter Property="IsHitTestVisible" Value="True" />
+        <Setter Property="Height" Value="27" />
+        <Setter Property="Width" Value="300" />
+    </Style>
+
+    <Style x:Key="ConfigWizardComboBoxReadOnlyLabel" TargetType="{x:Type Label}">
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Height" Value="27" />
+        <Setter Property="Width" Value="300" />
+    </Style>
+
+    <Style x:Key="ConfigWizardCheckBoxReadOnly" TargetType="{x:Type CheckBox}">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsEnabled" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ConfigWizardEditReviewCheckBox" TargetType="{x:Type CheckBox}">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="ToolTip" Value="Edit text?" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTab" TargetType="{x:Type TabControl}">
+        <Setter Property="Background" Value="#CFFFCF" />
+        <Setter Property="Margin" Value="5" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTabItems" TargetType="{x:Type TabItem}">
+        <Setter Property="Background" Value="YellowGreen" />
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style x:Key="ConfigWizardNextTabButton" BasedOn="{StaticResource MainCanvasButton}" TargetType="{x:Type Button}">
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="ToolTip" Value="Next Tab" />
+        <Setter Property="Height" Value="65" />
+        <Setter Property="Width" Value="65" />
+    </Style>
+
+    <Style x:Key="ConfigWizardNextButtonCanvas" TargetType="{x:Type Canvas}">
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0,0,100,55" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTextBorder" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="LightYellow" />
+        <Setter Property="BorderBrush" Value="YellowGreen" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style x:Key="ConfigWizardText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTextTop" BasedOn="{StaticResource ConfigWizardText}" TargetType="{x:Type TextBlock}">
+        <Setter Property="Margin" Value="20" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTextBottom" BasedOn="{StaticResource ConfigWizardText}" TargetType="{x:Type TextBlock}">
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTextSelected" TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="Global San Serif" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Width" Value="300" />
+    </Style>
+
+    <Style x:Key="ConfigWizardTextReadOnly" BasedOn="{StaticResource ConfigWizardTextSelected}" TargetType="{x:Type TextBox}">
+        <Setter Property="IsReadOnly" Value="True" />
+    </Style>
+
+    <Style x:Key="ConfigWizardUpgradeButton" BasedOn="{StaticResource MainCanvasButton}" TargetType="{x:Type Button}">
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="ToolTip" Value="Copy &amp; Upgrade Previous Configuration" />
+        <Setter Property="Height" Value="90" />
+        <Setter Property="Width" Value="90" />
+    </Style>
+
+    <Style x:Key="OutputText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Background" Value="Green" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontFamily" Value="Courier New" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style x:Key="TimerLabel" TargetType="{x:Type Label}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="TimerImage" TargetType="{x:Type Image}">
+        <Setter Property="Height" Value="25" />
+        <Setter Property="Width" Value="25" />
+        <Setter Property="Visibility" Value="Collapsed" />
+    </Style>
+    
+</ResourceDictionary>

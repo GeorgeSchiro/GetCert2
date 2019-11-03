@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://tempuri.org/" elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="bLockCertificateRenewal">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bLockCertificateRenewalResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bLockCertificateRenewalResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bUnlockCertificateRenewal">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bUnlockCertificateRenewalResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bUnlockCertificateRenewalResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bNewCertificateUploaded">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayCertificate" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bNewCertificateUploadedResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bNewCertificateUploadedResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bOldCertificateRemoved">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bOldCertificateRemovedResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bOldCertificateRemovedResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayGetCertExeUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayGetCertExeUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArrayGetCertExeUpdateResult" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayGoPcBackupExeUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayGoPcBackupExeUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArrayGoPcBackupExeUpdateResult" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayNewCertificate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayNewCertificateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArrayNewCertificateResult" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sCfgUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sCfgUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sCfgUpdateResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sDomainProfile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sDomainProfileResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sDomainProfileResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sGpcIniUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sGpcIniUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sGpcIniUpdateResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sHostsEntryUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sHostsEntryUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sHostsEntryUpdateResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sIniUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sIniUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sIniUpdateResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ClientCheckIn">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asErrorLog" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ClientCheckInResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asLoadBalancerComputer" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ReportErrors">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asErrorLog" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ReportErrorsResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ReportEverything">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asClientLog" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ReportEverythingResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SetAdfsThumbprint">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asAdfsThumbprint" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SetAdfsThumbprintResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
