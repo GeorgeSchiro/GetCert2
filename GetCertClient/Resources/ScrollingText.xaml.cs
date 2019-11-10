@@ -200,6 +200,7 @@ namespace GetCert2
                     && !lsControlClass.Contains("Rectangle")
                     && !lsControlClass.Contains("Run")
                     && !lsControlClass.Contains("Scroll")
+                    && !lsControlClass.Contains("Path")
                     )
             {
                 if ( WindowState.Normal == this.WindowState )

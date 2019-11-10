@@ -61,8 +61,20 @@ namespace GetCert2
 
         public static string sMachineKeyPathFile(tvProfile aoProfile, X509Certificate2 aoCertificate)
         {
-            return Path.Combine(aoProfile.sValue("-MachineKeysPath", @"C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys")
-                                    , HashClass.GetKeyFileName(aoCertificate));
+            string lsMachineKeyPathFile = null;
+
+            try
+            {
+                lsMachineKeyPathFile = Path.Combine(aoProfile.sValue("-MachineKeysPath", @"C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys")
+                                        , HashClass.GetKeyFileName(aoCertificate));
+            }
+            catch (InvalidOperationException ex)
+            {
+                if ( aoProfile.bValue("-DeclareErrorOnPrivateKeyFileCleanedUp", false) )
+                    DoGetCert.LogIt(aoProfile, DoGetCert.sExceptionMessage(ex));
+            }
+
+            return lsMachineKeyPathFile;
         }
 
         private static string GetKeyFileName(X509Certificate2 cert)

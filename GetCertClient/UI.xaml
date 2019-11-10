@@ -90,7 +90,7 @@
     </TextBlock>
 </Border>
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-    <Grid Margin="90,10,10,10">
+    <Grid Margin="90,15,15,15">
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition />

@@ -170,7 +170,7 @@ A brief description of each feature follows.
     set to the ""ACME-PS"" folder which, with no absolute path given, will
     be expected to be found within the folder that contains ""{INI}"".
     Set -AcmePsModuleUseGallery=True (see above) and the OS will look to
-    find ""ACME-PS"" in its usual place as a module in the Powershell gallery.
+    find ""ACME-PS"" in its usual place as a module from the Powershell gallery.
 
 -AdfsThumbprintFiles=""C:\inetpub\wwwroot\web.config""
 
@@ -189,13 +189,13 @@ A brief description of each feature follows.
 
 -CertificateDomainName= NO DEFAULT VALUE
 
-    This is the subject name (ie. DNS name) of the certificates returned.
+    This is the subject name (ie. DNS name) of the certificate returned.
 
 -CertificatePrivateKeyExportable=False
 
     Set this switch True (not recommended) to allow certificate private keys
-    to be exportable from the local certificate store to a local disk file.
-    Any SA with server access has access to the certificate's private key.
+    to be exportable from the local certificate store to a local disk file. Any
+    SA with server access will then have access to the certificate's private key.
 
 -CertificateRenewalDateOverride= NO DEFAULT VALUE
 
@@ -291,18 +291,18 @@ A brief description of each feature follows.
 
 -PowershellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File ""{{0}}"" ""{{1}}""
 
-    These are the arguments passed to the windows Powershell EXE (see below).
+    These are the arguments passed to the Windows Powershell EXE (see below).
 
 -PowershellExePathFile=C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe
 
-    This is the path\file location of the windows Powershell EXE.
+    This is the path\file location of the Windows Powershell EXE.
 
 -RemoveReplacedCert=False
 
     Set this switch True and the old (ie. previously bound) certificate will be
     removed whenever a new retrieved certificate is bound to replace it.
 
-    Note: this switch applies only when -UseStandAloneMode is True.
+    Note: this switch is ignored when -UseStandAloneMode is False.
 
 -ReplaceTextSleepMS=200
 
@@ -329,8 +329,8 @@ A brief description of each feature follows.
     in the {EXE} UI. Click the ""SAN List"" button to see the proper format here.
 
     Note: the {EXE} UI limits you to 100 SAN values (the certificate provider
-          does the same). If you add more names than this limit, an error results
-          and no certificate will be generated.
+          does the same). If you add more names than this limit, an error results and
+          no certificate will be generated.
 
 -SaveProfile=True
 
@@ -373,6 +373,7 @@ A brief description of each feature follows.
     only, thereby saving a considerable amount of network bandwidth.
 
     Note: ""non-interactive mode"" means the -Auto switch is set (see above).
+          This switch is ignored when -UseStandAloneMode=True.
 
 -ShowProfile=False
 
@@ -408,7 +409,7 @@ A brief description of each feature follows.
 
     Set this switch False and the software will use the SafeTrust Secure Certificate
     Service (see ""SafeTrust.org"") to manage certificates between several servers
-    in a server farm, SSO servers, SSO integrated application servers and load
+    in a server farm, on SSO servers, SSO integrated application servers and load
     balancers.
 
 
@@ -543,7 +544,15 @@ Notes:
             set
             {
                 if ( null != goSetupCertificate )
-                    File.Delete(HashClass.sMachineKeyPathFile(moProfile, goSetupCertificate));
+                {
+                    // Get setup cert's private key file.
+                    string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, goSetupCertificate);
+                            if ( null != lsMachineKeyPathFile )
+                            {
+                                // Remove cert's private key file (sadly, the OS typically let's these things accumulate forever).
+                                File.Delete(lsMachineKeyPathFile);
+                            }
+                }
 
                 moProfile["-CertificateSetupDone"] = value;
                 moProfile.Save();
@@ -1175,11 +1184,11 @@ Notes:
         }
         private static tvProfile goEnvProfile = null;
 
-        private static string sExceptionMessage(Exception ex)
+        public static string sExceptionMessage(Exception ex)
         {
             return "GetCertServiceFault: " + ex.Message + (null == ex.InnerException ? "": "; " + ex.InnerException.Message) + "\r\n" + ex.StackTrace;
         }
-        private static string sExceptionMessage(string asMessage)
+        public static string sExceptionMessage(string asMessage)
         {
             return "GetCertServiceFault: " + asMessage;
         }
@@ -1307,7 +1316,7 @@ Notes:
             }
         }
 
-        private static void LogIt(tvProfile aoProfile, string asText)
+        public static void LogIt(tvProfile aoProfile, string asText)
         {
             string          lsLogPathFileBase = null;
             StreamWriter    loStreamWriter = null;
@@ -1743,16 +1752,19 @@ Restart-Service -Name $ServiceName
         {
             bool lbCertificateNotExpiring = false;
 
+            if ( moProfile.bValue("-DoStagingTests", true) )
+            {
+                this.LogIt("");
+                this.LogIt("( staging mode is in effect (-DoStagingTests=True) )");
+            }
+
             if ( null != aoOldCertificate )
             {
                 bool lbCheckExpiration = true;
 
                 if ( lbCheckExpiration )
-                {
                     lbCheckExpiration = !moProfile.bValue("-DoStagingTests", true);
-                    if ( !lbCheckExpiration )
-                        this.LogIt("Staging mode is in effect (-DoStagingTests=True).");
-                }
+
                 if ( lbCheckExpiration )
                 {
                     lbCheckExpiration = aoOldCertificate.Verify();
@@ -2855,6 +2867,7 @@ $fileName = $challengePath + ""/"" + $challenge.Data.Filename
 if(-not (Test-Path $challengePath)) { New-Item -Path $challengePath -ItemType Directory }
 Set-Content -Path $fileName -Value $challenge.Data.Content -NoNewLine
 
+$challenge.Data.AbsoluteUrl
 Invoke-WebRequest $challenge.Data.AbsoluteUrl
 $challenge | Complete-ACMEChallenge $global:state
                                         ")
@@ -2949,7 +2962,7 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
 
 Using Module ""{AcmePsPath}""
 
-$SecurePassword=ConvertTo-SecureString ""{CertificatePassword}"" –asplaintext –force
+$SecurePassword=ConvertTo-SecureString ""{CertificatePassword}"" -asplaintext -force
 Export-ACMECertificate $global:state -Order $global:order -CertificateKey $global:certKey -Path ""{CertificatePathFile}"" -Password $SecurePassword
 
 *///  The is an issue with "ConvertTo-SecureString" from a non-interactive session? Not sure. - See "lbCertificatePassword".
@@ -2977,7 +2990,7 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                     else 
                     {
                         this.LogIt("");
-                        this.LogIt("The new certificate private key is exportable. You should set \"-CertificatePrivateKeyExportable=False\" ASAP.");
+                        this.LogIt("The new certificate private key is exportable (\"-CertificatePrivateKeyExportable=True\"). This is not recommended.");
 
                         if ( lbCertificatePassword )
                             loNewCertificate = new X509Certificate2(lsCertPathFile, lsCertificatePassword
@@ -3043,6 +3056,8 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
 
                     if ( lbGetCertificate && !mbMainLoopStopped )
                     {
+                        string lsMachineKeyPathFile = null;
+
                         // Select the local machine certificate store (ie "Local Computer / Personal / Certificates").
                         loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
                         loStore.Open(OpenFlags.OpenExistingOnly | OpenFlags.ReadWrite);
@@ -3059,8 +3074,12 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                             // Remove the new cert from the store.
                             loStore.Remove(loNewCertificate);
 
-                            // Remove new cert's private key file (sadly, the OS just let's these things accumulate forever).
-                            File.Delete(HashClass.sMachineKeyPathFile(moProfile, loNewCertificate));
+                            lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
+                            if ( null != lsMachineKeyPathFile )
+                            {
+                                // Remove cert's private key file (sadly, the OS typically let's these things accumulate forever).
+                                File.Delete(lsMachineKeyPathFile);
+                            }
                         }
                         else
                         {
@@ -3069,11 +3088,16 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                                 // It is necessary to do this here only
                                 // when old and new thumprints are the same.
 
-                                // Remove old cert's private key file.
-                                File.Delete(HashClass.sMachineKeyPathFile(moProfile, loOldCertificate));
+                                // Get old cert's private key file.
+                                lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
+                                if ( null != lsMachineKeyPathFile )
+                                {
+                                    // Remove old cert's private key file.
+                                    File.Delete(lsMachineKeyPathFile);
+                                }
                             }
 
-                            if ( null != loOldCertificate )
+                            if ( null != loOldCertificate && lbGetCertificate && !mbMainLoopStopped )
                             {
                                 if ( !moProfile.bValue("-UseStandAloneMode", true)
                                         || (moProfile.bValue("-UseStandAloneMode", true)
@@ -3089,8 +3113,13 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                                         // Remove the old cert.
                                         loStore.Remove(loOldCertificate);
 
-                                        // Remove old cert's private key file.
-                                        File.Delete(HashClass.sMachineKeyPathFile(moProfile, loOldCertificate));
+                                        // Get old cert's private key file.
+                                        lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
+                                        if ( null != lsMachineKeyPathFile )
+                                        {
+                                            // Remove old cert's private key file.
+                                            File.Delete(lsMachineKeyPathFile);
+                                        }
 
                                         this.LogIt(String.Format("Old certificate (\"{0}\") removed from the local store.", loOldCertificate.Thumbprint));
                                     }
