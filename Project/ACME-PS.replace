@@ -1,0 +1,23 @@
+ReplaceText.exe
+
+-Changed=C:\Desktop\Projects\GetCert2\GetCertClient\Resources\Fetch\ACME-PS\1.1.0\ACME-PS.psm1
+-SaveProfile=True
+-ShowProfile=False
+-XML_Profile=False
+-SubToken={SubToken}
+-OldSubValue="One of many old 'sub replacement token' values goes here."
+-NewSubValue="One of many new 'sub replacement token' values goes here."
+-NoPrompts=False
+-DisplayResults=True
+-DisplayResultsCommand=Notepad.exe
+-IgnoreNoFilesFound=False
+-CopyResultsToSTDOUT=False
+-SearchOnly=False
+-RecurseSubdirectories=False
+-CaseInsensitiveSearch=False
+-UseRegularExpressions=False
+-UseSpecialCharacters=False
+-Help=
+-Files=C:\Desktop\Projects\GetCert2\GetCertClient\Resources\Fetch\ACME-PS\1.1.0\ACME-PS.psm1
+-OldText="throw "$($result.ErrorMessage)`n$($result.Content)""
+-NewText="throw "$($response.ErrorMessage)`n$($response.Content)""
