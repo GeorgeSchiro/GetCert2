@@ -3129,6 +3129,9 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                             // Setup new site-to-cert bindings and remove any old ones.
                             foreach(string lsSanItem in lsSanArray)
                             {
+                                if ( !lbGetCertificate || mbMainLoopStopped )
+                                    break;
+
                                 Site    loOldSite = null;
                                 Binding loOldBinding = null;
                                 Site    loDefaultSite = null;
@@ -3237,17 +3240,25 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                                 {
                                     // Perhaps the certificate was just deleted from the store (leaving the binding behind).
                                     if ( ex.Message.Contains("Cannot add duplicate collection entry of type 'binding'") )
+                                    {
                                         this.LogIt(String.Format("Duplicate IIS port {0} binding entry found and removed for \"{1}\".", lsBindingPort, lsSanItem));
+                                    }
                                     else
+                                    {
                                         this.LogIt(DoGetCert.sExceptionMessage(ex));
+                                        lbGetCertificate = false;
+                                    }
                                 }
                             }
 
-                            this.LogSuccess();
-                            this.LogIt("");
-                            this.LogIt("A new certificate was successfully installed and bound in IIS.");
+                            if ( lbGetCertificate )
+                            {
+                                this.LogSuccess();
+                                this.LogIt("");
+                                this.LogIt("A new certificate was successfully installed and bound in IIS.");
+                            }
 
-                            if ( !this.bCertificateSetupDone )
+                            if ( lbGetCertificate && !mbMainLoopStopped && !this.bCertificateSetupDone )
                             {
                                 // Replace the null certificate reference in the WCF configuration (used for initial setup only)
                                 // with a reference to the newly installed certificate.
@@ -3265,7 +3276,7 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                                 this.bCertificateSetupDone = true;
                             }
 
-                            if ( !moProfile.bValue("-UseStandAloneMode", true) )
+                            if ( lbGetCertificate && !mbMainLoopStopped && !moProfile.bValue("-UseStandAloneMode", true) )
                             {
                                 // At this point we need to load the new certificate into the service factory object (before removing the old one).
                                 moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
