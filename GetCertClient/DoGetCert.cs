@@ -1770,7 +1770,7 @@ Restart-Service -Name $ServiceName
                     lbCheckExpiration = aoOldCertificate.Verify();
                     if ( !lbCheckExpiration )
                     {
-                        this.LogIt(String.Format("The current certificate ({0}) appears not to be valid (if you know otherwise, make sure internet connectivity is available and the system clock is accurate).", aoOldCertificate.Subject));
+                        this.LogIt(String.Format("The current certificate ({0}) appears to be invalid (if you know otherwise, make sure internet connectivity is available and the system clock is accurate).", aoOldCertificate.Subject));
                         this.LogIt("Expiration status will therefore be ignored and the process will now run.");
                     }
                 }
@@ -2958,15 +2958,6 @@ Using Module ""{AcmePsPath}""
 
 Export-ACMECertificate $global:state -Order $global:order -CertificateKey $global:certKey -Path ""{CertificatePathFile}""
                                     ")
-/* Was:
-
-Using Module ""{AcmePsPath}""
-
-$SecurePassword=ConvertTo-SecureString ""{CertificatePassword}"" -asplaintext -force
-Export-ACMECertificate $global:state -Order $global:order -CertificateKey $global:certKey -Path ""{CertificatePathFile}"" -Password $SecurePassword
-
-*///  The is an issue with "ConvertTo-SecureString" from a non-interactive session? Not sure. - See "lbCertificatePassword".
-
                                     .Replace("{AcmePsPath}", lsAcmePsPath)
                                     .Replace("{AcmeWorkPath}", lsAcmeWorkPath)
                                     .Replace("{CertificatePassword}", lsCertificatePassword)
