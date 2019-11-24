@@ -313,6 +313,7 @@ Options and Features
     only, thereby saving a considerable amount of network bandwidth.
 
     Note: "non-interactive mode" means the -Auto switch is set (see above).
+          This switch is ignored when -UseStandAloneMode=True.
 
 -ShowProfile=False
 
