@@ -2868,7 +2868,6 @@ if(-not (Test-Path $challengePath)) { New-Item -Path $challengePath -ItemType Di
 Set-Content -Path $fileName -Value $challenge.Data.Content -NoNewLine
 
 $challenge.Data.AbsoluteUrl
-Invoke-WebRequest $challenge.Data.AbsoluteUrl
 $challenge | Complete-ACMEChallenge $global:state
                                         ")
                                         .Replace("{AcmePsPath}", lsAcmePsPath)
