@@ -17,3 +17,5 @@ ReplaceText.exe
 -UseRegularExpressions=False
 -UseSpecialCharacters=False
 -Help=
+-DisplayResultsCommand=Notepad.exe
+-FetchSource=False

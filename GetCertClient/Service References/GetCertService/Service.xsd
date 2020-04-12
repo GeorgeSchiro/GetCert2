@@ -201,16 +201,80 @@
       <xs:sequence />
     </xs:complexType>
   </xs:element>
-  <xs:element name="NotifyLoadBalancerCertificate">
+  <xs:element name="NotifyAdfsThumbprintReplacementFailure">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
         <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asLoadBalancerComputer" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:element name="NotifyLoadBalancerCertificateResponse">
+  <xs:element name="NotifyAdfsThumbprintReplacementFailureResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyAdfsThumbprintReplacementSuccess">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyAdfsThumbprintReplacementSuccessResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateExeFailure">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateExeFailureResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateExeSuccess">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateExeSuccessResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificatePending">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificatePendingResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateReady">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyLoadBalancerCertificateReadyResponse">
     <xs:complexType>
       <xs:sequence />
     </xs:complexType>

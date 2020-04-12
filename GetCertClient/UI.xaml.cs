@@ -257,7 +257,29 @@ namespace GetCert2
             // Determine the "Setup Done" panel text.
             this.SetupDoneText();
 
-            if ( !moProfile.bValue("-AllConfigWizardStepsCompleted", false) )
+            if ( moProfile.bValue("-AllConfigWizardStepsCompleted", false) )
+            {
+                // -LoadBalancerReleaseCert is meant to be a command-line switch only. So if it's not already there, don't add it.
+                if ( moProfile.ContainsKey("-LoadBalancerReleaseCert") && moProfile.bValue("-LoadBalancerReleaseCert", false) )
+                {
+                    moDoGetCert.LoadBalancerReleaseCert();
+                    this.Close();
+                }
+                else
+                {
+                    // Display all of the main application elements needed
+                    // after the configuration wizard has been completed.
+                    this.HideMiddlePanels();
+                    this.MainButtonPanel.IsEnabled = true;
+                    this.GetSetOutputTextPanelCache();
+
+                    bool lbPreviousBackupError = this.ShowPreviousProcessStatus();
+
+                    this.ShowMe();
+                    this.DisplayOutputText();
+                }
+            }
+            else
             {
                 if ( moProfile.bValue("-LicenseAccepted", false) )
                 {
@@ -296,19 +318,6 @@ namespace GetCert2
                         this.DisplayWizard();
                     }
                 }
-            }
-            else
-            {
-                // Display all of the main application elements needed
-                // after the configuration wizard has been completed.
-                this.HideMiddlePanels();
-                this.MainButtonPanel.IsEnabled = true;
-                this.GetSetOutputTextPanelCache();
-
-                bool lbPreviousBackupError = this.ShowPreviousProcessStatus();
-
-                this.ShowMe();
-                this.DisplayOutputText();
             }
         }
 
@@ -1030,8 +1039,8 @@ You can continue this later wherever you left off. "
             string  lsMessage = null;
             bool    lbHaveMovedForward = this.ConfigWizardTabs.SelectedIndex >= miPreviousConfigWizardSelectedIndex;
 
-            Regex loEmailRegex = new Regex(@"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$");
-            Regex loDnsNameRegex = new Regex(@"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,4}$");
+            Regex loEmailRegex = new Regex(moProfile.sValue("-RegexEmailAddress", @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$"));
+            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"));
 
             // Can't pass nulls to Regex.
             if ( null == this.ContactEmailAddress.Text )
@@ -1069,8 +1078,8 @@ You can continue this later wherever you left off. "
         {
             string  lsMessage = null;
 
-            Regex loDnsNameRegex = new Regex(@"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,4}$");
-            Regex loDnsNameRegex2 = new Regex(@"^[^.][\*a-zA-Z0-9\-\.]+\.$");
+            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"));
+            Regex loDnsNameRegexSanList = new Regex(moProfile.sValue("-RegexDnsNameSanList", @"^[^.][\*a-zA-Z0-9\-\.]+\.$"));
 
             // Rebuild (in case of review or SAN list was edited in the profile).
             DomainListTabs.Items.Clear();
@@ -1085,7 +1094,7 @@ You can continue this later wherever you left off. "
                 {
                     ComboBox loComboBox = (ComboBox)loTabGrid.Children[j];
 
-                    if ( "" == loComboBox.Text || loDnsNameRegex.IsMatch(loComboBox.Text) || loDnsNameRegex2.IsMatch(loComboBox.Text) )
+                    if ( "" == loComboBox.Text || loDnsNameRegex.IsMatch(loComboBox.Text) || loDnsNameRegexSanList.IsMatch(loComboBox.Text) )
                     {
                         loComboBox.Foreground = Brushes.Black;
                     }
@@ -1330,7 +1339,6 @@ If you would prefer to finish this setup at another time, you can exit now and c
             this.bMainProcessRunning = true;
 
             moDoGetCert.bGetCertificate();
-            moDoGetCert.bReplaceAdfsThumbprint();
 
             this.bMainProcessRunning = false;
         }

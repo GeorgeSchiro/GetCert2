@@ -10,7 +10,7 @@ If the current time is not within a given number of days prior to expiration of 
 
 If the software is not running in "stand-alone" mode, it also copies any new cert to a file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (ie. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
 
-Also when -UseStandAloneMode is False, this software checks for any previously fetched certificate (by another client running the same software). If found, it is downloaded directly from the SCS (rather than attempting retrieval from the certificate provider network). If not found on the SCS, a certificate is requested from the certificate provider network, uploaded to the SCS (for use by other clients in the same server farm) and installed locally and bound to port 443 in IIS. Finally, calls to the certificate provider network can be overridden by providing this software access to a digital certificate file anywhere on the local network.
+Also when -UseStandAloneMode is False, this software checks for any previously fetched certificate (by another client running the same software). If found, it is downloaded directly from the SCS (rather than attempting retrieval from the certificate provider network). If not found on the SCS, a certificate is requested from the certificate provider network, uploaded to the SCS (for use by other clients in the same server farm) and installed locally and bound to port 443 in IIS. Finally, calls to the certificate provider network can be overridden by providing this software access to a secure digital certificate file anywhere on the local network.
 
 Give it a try.
 
@@ -38,6 +38,10 @@ Features
 
 
 **GetCert2** is essentially an automation front-end for "ACME-PS". "ACME-PS" is an excellent tool. That said, you can replace it with any other Powershell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
+
+Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to "ACME-PS" as a string token of the form: {-KeyName}. Here's an example:
+
+    New-ACMEAccount $state -EmailAddresses "{-ContactEmailAddress}" -AcceptTOS
 
 
 Screenshots
@@ -77,6 +81,7 @@ Command-Line Usage
     appear in the profile (with the exception of the "-ini" key).
 
     For example, the following invokes the use of an alternative profile file:
+    (be sure to copy an existing profile file if you do this):
 
         GetCert2.exe -ini=NewProfile.txt
 
@@ -105,21 +110,23 @@ Options and Features
 
 -AcmePsPath="ACME-PS"
 
-    "ACME-PS" is the primary tool used by this utility to communicate
-    with the "Let's Encrypt" certificate network. By default, this key is
-    set to the "AcmePs" folder which, with no absolute path given, will
-    be expected to be found within the folder that contains "GetCert2.exe.config".
-    Set -AcmePsModuleUseGallery=True (see above) and the OS will look to
-    find "AcmePs" in its usual place as a module in the Powershell gallery.
+    "ACME-PS" is the tool used by this utility to communicate with the
+    "Let's Encrypt" certificate network. By default, this key is set to the "ACME-PS"
+    folder which, with no absolute path given, will be expected to be found within
+    the folder containing "GetCert2.exe.config". Set -AcmePsModuleUseGallery=True
+    (see above) and the OS will look to find "ACME-PS" in its usual place as a
+    module from the Powershell gallery.
 
 -AdfsThumbprintFiles="C:\inetpub\wwwroot\web.config"
 
     This is the path and filename of files that will have their ADFS certificate
-    thumbprint replaced whenever the related ADFS certificate changes. Any files
-    with the same name at all levels of the directory hierarchy may be updated,
-    starting with the given base path. Wildcards may be used in the filename.
+    thumbprint replaced whenever the related ADFS certificate changes. Each file
+    with the same name at all levels of the directory hierarchy will be updated,
+    starting with the given base path, if the old ADFS certificate thumbprint is
+    found there. See -SkipAdfsThumbprintUpdates below.
 
-    This key may appear any number of times in the profile.
+    Note: This key may appear any number of times in the profile and wildcards
+          can be used in the filename.
 
 -Auto=False
 
@@ -129,19 +136,22 @@ Options and Features
 
 -CertificateDomainName= NO DEFAULT VALUE
 
-    This is the subject name (ie. DNS name) of the certificates returned.
+    This is the subject name (ie. DNS name) of the certificate returned.
 
 -CertificatePrivateKeyExportable=False
 
     Set this switch True (not recommended) to allow certificate private keys
-    to be exportable from the local certificate store to a local disk file.
-    Any SA with server access has access to the certificate's private key.
+    to be exportable from the local certificate store to a local disk file. Any
+    SA with server access will then have access to the certificate's private key.
 
 -CertificateRenewalDateOverride= NO DEFAULT VALUE
 
     Set this date value to override the date calculation that subtracts
     -ExpirationDaysBeforeRenewal days (see below) from the current certificate
     expiration date to know when to start fetching a new certificate.
+
+    Note: this parameter will be removed from the profile after a certificate
+          has been successfully retrieved from the certificate provider network.
 
 -ContactEmailAddress= NO DEFAULT VALUE
 
@@ -153,12 +163,21 @@ Options and Features
     If a SAN specific website does not yet exist in IIS, it will be created
     automatically during the first run of the "get certificate" process for
     that SAN value. Set this switch False to have all SAN challenges routed
-    through the IIS default website (such challenges will typically fail).
+    through the IIS default website (such challenges will typically fail). If
+    they do fail, you will need to create your SAN specific sites manually.
+
+    Note: each SAN value must be challenged and therefore SAN challenges
+          must be routed through your web server just like your primary domain.
+          That means every SAN value must have a corresponding entry in the
+          global internet DNS database.
+
+          When a new website is created in IIS for a new SAN value, by default
+          it is setup to use the same physical path as the primary domain.
 
 -DoStagingTests=True
 
-    Initial testing is done with the certificate provider staging network. Set
-    this switch False to use the live production certificate network.
+    Initial testing is done with the certificate provider staging network.
+    Set this switch False to use the live production certificate network.
 
 -ExpirationDaysBeforeRenewal=30
 
@@ -182,6 +201,13 @@ Options and Features
 
     This is the maximum number of seconds given to a process after a "close"
     command is given before the process is forcibly terminated.
+
+-LoadBalancerReleaseCert=False
+
+    Set this switch True to indicate the new certificate has been released by
+    the load balancer administrator or process.
+
+    Note: this switch is ignored when -UseStandAloneMode is True.
 
 -LogEntryDateTimeFormatPrefix="yyyy-MM-dd hh:mm:ss:fff tt  "
 
@@ -231,28 +257,33 @@ Options and Features
 
 -PowershellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File "{0}" "{1}"
 
-    These are the arguments passed to the windows Powershell EXE (see below).
+    These are the arguments passed to the Windows Powershell EXE (see below).
 
 -PowershellExePathFile=C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe
 
-    This is the path\file location of the windows Powershell EXE.
+    This is the path\file location of the Windows Powershell EXE.
+
+-RegexDnsNamePrimary=""^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$""
+
+    This regular expression is used to validate -CertificateDomainName (see above).
+
+-RegexDnsNameSanList=""^[^.][\*a-zA-Z0-9\-\.]+\.$""
+
+    This regular expression is used to validate -SanList names (see below).
+
+    Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are used to validate
+          SAN list names. A match of either pattern will pass validation.
+
+-RegexEmailAddress=""^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$""
+
+    This regular expression is used to validate -ContactEmailAddress (see above).
 
 -RemoveReplacedCert=False
 
     Set this switch True and the old (ie. previously bound) certificate will be
     removed whenever a new retrieved certificate is bound to replace it.
 
-    Note: this switch applies only when -UseStandAloneMode is True.
-
--ReplaceTextSleepMS=200
-
-    This is the number of sleep milliseconds between loops while waiting for the
-    ADFS text replacement process to complete.
-
--ReplaceTextTimeoutSecs=120
-
-    This is the maximum number of seconds allocated to the ADFS text replacement
-    process to run prior to throwing a timeout exception.
+    Note: this switch is ignored when -UseStandAloneMode is False.
 
 -ResetStagingLogs=True
 
@@ -268,9 +299,13 @@ Options and Features
     above). This list can be edited here directly or through the "SAN List" button
     in the GetCert2.exe UI. Click the "SAN List" button to see the proper format here.
 
+    Here's a command-line example:
+
+    -SanList="-Domain=MyDomain.com -Domain=www.MyDomain.com"
+
     Note: the GetCert2.exe UI limits you to 100 SAN values (the certificate provider
-          does the same). If you add more names than this limit, an error results
-          and no certificate will be generated.
+          does the same). If you add more names than this limit, an error results and
+          no certificate will be generated.
 
 -SaveProfile=True
 
@@ -292,9 +327,9 @@ Options and Features
 -ScriptStage1= SEE PROFILE FOR DEFAULT VALUE
 
     There are multiple stages involved with the process of getting a certificate
-    from the certificate provider network. Each stage has an associated Powershell 
-    script. The stages are represented in this profile by -ScriptStage1 thru
-    -ScriptStage7.
+    from the certificate provider network. Each stage has an associated Powershell
+    script snippet. The stages are represented in this profile by -ScriptStage1
+    thru -ScriptStage7.
 
 -ServiceNameLive="LetsEncrypt"
 
@@ -320,6 +355,10 @@ Options and Features
     Set this switch True to immediately display the entire contents of the profile
     file at startup in command-line format. This may be helpful as a diagnostic.
 
+-SingleSessionEnabled=False
+
+    Set this switch True to run all powershell scripts in a single global session.
+
 -SkipAdfsServer=False
 
     When a client is on an ADFS domain (ie. it's a member of an ADFS server farm),
@@ -331,12 +370,14 @@ Options and Features
     When a client's domain references an ADFS domain, the client will automatically
     attempt to update configuration files with each new ADFS certificate thumbprint.
     Set this switch True to disable ADFS thumbprint configuration updates (for this
-    client only).
+    client only). See -AdfsThumbprintFiles above.
 
--SubmissionRetries=999
+-SubmissionRetries=99
 
     Pending submissions to the certificate provider network will be retried until
-    they succeed or fail, by default, at most this many times.
+    they succeed or fail, at most this many times. By default, the  process will
+    retry for almost 10 minutes (-SubmissionRetries times -SubmissionWaitSecs,
+    see below).
 
 -SubmissionWaitSecs=5
 
@@ -349,7 +390,7 @@ Options and Features
 
     Set this switch False and the software will use the SafeTrust Secure Certificate
     Service (see "SafeTrust.org") to manage certificates between several servers
-    in a server farm, SSO servers, SSO integrated application servers and load
+    in a server farm, on SSO servers, SSO integrated application servers and load
     balancers.
 
 

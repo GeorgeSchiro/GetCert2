@@ -191,11 +191,41 @@
   <wsdl:message name="IGetCertService_ClientCheckIn_OutputMessage">
     <wsdl:part name="parameters" element="tns:ClientCheckInResponse" />
   </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificate_InputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificate" />
+  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementFailure_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementFailure" />
   </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificate_OutputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateResponse" />
+  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementFailure_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementFailureResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementSuccess_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementSuccess" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementSuccess_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementSuccessResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeFailure" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeFailure_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeFailureResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeSuccess_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeSuccess" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeSuccess_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeSuccessResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificatePending_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificatePending" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificatePending_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificatePendingResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateReady_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateReady" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateReady_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateReadyResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_ReportErrors_InputMessage">
     <wsdl:part name="parameters" element="tns:ReportErrors" />
@@ -268,9 +298,29 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckIn" message="tns:IGetCertService_ClientCheckIn_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckInResponse" message="tns:IGetCertService_ClientCheckIn_OutputMessage" />
     </wsdl:operation>
-    <wsdl:operation name="NotifyLoadBalancerCertificate">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificate" message="tns:IGetCertService_NotifyLoadBalancerCertificate_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificate_OutputMessage" />
+    <wsdl:operation name="NotifyAdfsThumbprintReplacementFailure">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailure" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementFailure_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailureResponse" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementFailure_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyAdfsThumbprintReplacementSuccess">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccess" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementSuccess_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccessResponse" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementSuccess_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateExeFailure">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailureResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeFailure_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateExeSuccess">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeSuccess" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeSuccess_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeSuccessResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeSuccess_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificatePending">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificatePending" message="tns:IGetCertService_NotifyLoadBalancerCertificatePending_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificatePendingResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificatePending_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateReady">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateReady" message="tns:IGetCertService_NotifyLoadBalancerCertificateReady_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateReadyResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificateReady_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="ReportErrors">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ReportErrors" message="tns:IGetCertService_ReportErrors_InputMessage" />
@@ -405,8 +455,53 @@
         <soap12:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
-    <wsdl:operation name="NotifyLoadBalancerCertificate">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificate" style="document" />
+    <wsdl:operation name="NotifyAdfsThumbprintReplacementFailure">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailure" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyAdfsThumbprintReplacementSuccess">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccess" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateExeFailure">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateExeSuccess">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeSuccess" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificatePending">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificatePending" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyLoadBalancerCertificateReady">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateReady" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
