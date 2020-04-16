@@ -202,10 +202,13 @@ Options and Features
     This is the maximum number of seconds given to a process after a "close"
     command is given before the process is forcibly terminated.
 
--LoadBalancerReleaseCert=False
+-LoadBalancerReleaseCert
 
-    Set this switch True to indicate the new certificate has been released by
-    the load balancer administrator or process.
+    This switch indicates the new certificate has been released by the load
+    balancer administrator or process.
+
+    This switch would typically never appear in a profile file. It's meant to be
+    used on the command-line only (in a script or a shortcut).
 
     Note: this switch is ignored when -UseStandAloneMode is True.
 
@@ -263,18 +266,18 @@ Options and Features
 
     This is the path\file location of the Windows Powershell EXE.
 
--RegexDnsNamePrimary=""^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$""
+-RegexDnsNamePrimary="^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"
 
     This regular expression is used to validate -CertificateDomainName (see above).
 
--RegexDnsNameSanList=""^[^.][\*a-zA-Z0-9\-\.]+\.$""
+-RegexDnsNameSanList="^[^.][\*a-zA-Z0-9\-\.]+\.$"
 
     This regular expression is used to validate -SanList names (see below).
 
     Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are used to validate
           SAN list names. A match of either pattern will pass validation.
 
--RegexEmailAddress=""^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$""
+-RegexEmailAddress="^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$"
 
     This regular expression is used to validate -ContactEmailAddress (see above).
 
