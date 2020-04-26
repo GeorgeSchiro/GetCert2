@@ -187,7 +187,7 @@ A brief description of each feature follows.
 -Auto=False
 
     Set this switch True to run this utility one time (with no interactive UI)
-    then shutdown automatically upon completion. This switch is useful if this
+    then shutdown automatically upon completion. This switch is useful if the
     software is run in a batch process or by a server job scheduler.
 
 -CertificateDomainName= NO DEFAULT VALUE
@@ -508,7 +508,8 @@ Notes:
                                         if ( null != loStartupWaitMsg )
                                             loStartupWaitMsg.Close();
 
-                            ChannelFactory<GetCertService.IGetCertServiceChannel> loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                            ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                                                                    DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
 
                             string  lsProfile = DoGetCert.sProfile(loProfile);
                             string  lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
@@ -518,6 +519,7 @@ Notes:
 
                                     // Reinitialize the communications channel in case the certificate was just replaced.
                                     loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                    DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
 
                             if ( !lbGetCertificate || !lbReplaceAdfsThumbprint )
                             {
@@ -541,7 +543,8 @@ Notes:
 
                 try
                 {
-                    ChannelFactory<GetCertService.IGetCertServiceChannel> loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                    ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                                                            DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
 
                     string lsProfile = DoGetCert.sProfile(loProfile);
                     string lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
@@ -648,7 +651,10 @@ Notes:
                     else
                     {
                         if ( null == moGetCertServiceFactory )
+                        {
                             moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                            DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
+                        }
 
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                         {
@@ -975,7 +981,8 @@ Notes:
             string lsLogFileTextReported = null;
             string lsProfile = DoGetCert.sProfile(moProfile);
             string lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
-            ChannelFactory<GetCertService.IGetCertServiceChannel> loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+            ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                                                    DoGetCert.SetCertificate(moProfile, loGetCertServiceFactory);
 
             try
             {
@@ -1246,7 +1253,7 @@ Notes:
         }
 
         /// <summary>
-        /// Returns the current IIS port 443 bound certificate (if any).
+        /// Returns the current IIS port 443 bound certificate (if any), otherwise whatever's in the local store (by name).
         /// </summary>
         private static X509Certificate2 oCurrentCertificate()
         {
@@ -1388,6 +1395,17 @@ Notes:
                 // Use the primary site in the SAN array as defaults for any new site (to be created).
                 DoGetCert.oCurrentCertificate(lsPrimaryCertName, out aoDefaultSiteFound, asSanArray);
             }
+
+            // As a last resort (so much for finally), use the newest certificate found in the local store (by name).
+            if ( null == loCurrentCertificate && null != lsCertName )
+                foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
+                {
+                    if ( lsCertName == DoGetCert.sCertName(loCertificate).ToLower()
+                            && (null == loCurrentCertificate || loCertificate.NotAfter > loCurrentCertificate.NotAfter) )
+                    {
+                        loCurrentCertificate = loCertificate;
+                    }
+                }
 
             return loCurrentCertificate;
         }
@@ -1531,7 +1549,7 @@ Notes:
                 if ( null != aoStartupWaitMsg )
                     aoStartupWaitMsg.Hide();
 
-                DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                 if ( null != aoStartupWaitMsg && !aoProfile.bExit )
                     aoStartupWaitMsg.Show();
@@ -1596,25 +1614,24 @@ Notes:
         }
 
         /// <summary>
-        /// Initial client certificate setup.
+        /// Set client certificate.
         /// </summary>
-        private static void SetupCertificate(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoChannelFactory)
+        private static void SetCertificate(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoChannelFactory)
         {
-            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bValue("-CertificateSetupDone", false) )
+            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bExit )
                 return;
 
             if ( null == aoChannelFactory.Credentials.ClientCertificate.Certificate )
             {
                 if (null == goSetupCertificate)
-                    DoGetCert.SetupCertificate(aoProfile, new GetCertService.GetCertServiceClient());
+                    DoGetCert.SetCertificate(aoProfile, new GetCertService.GetCertServiceClient());
 
                 aoChannelFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
             }
         }
-        private static void SetupCertificate(tvProfile aoProfile, GetCertService.GetCertServiceClient aoGetCertServiceClient)
+        private static void SetCertificate(tvProfile aoProfile, GetCertService.GetCertServiceClient aoGetCertServiceClient)
         {
-            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bValue("-CertificateSetupDone", false)
-                        || aoProfile.bValue("-NoPrompts", false) || aoProfile.bExit )
+            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bExit )
                 return;
 
             if ( null == aoGetCertServiceClient.ClientCredentials.ClientCertificate.Certificate )
@@ -1622,7 +1639,7 @@ Notes:
                 if ( null == goSetupCertificate && "" != aoProfile.sValue("-ContactEmailAddress" ,"") )
                     goSetupCertificate = DoGetCert.oCurrentCertificate(aoProfile.sValue("-CertificateDomainName" ,""));
 
-                if ( null == goSetupCertificate )
+                if ( null == goSetupCertificate && !aoProfile.bValue("-CertificateSetupDone", false) && !aoProfile.bValue("-NoPrompts", false) )
                 {
                     System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
                                                         loOpenDialog.FileName = "GetCertClientSetup.pfx";
@@ -2083,7 +2100,7 @@ Restart-Service -Name $ServiceName
                     return loProfile;
 
                 // Only do the following fetches before initial setup and if the containing application folder has been created.
-                if ( "" == loProfile.sValue("-ContactEmailAddress", "")
+                if ( "" == loProfile.sValue("-ContactEmailAddress", "") && "" == loProfile.sValue("-CertificateDomainName", "")
                         && Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Contains(ResourceAssembly.GetName().Name) )
                 {
                     //if ( null == DoGetCert.sProcessExePathFile(DoGetCert.sHostProcess) )
@@ -2230,10 +2247,11 @@ Checklist for {EXE} setup (SCS version):
 
                 try
                 {
+                    ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                                                            DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
                     string lsLogFileTextReported = null;
 
-                    DoGetCert.ReportErrors(loProfile, new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService")
-                                            , lsHash, lsProfile, out lsLogFileTextReported);
+                    DoGetCert.ReportErrors(loProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
                 }
                 catch {}
             }
@@ -2300,7 +2318,7 @@ Checklist for {EXE} setup (SCS version):
             // Look for GetCert2 EXE update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                 lbtArrayExeUpdate = loGetCertServiceClient.btArrayGetCertExeUpdate(asHash, asProfile, lsCurrentVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2353,7 +2371,7 @@ Checklist for {EXE} setup (SCS version):
             // Look for WCF configuration update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                 lsCfgUpdate = loGetCertServiceClient.sCfgUpdate(asHash, asProfile, lsCfgVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2394,7 +2412,7 @@ Checklist for {EXE} setup (SCS version):
             // Look for profile update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                 lsIniUpdate = loGetCertServiceClient.sIniUpdate(asHash, asProfile, lsIniVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2443,7 +2461,7 @@ Checklist for {EXE} setup (SCS version):
                         // Look for an updated GoPcBackup.exe.
                         using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
                         {
-                            DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                            DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                             lbtArrayGpcExeUpdate = loGetCertServiceClient.btArrayGoPcBackupExeUpdate(asHash, asProfile, lsHostExeVersion);
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2459,7 +2477,7 @@ Checklist for {EXE} setup (SCS version):
                         // Look for an updated GoPcBackup.exe.txt.
                         using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
                         {
-                            DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                            DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                             lsHostIniUpdate = loGetCertServiceClient.sGpcIniUpdate(asHash, asProfile, lsHostIniVersion);
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2626,7 +2644,7 @@ Checklist for {EXE} setup (SCS version):
             // Look for hosts entry update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetupCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
 
                 lsHstUpdate = loGetCertServiceClient.sHostsEntryUpdate(asHash, asProfile, lsHstVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -2812,7 +2830,8 @@ Checklist for {EXE} setup (SCS version):
             try
             {
                 moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                DoGetCert.SetupCertificate(moProfile, moGetCertServiceFactory);
+                DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
+
                 string[]            lsSanArray = moProfile.oProfile("-SanList").sOneKeyArray("*");
                                     // The SAN list is the authoritative source for domain names, unless there's only one domain.
                                     if (  1 == lsSanArray.Length )
@@ -3041,7 +3060,7 @@ Get-ACMEServiceDirectory $global:state -ServiceName ""{AcmeServiceName}"" -PassT
                                             );
                                 else
                                     lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage1", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 New-ACMEState      -Path ""{AcmeWorkPath}""
 Get-ACMEServiceDirectory ""{AcmeWorkPath}"" -ServiceName ""{AcmeServiceName}"" -PassThru
@@ -3081,7 +3100,7 @@ $global:authZ = Get-ACMEAuthorization $global:state -Order $global:order
                                         );
                             else
                                 lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage2", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 New-ACMENonce      ""{AcmeWorkPath}""
 New-ACMEAccountKey ""{AcmeWorkPath}""
@@ -3206,7 +3225,7 @@ $challenge | Complete-ACMEChallenge $global:state
                                                 );
                                     else
                                         lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage3", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 $SanList = {SanPsStringArray}
 $order   = Find-ACMEOrder        ""{AcmeWorkPath}"" -Identifiers $SanList
@@ -3260,7 +3279,7 @@ $global:order | Update-ACMEOrder $global:state -PassThru
                                             );
                                 else
                                     lbGetCertificate = this.bRunPowerScript(out lsOutput, moProfile.sValue("-ScriptStage4", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 $order = Find-ACMEOrder   ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
@@ -3292,7 +3311,7 @@ Complete-ACMEOrder $global:state -Order $global:order -CertificateKey $global:ce
                                         );
                             else
                                 lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage5", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 $order = Find-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $certKey = New-ACMECertificateKey -Path ""{AcmeWorkPath}\cert.key.xml""
@@ -3328,7 +3347,7 @@ $global:order | Update-ACMEOrder $global:state -PassThru;
                                             );
                                 else
                                     lbGetCertificate = this.bRunPowerScript(out lsOutput, moProfile.sValue("-ScriptStage6", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 $order = Find-ACMEOrder   ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
@@ -3363,7 +3382,7 @@ Export-ACMECertificate $global:state -Order $global:order -CertificateKey $globa
                                         );
                             else
                                 lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage7", @"
-Using Module ""{AcmePsPath}""
+Import-Module ""{AcmePsPath}""
 
 $order = Find-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $certKey = Import-ACMECertificateKey -Path ""{AcmeWorkPath}\cert.key.xml""
@@ -3648,27 +3667,13 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                             }
 
                             if ( lbGetCertificate && !mbMainLoopStopped && !this.bCertificateSetupDone )
-                            {
-                                // Replace the null certificate reference in the WCF configuration (used for initial setup only)
-                                // with a reference to the newly installed certificate.
-                                string  lsNewCfgContent = File.ReadAllText(moProfile.sLoadedPathFile);
-                                        lsNewCfgContent = lsNewCfgContent.Replace(
-                                                    "</serviceCertificate>\r\n          </clientCredentials>"
-                                                ,String.Format("</serviceCertificate>\r\n            <clientCertificate findValue=\"{0}\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />\r\n          </clientCredentials>"
-                                                        , lsCertName)
-                                                );
-
-                                // Write the updated WCF configuration.
-                                File.WriteAllText(moProfile.sLoadedPathFile, lsNewCfgContent);
-                                DoGetCert.ResetConfigMechanism(moProfile);
-
                                 this.bCertificateSetupDone = true;
-                            }
 
                             if ( lbGetCertificate && !mbMainLoopStopped && !moProfile.bValue("-UseStandAloneMode", true) )
                             {
                                 // At this point we need to load the new certificate into the service factory object (before removing the old one).
                                 moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
 
                                 this.LogIt("Requesting removal of the old certificate from the repository.");
 

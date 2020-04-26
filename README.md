@@ -63,7 +63,6 @@ Requirements
 
 
 -   .Net Framework 4.8+
--   PowerShell 5+
 -   Internet Information Services (IIS)
 -   Windows Server 2008 R2+
 
@@ -90,7 +89,7 @@ Command-Line Usage
         GetCert2.exe -Auto
 
 
-    Author:  George Schiro (GeoCode@SafeTrust.org)
+    Author:  George Schiro
 
     Date:    10/24/2019
 
@@ -131,7 +130,7 @@ Options and Features
 -Auto=False
 
     Set this switch True to run this utility one time (with no interactive UI)
-    then shutdown automatically upon completion. This switch is useful if this
+    then shutdown automatically upon completion. This switch is useful if the
     software is run in a batch process or by a server job scheduler.
 
 -CertificateDomainName= NO DEFAULT VALUE
