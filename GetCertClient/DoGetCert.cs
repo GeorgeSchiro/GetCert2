@@ -1734,6 +1734,7 @@ Notes:
             if ( tvProfile.oGlobal().bValue("-UseStandAloneMode", true) )
                 return true;
 
+            DoGetCert.LogIt("");
             DoGetCert.LogIt("Attempting check-in with the certificate repository ...");
 
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
@@ -1761,14 +1762,13 @@ Notes:
                 else
                     loGetCertServiceClient.Close();
 
-                DoGetCert.LogIt("");
                 if ( !lbDoCheckIn )
                 {
                     throw new Exception("Client FAILED to check-in with the certificate repository. Can't continue.");
                 }
                 else
                 {
-                    DoGetCert.LogIt(String.Format("Client successfully checked-in with the certificate repository{0}.", null == lsErrorLog ? "" : " (and reported previous errors)"));
+                    DoGetCert.LogIt(String.Format("Client successfully checked-in{0}.", null == lsErrorLog ? "" : " (and reported previous errors)"));
 
                     File.Delete(lsPreviousErrorsLogPathFile);
                 }
