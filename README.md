@@ -37,11 +37,11 @@ Features
 -   Software is totally self-contained (EXE is its own setup)
 
 
-**GetCert2** is essentially an automation front-end for "ACME-PS". "ACME-PS" is an excellent tool. That said, you can replace it with any other Powershell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
+**GetCert2** is essentially an automation front-end for "ACME-PS". "ACME-PS" is an excellent tool. That said, you can replace it with any other PowerShell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
 
 Note: since wildcard (ie. star) certificates are no longer considered "security best-practice" (see [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert), **GetCert2** doesn't include support for them.
 
-Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to Powershell as a string token of the form: {-KeyName}. Here's an example:
+Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to PowerShell as a string token of the form: {-KeyName}. Here's an example:
 
     New-ACMEAccount $state -EmailAddresses "{-ContactEmailAddress}" -AcceptTOS
 
