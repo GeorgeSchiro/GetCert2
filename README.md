@@ -6,9 +6,9 @@ Overview
 
 This utility gets a digital certificate from the **FREE** "Let's Encrypt" certificate provider network (see "LetsEncrypt.org"). It installs the certificate in your server's local computer certificate store and binds it to port 443 in IIS.
 
-If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -ExpirationDaysBeforeRenewal below), this software does nothing. Otherwise, the retrieval process begins. If "stand-alone" mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see "SafeTrust.org").
+If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration below), this software does nothing. Otherwise, the retrieval process begins. If "stand-alone" mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see "SafeTrust.org").
 
-If the software is not running in "stand-alone" mode, it also copies any new cert to a file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (ie. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
+If the software is not running in "stand-alone" mode, it also copies any new cert to a secure file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (ie. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
 
 Also when -UseStandAloneMode is False, this software checks for any previously fetched certificate (by another client running the same software). If found, it is downloaded directly from the SCS (rather than attempting retrieval from the certificate provider network). If not found on the SCS, a certificate is requested from the certificate provider network, uploaded to the SCS (for use by other clients in the same server farm) and installed locally and bound to port 443 in IIS. Finally, calls to the certificate provider network can be overridden by providing this software access to a secure digital certificate file anywhere on the local network.
 
@@ -39,7 +39,9 @@ Features
 
 **GetCert2** is essentially an automation front-end for "ACME-PS". "ACME-PS" is an excellent tool. That said, you can replace it with any other Powershell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
 
-Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to "ACME-PS" as a string token of the form: {-KeyName}. Here's an example:
+Note: since wildcard (ie. star) certificates are no longer considered "security best-practice" (see [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert), **GetCert2** doesn't include support for them.
+
+Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to Powershell as a string token of the form: {-KeyName}. Here's an example:
 
     New-ACMEAccount $state -EmailAddresses "{-ContactEmailAddress}" -AcceptTOS
 
@@ -63,6 +65,7 @@ Requirements
 
 
 -   .Net Framework 4.8+
+-   PowerShell 5.1+
 -   Internet Information Services (IIS)
 -   Windows Server 2008 R2+
 
@@ -103,7 +106,7 @@ Options and Features
 
 -AcmePsModuleUseGallery=False
 
-    Set this switch True and the "Powershell Gallery" version of "ACME-PS"
+    Set this switch True and the "PowerShell Gallery" version of "ACME-PS"
     will be used in lieu of the version embedded in the EXE (see -AcmePsPath
     below).
 
@@ -114,18 +117,7 @@ Options and Features
     folder which, with no absolute path given, will be expected to be found within
     the folder containing "GetCert2.exe.config". Set -AcmePsModuleUseGallery=True
     (see above) and the OS will look to find "ACME-PS" in its usual place as a
-    module from the Powershell gallery.
-
--AdfsThumbprintFiles="C:\inetpub\wwwroot\web.config"
-
-    This is the path and filename of files that will have their ADFS certificate
-    thumbprint replaced whenever the related ADFS certificate changes. Each file
-    with the same name at all levels of the directory hierarchy will be updated,
-    starting with the given base path, if the old ADFS certificate thumbprint is
-    found there. See -SkipAdfsThumbprintUpdates below.
-
-    Note: This key may appear any number of times in the profile and wildcards
-          can be used in the filename.
+    module from the PowerShell gallery.
 
 -Auto=False
 
@@ -146,7 +138,7 @@ Options and Features
 -CertificateRenewalDateOverride= NO DEFAULT VALUE
 
     Set this date value to override the date calculation that subtracts
-    -ExpirationDaysBeforeRenewal days (see below) from the current certificate
+    -RenewalDaysBeforeExpiration days (see below) from the current certificate
     expiration date to know when to start fetching a new certificate.
 
     Note: this parameter will be removed from the profile after a certificate
@@ -177,11 +169,6 @@ Options and Features
 
     Initial testing is done with the certificate provider staging network.
     Set this switch False to use the live production certificate network.
-
--ExpirationDaysBeforeRenewal=30
-
-    This is the number of days until certificate expiration before automated
-    gets of the next new certificate are attempted.
 
 -FetchSource=False
 
@@ -235,6 +222,11 @@ Options and Features
     clients the opportunity to lock the certificate renewal (ie. only one client
     at a time per domain can communicate with the certificate provider network).
 
+-NoIISBindingScript=""
+
+    This is the PowerShell script that binds a new certificate when IIS is not in
+    use or the standard IIS binding procedure does not work for whatever reason.
+
 -NoPrompts=False
 
     Set this switch True and all pop-up prompts will be suppressed. Messages
@@ -244,39 +236,39 @@ Options and Features
 
 -PowerScriptPathFile=PowerScript.ps1
 
-    This is the path\file location of the current (ie. temporary) Powershell script
+    This is the path\file location of the current (ie. temporary) PowerShell script
     file.
 
 -PowerScriptSleepMS=200
 
     This is the number of sleep milliseconds between loops while waiting for the
-    Powershell script process to complete.
+    PowerShell script process to complete.
 
 -PowerScriptTimeoutSecs=300
 
-    This is the maximum number of seconds allocated to any Powershell script
+    This is the maximum number of seconds allocated to any PowerShell script
     process to run prior to throwing a timeout exception.
 
--PowershellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File "{0}" "{1}"
+-PowerShellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File "{0}" "{1}"
 
-    These are the arguments passed to the Windows Powershell EXE (see below).
+    These are the arguments passed to the Windows PowerShell EXE (see below).
 
--PowershellExePathFile=C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe
+-PowerShellExePathFile=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 
-    This is the path\file location of the Windows Powershell EXE.
+    This is the path\file location of the Windows PowerShell EXE.
 
--RegexDnsNamePrimary="^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"
+-RegexDnsNamePrimary="^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$"
 
     This regular expression is used to validate -CertificateDomainName (see above).
 
--RegexDnsNameSanList="^[^.][\*a-zA-Z0-9\-\.]+\.$"
+-RegexDnsNameSanList="^([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)([a-zA-Z]{2,18}|)$"
 
     This regular expression is used to validate -SanList names (see below).
 
     Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are used to validate
           SAN list names. A match of either pattern will pass validation.
 
--RegexEmailAddress="^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$"
+-RegexEmailAddress="^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)[a-zA-Z]{2,18}$"
 
     This regular expression is used to validate -ContactEmailAddress (see above).
 
@@ -286,6 +278,11 @@ Options and Features
     removed whenever a new retrieved certificate is bound to replace it.
 
     Note: this switch is ignored when -UseStandAloneMode is False.
+
+-RenewalDaysBeforeExpiration=30
+
+    This is the number of days until certificate expiration before automated
+    gets of the next new certificate are attempted.
 
 -ResetStagingLogs=True
 
@@ -303,7 +300,7 @@ Options and Features
 
     Here's a command-line example:
 
-    -SanList="-Domain=MyDomain.com -Domain=www.MyDomain.com"
+    -SanList="-Domain='MyDomain.com' -Domain='www.MyDomain.com'"
 
     Note: the GetCert2.exe UI limits you to 100 SAN values (the certificate provider
           does the same). If you add more names than this limit, an error results and
@@ -322,14 +319,14 @@ Options and Features
     but command line keys will be saved. When false, not even status information
     will be written to the profile file (ie. "GetCert2.exe.config").
 
--ScriptADFS= SEE PROFILE FOR DEFAULT VALUE
+-ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
-    This is the Powershell script that updates ADFS servers with new certificates.
+    This is the PowerShell script that updates SSO servers with new certificates.
 
 -ScriptStage1= SEE PROFILE FOR DEFAULT VALUE
 
     There are multiple stages involved with the process of getting a certificate
-    from the certificate provider network. Each stage has an associated Powershell
+    from the certificate provider network. Each stage has an associated PowerShell
     script snippet. The stages are represented in this profile by -ScriptStage1
     thru -ScriptStage7.
 
@@ -347,7 +344,7 @@ Options and Features
     By default, all activity logged on the client during non-interactive mode
     is uploaded to the SCS server. This can be very helpful during automation
     testing. Once testing is complete, set this switch False to report errors
-    only, thereby saving a considerable amount of network bandwidth.
+    only.
 
     Note: "non-interactive mode" means the -Auto switch is set (see above).
           This switch is ignored when -UseStandAloneMode=True.
@@ -359,29 +356,40 @@ Options and Features
 
 -SingleSessionEnabled=False
 
-    Set this switch True to run all powershell scripts in a single global session.
+    Set this switch True to run all PowerShell scripts in a single global session.
 
--SkipAdfsServer=False
+-SkipSsoServer=False
 
-    When a client is on an ADFS domain (ie. it's a member of an ADFS server farm),
-    it will automatically attempt to update ADFS services with each new certificate
-    retrieved. Set this switch True to disable ADFS updates (for this client only).
+    When a client is on an SSO domain (ie. it's a member of an SSO server farm),
+    it will automatically attempt to update SSO services with each new certificate
+    retrieved. Set this switch True to disable SSO updates (for this client only).
 
--SkipAdfsThumbprintUpdates=False
+-SkipSsoThumbprintUpdates=False
 
-    When a client's domain references an ADFS domain, the client will automatically
-    attempt to update configuration files with each new ADFS certificate thumbprint.
-    Set this switch True to disable ADFS thumbprint configuration updates (for this
-    client only). See -AdfsThumbprintFiles above.
+    When a client's domain references an SSO domain, the client will automatically
+    attempt to update configuration files with each new SSO certificate thumbprint.
+    Set this switch True to disable SSO thumbprint configuration updates (for this
+    client only). See -SsoThumbprintFiles below.
 
--SubmissionRetries=99
+-SsoThumbprintFiles="C:\inetpub\wwwroot\web.config"
+
+    This is the path and filename of files that will have their SSO certificate
+    thumbprint replaced whenever the related SSO certificate changes. Each file
+    with the same name at all levels of the directory hierarchy will be updated,
+    starting with the given base path, if the old SSO certificate thumbprint is
+    found there. See -SkipSsoThumbprintUpdates above.
+
+    Note: This key may appear any number of times in the profile and wildcards
+          can be used in the filename.
+
+-SubmissionRetries=42
 
     Pending submissions to the certificate provider network will be retried until
     they succeed or fail, at most this many times. By default, the  process will
-    retry for almost 10 minutes (-SubmissionRetries times -SubmissionWaitSecs,
-    see below).
+    retry for 7 minutes (-SubmissionRetries times -SubmissionWaitSecs, see below)
+    for challenge status updates as well as certificate request status updates.
 
--SubmissionWaitSecs=5
+-SubmissionWaitSecs=10
 
     These are the seconds of wait time after the DNS website challenge has been
     submitted to the certificate network as well as after the certificate request

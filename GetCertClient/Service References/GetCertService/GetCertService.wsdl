@@ -113,17 +113,17 @@
       <xsd:import schemaLocation="https://secure_certificate_service_goes_here/GetCert/Service.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
     </xsd:schema>
   </wsdl:types>
+  <wsdl:message name="IGetCertService_bClientCheckIn_InputMessage">
+    <wsdl:part name="parameters" element="tns:bClientCheckIn" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bClientCheckIn_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bClientCheckInResponse" />
+  </wsdl:message>
   <wsdl:message name="IGetCertService_bLockCertificateRenewal_InputMessage">
     <wsdl:part name="parameters" element="tns:bLockCertificateRenewal" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_bLockCertificateRenewal_OutputMessage">
     <wsdl:part name="parameters" element="tns:bLockCertificateRenewalResponse" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_InputMessage">
-    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewal" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_OutputMessage">
-    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewalResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_bNewCertificateUploaded_InputMessage">
     <wsdl:part name="parameters" element="tns:bNewCertificateUploaded" />
@@ -136,6 +136,18 @@
   </wsdl:message>
   <wsdl:message name="IGetCertService_bOldCertificateRemoved_OutputMessage">
     <wsdl:part name="parameters" element="tns:bOldCertificateRemovedResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bSetSsoThumbprint_InputMessage">
+    <wsdl:part name="parameters" element="tns:bSetSsoThumbprint" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bSetSsoThumbprint_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bSetSsoThumbprintResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_InputMessage">
+    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewal" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_bUnlockCertificateRenewal_OutputMessage">
+    <wsdl:part name="parameters" element="tns:bUnlockCertificateRenewalResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_btArrayGetCertExeUpdate_InputMessage">
     <wsdl:part name="parameters" element="tns:btArrayGetCertExeUpdate" />
@@ -185,23 +197,11 @@
   <wsdl:message name="IGetCertService_sIniUpdate_OutputMessage">
     <wsdl:part name="parameters" element="tns:sIniUpdateResponse" />
   </wsdl:message>
-  <wsdl:message name="IGetCertService_ClientCheckIn_InputMessage">
-    <wsdl:part name="parameters" element="tns:ClientCheckIn" />
+  <wsdl:message name="IGetCertService_NotifyCertOverrideCertificateReady_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyCertOverrideCertificateReady" />
   </wsdl:message>
-  <wsdl:message name="IGetCertService_ClientCheckIn_OutputMessage">
-    <wsdl:part name="parameters" element="tns:ClientCheckInResponse" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementFailure_InputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementFailure" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementFailure_OutputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementFailureResponse" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementSuccess_InputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementSuccess" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_NotifyAdfsThumbprintReplacementSuccess_OutputMessage">
-    <wsdl:part name="parameters" element="tns:NotifyAdfsThumbprintReplacementSuccessResponse" />
+  <wsdl:message name="IGetCertService_NotifyCertOverrideCertificateReady_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyCertOverrideCertificateReadyResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage">
     <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeFailure" />
@@ -227,6 +227,18 @@
   <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateReady_OutputMessage">
     <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateReadyResponse" />
   </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifySsoThumbprintReplacementFailure_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifySsoThumbprintReplacementFailure" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifySsoThumbprintReplacementFailure_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifySsoThumbprintReplacementFailureResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifySsoThumbprintReplacementSuccess_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifySsoThumbprintReplacementSuccess" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifySsoThumbprintReplacementSuccess_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifySsoThumbprintReplacementSuccessResponse" />
+  </wsdl:message>
   <wsdl:message name="IGetCertService_ReportErrors_InputMessage">
     <wsdl:part name="parameters" element="tns:ReportErrors" />
   </wsdl:message>
@@ -239,20 +251,14 @@
   <wsdl:message name="IGetCertService_ReportEverything_OutputMessage">
     <wsdl:part name="parameters" element="tns:ReportEverythingResponse" />
   </wsdl:message>
-  <wsdl:message name="IGetCertService_SetAdfsThumbprint_InputMessage">
-    <wsdl:part name="parameters" element="tns:SetAdfsThumbprint" />
-  </wsdl:message>
-  <wsdl:message name="IGetCertService_SetAdfsThumbprint_OutputMessage">
-    <wsdl:part name="parameters" element="tns:SetAdfsThumbprintResponse" />
-  </wsdl:message>
   <wsdl:portType name="IGetCertService">
+    <wsdl:operation name="bClientCheckIn">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bClientCheckIn" message="tns:IGetCertService_bClientCheckIn_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bClientCheckInResponse" message="tns:IGetCertService_bClientCheckIn_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="bLockCertificateRenewal">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bLockCertificateRenewal" message="tns:IGetCertService_bLockCertificateRenewal_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bLockCertificateRenewalResponse" message="tns:IGetCertService_bLockCertificateRenewal_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="bUnlockCertificateRenewal">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" message="tns:IGetCertService_bUnlockCertificateRenewal_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewalResponse" message="tns:IGetCertService_bUnlockCertificateRenewal_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="bNewCertificateUploaded">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bNewCertificateUploaded" message="tns:IGetCertService_bNewCertificateUploaded_InputMessage" />
@@ -261,6 +267,14 @@
     <wsdl:operation name="bOldCertificateRemoved">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bOldCertificateRemoved" message="tns:IGetCertService_bOldCertificateRemoved_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bOldCertificateRemovedResponse" message="tns:IGetCertService_bOldCertificateRemoved_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="bSetSsoThumbprint">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bSetSsoThumbprint" message="tns:IGetCertService_bSetSsoThumbprint_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bSetSsoThumbprintResponse" message="tns:IGetCertService_bSetSsoThumbprint_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="bUnlockCertificateRenewal">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" message="tns:IGetCertService_bUnlockCertificateRenewal_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewalResponse" message="tns:IGetCertService_bUnlockCertificateRenewal_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="btArrayGetCertExeUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" message="tns:IGetCertService_btArrayGetCertExeUpdate_InputMessage" />
@@ -294,17 +308,9 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sIniUpdate" message="tns:IGetCertService_sIniUpdate_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sIniUpdateResponse" message="tns:IGetCertService_sIniUpdate_OutputMessage" />
     </wsdl:operation>
-    <wsdl:operation name="ClientCheckIn">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckIn" message="tns:IGetCertService_ClientCheckIn_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ClientCheckInResponse" message="tns:IGetCertService_ClientCheckIn_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="NotifyAdfsThumbprintReplacementFailure">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailure" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementFailure_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailureResponse" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementFailure_OutputMessage" />
-    </wsdl:operation>
-    <wsdl:operation name="NotifyAdfsThumbprintReplacementSuccess">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccess" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementSuccess_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccessResponse" message="tns:IGetCertService_NotifyAdfsThumbprintReplacementSuccess_OutputMessage" />
+    <wsdl:operation name="NotifyCertOverrideCertificateReady">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReady" message="tns:IGetCertService_NotifyCertOverrideCertificateReady_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReadyResponse" message="tns:IGetCertService_NotifyCertOverrideCertificateReady_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="NotifyLoadBalancerCertificateExeFailure">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage" />
@@ -322,6 +328,14 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateReady" message="tns:IGetCertService_NotifyLoadBalancerCertificateReady_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateReadyResponse" message="tns:IGetCertService_NotifyLoadBalancerCertificateReady_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="NotifySsoThumbprintReplacementFailure">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementFailure" message="tns:IGetCertService_NotifySsoThumbprintReplacementFailure_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementFailureResponse" message="tns:IGetCertService_NotifySsoThumbprintReplacementFailure_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifySsoThumbprintReplacementSuccess">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementSuccess" message="tns:IGetCertService_NotifySsoThumbprintReplacementSuccess_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementSuccessResponse" message="tns:IGetCertService_NotifySsoThumbprintReplacementSuccess_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="ReportErrors">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ReportErrors" message="tns:IGetCertService_ReportErrors_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ReportErrorsResponse" message="tns:IGetCertService_ReportErrors_OutputMessage" />
@@ -330,16 +344,12 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/ReportEverything" message="tns:IGetCertService_ReportEverything_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/ReportEverythingResponse" message="tns:IGetCertService_ReportEverything_OutputMessage" />
     </wsdl:operation>
-    <wsdl:operation name="SetAdfsThumbprint">
-      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/SetAdfsThumbprint" message="tns:IGetCertService_SetAdfsThumbprint_InputMessage" />
-      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/SetAdfsThumbprintResponse" message="tns:IGetCertService_SetAdfsThumbprint_OutputMessage" />
-    </wsdl:operation>
   </wsdl:portType>
   <wsdl:binding name="WSHttpBinding_IGetCertService" type="tns:IGetCertService">
     <wsp:PolicyReference URI="#WSHttpBinding_IGetCertService_policy" />
     <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
-    <wsdl:operation name="bLockCertificateRenewal">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bLockCertificateRenewal" style="document" />
+    <wsdl:operation name="bClientCheckIn">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bClientCheckIn" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
@@ -347,8 +357,8 @@
         <soap12:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
-    <wsdl:operation name="bUnlockCertificateRenewal">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" style="document" />
+    <wsdl:operation name="bLockCertificateRenewal">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bLockCertificateRenewal" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
@@ -367,6 +377,24 @@
     </wsdl:operation>
     <wsdl:operation name="bOldCertificateRemoved">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/bOldCertificateRemoved" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="bSetSsoThumbprint">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bSetSsoThumbprint" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="bUnlockCertificateRenewal">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
@@ -446,26 +474,8 @@
         <soap12:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
-    <wsdl:operation name="ClientCheckIn">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/ClientCheckIn" style="document" />
-      <wsdl:input>
-        <soap12:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap12:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="NotifyAdfsThumbprintReplacementFailure">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementFailure" style="document" />
-      <wsdl:input>
-        <soap12:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap12:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="NotifyAdfsThumbprintReplacementSuccess">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyAdfsThumbprintReplacementSuccess" style="document" />
+    <wsdl:operation name="NotifyCertOverrideCertificateReady">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReady" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
@@ -509,6 +519,24 @@
         <soap12:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="NotifySsoThumbprintReplacementFailure">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementFailure" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifySsoThumbprintReplacementSuccess">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifySsoThumbprintReplacementSuccess" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="ReportErrors">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/ReportErrors" style="document" />
       <wsdl:input>
@@ -520,15 +548,6 @@
     </wsdl:operation>
     <wsdl:operation name="ReportEverything">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/ReportEverything" style="document" />
-      <wsdl:input>
-        <soap12:body use="literal" />
-      </wsdl:input>
-      <wsdl:output>
-        <soap12:body use="literal" />
-      </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="SetAdfsThumbprint">
-      <soap12:operation soapAction="http://tempuri.org/IGetCertService/SetAdfsThumbprint" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>

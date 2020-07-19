@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:tns="http://tempuri.org/" elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="bClientCheckIn">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayErrorLog" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bClientCheckInResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bClientCheckInResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="bLockCertificateRenewal">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -15,26 +31,11 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:element name="bUnlockCertificateRenewal">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="bUnlockCertificateRenewalResponse">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" name="bUnlockCertificateRenewalResult" type="xs:boolean" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
   <xs:element name="bNewCertificateUploaded">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="abtArrayCertificate" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
@@ -50,7 +51,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -61,11 +62,42 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="bSetSsoThumbprint">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asSsoThumbprint" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bSetSsoThumbprintResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bSetSsoThumbprintResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bUnlockCertificateRenewal">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bUnlockCertificateRenewalResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bUnlockCertificateRenewalResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="btArrayGetCertExeUpdate">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -81,7 +113,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -97,7 +129,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -112,7 +144,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -128,7 +160,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -143,7 +175,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -159,7 +191,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -175,7 +207,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
         <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
@@ -187,42 +219,15 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:element name="ClientCheckIn">
+  <xs:element name="NotifyCertOverrideCertificateReady">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asErrorLog" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:element name="ClientCheckInResponse">
-    <xs:complexType>
-      <xs:sequence />
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="NotifyAdfsThumbprintReplacementFailure">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="NotifyAdfsThumbprintReplacementFailureResponse">
-    <xs:complexType>
-      <xs:sequence />
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="NotifyAdfsThumbprintReplacementSuccess">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="NotifyAdfsThumbprintReplacementSuccessResponse">
+  <xs:element name="NotifyCertOverrideCertificateReadyResponse">
     <xs:complexType>
       <xs:sequence />
     </xs:complexType>
@@ -231,7 +236,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -244,7 +249,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -257,7 +262,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -270,7 +275,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -279,12 +284,38 @@
       <xs:sequence />
     </xs:complexType>
   </xs:element>
+  <xs:element name="NotifySsoThumbprintReplacementFailure">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifySsoThumbprintReplacementFailureResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifySsoThumbprintReplacementSuccess">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifySsoThumbprintReplacementSuccessResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
   <xs:element name="ReportErrors">
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asErrorLog" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayErrorLog" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -297,26 +328,12 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asClientLog" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayClientLog" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="ReportEverythingResponse">
-    <xs:complexType>
-      <xs:sequence />
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="SetAdfsThumbprint">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asProfile" nillable="true" type="xs:string" />
-        <xs:element minOccurs="0" name="asAdfsThumbprint" nillable="true" type="xs:string" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="SetAdfsThumbprintResponse">
     <xs:complexType>
       <xs:sequence />
     </xs:complexType>

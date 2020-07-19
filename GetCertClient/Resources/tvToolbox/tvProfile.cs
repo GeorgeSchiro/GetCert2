@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -141,7 +142,7 @@ namespace tvToolbox
     /// Author:     George Schiro (GeoCode@Schiro.name)
     /// </p>
     /// <p>
-    /// Version:    2.21
+    /// Version:    2.23
     /// Copyright:  1996 - 2121
     /// </p>
     /// </summary>
@@ -692,16 +693,25 @@ namespace tvToolbox
 
 
         /// <summary>
-        /// This static factory method creates the global tvProfile object
-        /// (ie. if it doesn't already exist).
+        /// This returns the global tvProfile object.
+        /// 
+        /// Note: use "tvProfile.oGlobal(aoProfile)" to set it.
         /// </summary>
         /// <returns>The global tvProfile object.</returns>
         public static tvProfile oGlobal()
         {
-            if ( null == goGlobal )
-            {
-                goGlobal = new tvProfile(Environment.GetCommandLineArgs());
-            }
+            return goGlobal;
+        }
+
+        /// <summary>
+        /// This sets, then returns the global tvProfile object.
+        /// 
+        /// Note: use "tvProfile.oGlobal()" to get it without setting it.
+        /// </summary>
+        /// <returns>The global tvProfile object.</returns>
+        public static tvProfile oGlobal(tvProfile aoProfile)
+        {
+            goGlobal = aoProfile;
 
             return goGlobal;
         }
@@ -770,13 +780,13 @@ namespace tvToolbox
         {
             if ( "".GetType() == aoValue.GetType() )
             {
-                string lsValue = aoValue.ToString();
+                string lsValue = (null == aoValue ? "" : aoValue.ToString());
 
                 if ( mbUseLiteralsOnly )
                 {
                     foreach ( DictionaryEntry loEntry in this )
                     {
-                        if ( loEntry.Value.ToString() == lsValue )
+                        if ( lsValue == (null == loEntry.Value ? "" : loEntry.Value.ToString()) )
                         {
                             return true;
                         }
@@ -786,7 +796,9 @@ namespace tvToolbox
                 {
                     foreach ( DictionaryEntry loEntry in this )
                     {
-                        if ( Regex.IsMatch(loEntry.Value.ToString(), sExpression(lsValue), RegexOptions.IgnoreCase) )
+                        string lsExpression = this.sExpression(lsValue);
+
+                        if ( null != lsExpression && Regex.IsMatch(null == loEntry.Value ? "" : loEntry.Value.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                         {
                             return true;
                         }
@@ -821,7 +833,7 @@ namespace tvToolbox
         {
             foreach ( DictionaryEntry loEntry in this )
             {
-                if ( loEntry.Value.ToString() == asValue )
+                if ( asValue == (null == loEntry.Value ? "" : loEntry.Value.ToString()) )
                 {
                     return true;
                 }
@@ -846,14 +858,16 @@ namespace tvToolbox
             {
                 if ( mbUseLiteralsOnly )
                 {
-                    if ( loEntry.Key.ToString() == asKey )
+                    if ( asKey == (null == loEntry.Key ? "" : loEntry.Key.ToString()) )
                     {
                         return true;
                     }
                 }
                 else
                 {
-                    if ( Regex.IsMatch(loEntry.Key.ToString(), sExpression(asKey), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asKey);
+
+                    if ( null != lsExpression && Regex.IsMatch(null == loEntry.Key ? "" : loEntry.Key.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                     {
                         return true;
                     }
@@ -880,7 +894,7 @@ namespace tvToolbox
             {
                 for ( int i = 0; i <= this.Count - 1; i++ )
                 {
-                    if ( ((DictionaryEntry) base[i]).Key.ToString() == asKey )
+                    if ( asKey == (null == ((DictionaryEntry) base[i]).Key ? "" : ((DictionaryEntry) base[i]).Key.ToString()) )
                     {
                         return i;
                     }
@@ -890,7 +904,9 @@ namespace tvToolbox
             {
                 for ( int i = 0; i <= this.Count - 1; i++ )
                 {
-                    if ( Regex.IsMatch(((DictionaryEntry) base[i]).Key.ToString(), sExpression(asKey), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asKey);
+
+                    if ( null != lsExpression && Regex.IsMatch(null == ((DictionaryEntry) base[i]).Key ? "" : ((DictionaryEntry) base[i]).Key.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                     {
                         return i;
                     }
@@ -917,7 +933,7 @@ namespace tvToolbox
             {
                 for ( int i = 0; i <= this.Count - 1; i++ )
                 {
-                    if ( ((DictionaryEntry) base[i]).Value.ToString() == asValue )
+                    if ( asValue == (null == ((DictionaryEntry) base[i]).Value ? "" : ((DictionaryEntry) base[i]).Value.ToString()) )
                     {
                         return i;
                     }
@@ -927,7 +943,9 @@ namespace tvToolbox
             {
                 for ( int i = 0; i <= this.Count - 1; i++ )
                 {
-                    if ( Regex.IsMatch(((DictionaryEntry) base[i]).Value.ToString(), sExpression(asValue), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asValue);
+
+                    if ( null != lsExpression && Regex.IsMatch((null == ((DictionaryEntry) base[i]).Value ? "" : ((DictionaryEntry) base[i]).Value.ToString()), lsExpression, RegexOptions.IgnoreCase) )
                     {
                         return i;
                     }
@@ -1035,7 +1053,7 @@ namespace tvToolbox
         /// </param>
         public void SetByIndex(int aiIndex, object aoValue)
         {
-            string lsKey = ((DictionaryEntry) base[aiIndex]).Key.ToString();
+            string lsKey = (null == ((DictionaryEntry) base[aiIndex]).Key ? "" : ((DictionaryEntry) base[aiIndex]).Key.ToString());
 
             base[aiIndex] = new DictionaryEntry(lsKey, aoValue);
         }
@@ -1377,38 +1395,6 @@ namespace tvToolbox
         private tvProfileFileCreateActions meFileCreateAction = tvProfileFileCreateActions.NoFileCreate;
 
         /// <summary>
-        /// The original "command-line string" input passed to the constructor.
-        /// </summary>
-        public  string  sInputCommandLine
-        {
-            get
-            {
-                return msInputCommandLine;
-            }
-            set
-            {
-                msInputCommandLine = value;
-            }
-        }
-        private string msInputCommandLine;
-
-        /// <summary>
-        /// The original "command-line string array" input passed to the constructor.
-        /// </summary>
-        public  string[]  sInputCommandLineArray
-        {
-            get
-            {
-                return msInputCommandLineArray;
-            }
-            set
-            {
-                msInputCommandLineArray = value;
-            }
-        }
-        private string[] msInputCommandLineArray;
-
-        /// <summary>
         /// The path/file location of a text file just created
         /// as an unlocked backup of the current profile file.
         /// </summary>
@@ -1511,6 +1497,38 @@ namespace tvToolbox
         private string msExePathFile;
 
         /// <summary>
+        /// The original "command-line string" input passed to the constructor.
+        /// </summary>
+        public  string  sInputCommandLine
+        {
+            get
+            {
+                return msInputCommandLine;
+            }
+            set
+            {
+                msInputCommandLine = value;
+            }
+        }
+        private string msInputCommandLine;
+
+        /// <summary>
+        /// The original "command-line string array" input passed to the constructor.
+        /// </summary>
+        public  string[]  sInputCommandLineArray
+        {
+            get
+            {
+                return msInputCommandLineArray;
+            }
+            set
+            {
+                msInputCommandLineArray = value;
+            }
+        }
+        private string[] msInputCommandLineArray;
+
+        /// <summary>
         /// The path/file location most recently used to load the profile from
         /// a text file.
         /// </summary>
@@ -1527,6 +1545,23 @@ namespace tvToolbox
             }
         }
         private string msLoadedPathFile;
+
+        /// <summary>
+        /// The "new line" character passed in with the source data.
+        /// If none is found, "Environment.NewLine" is used by default.
+        /// </summary>
+        public  string  sNewLine
+        {
+            get
+            {
+                return msNewLine;
+            }
+            set
+            {
+                msNewLine = value;
+            }
+        }
+        private string msNewLine = Environment.NewLine;
 
         /// <summary>
         /// The key used to find the "key" attribute in XML "key/value" pairs
@@ -1740,7 +1775,7 @@ namespace tvToolbox
             object  loProfile = this.GetAdd(asKey, aoDefaultProfile);
             object  loProfileCast = loProfile as tvProfile;
                     if ( null == loProfileCast )
-                        loProfileCast = new tvProfile(loProfile.ToString());
+                        loProfileCast = new tvProfile(null == loProfile ? "" : loProfile.ToString());
 
             return (tvProfile)loProfileCast;
         }
@@ -1764,7 +1799,7 @@ namespace tvToolbox
             object  loProfile = this.GetAdd(asKey, asDefaultProfile);
             object  loProfileCast = loProfile as tvProfile;
                     if ( null == loProfileCast )
-                        loProfileCast = new tvProfile(loProfile.ToString());
+                        loProfileCast = new tvProfile(null == loProfile ? "" : loProfile.ToString());
 
             return (tvProfile)loProfileCast;
         }
@@ -1807,6 +1842,38 @@ namespace tvToolbox
                         loProfileCast = new tvProfile(null == loProfile ? "" : loProfile.ToString());
 
             return (tvProfile)loProfileCast;
+        }
+
+        /// <summary>
+        /// The profile returned after decompressing btArrayZipped.
+        /// </summary>
+        /// <param name="abtArrayZipped">
+        /// A byte array that represents a ZIP-compressed command-line formatted profile string.
+        /// </param>
+        /// <returns>
+        /// The tvProfile object resulting from decompressing the given byte array.
+        /// </returns>
+        public static tvProfile oProfile(byte[] abtArrayZipped)
+        {
+            using (MemoryStream loMemoryStream = new MemoryStream())
+            {
+                // Define the final length of the returned profile string as whatever is
+                // specified in the first mciIntSizeInBytes bytes of the compressed data.
+                byte[] lbtArrayProfileAsString = new byte[BitConverter.ToInt32(abtArrayZipped, 0)];
+
+                // Write the given byte array to loMemoryStream (skipping the first mciIntSizeInBytes bytes).
+                loMemoryStream.Write(abtArrayZipped, mciIntSizeInBytes, abtArrayZipped.Length - mciIntSizeInBytes);
+                loMemoryStream.Position = 0;
+
+                using (GZipStream loGZipStream = new GZipStream(loMemoryStream, CompressionMode.Decompress))
+                {
+                    // Using loGZipStream, decompress loMemoryStream to lbtArrayProfileAsString.
+                    loGZipStream.Read(lbtArrayProfileAsString, 0, lbtArrayProfileAsString.Length);
+                }
+
+                // Return the decompressed profile string as a profile object.
+                return new tvProfile(Encoding.UTF8.GetString(lbtArrayProfileAsString));
+            }
         }
 
         /// <summary>
@@ -1862,7 +1929,8 @@ namespace tvToolbox
         /// </returns>
         public string sValueNoTrim(string asKey, string asDefault)
         {
-            string lsValue = this.GetAdd(asKey, asDefault).ToString();
+            object loValue = this.GetAdd(asKey, asDefault);
+            string lsValue = (null == loValue ? "" : loValue.ToString());
 
             // The return limit of ExpandEnvironmentVariables is 32K. The difference allows for variable expansion.
             if ( 32000 > lsValue.Length )
@@ -1876,6 +1944,39 @@ namespace tvToolbox
         }
 
         #endregion
+
+        /// <summary>
+        /// Compressed version (in ZIP format) of this profile (represented as a command-line string).
+        /// 
+        /// Decompress using tvProfile.oProfile(abtArrayZipped).
+        /// </summary>
+        /// <returns>Byte array of this profile ZIP-compressed from its command-line string.</returns>
+        public byte[] btArrayZipped()
+        {
+            byte[]          lbtArrayZipped = null;
+            MemoryStream    loMemoryStream = new MemoryStream();
+            byte[]          lbtArrayProfileAsString = Encoding.UTF8.GetBytes(this.sCommandLine());
+                            using (GZipStream loGZipStream = new GZipStream(loMemoryStream, CompressionMode.Compress, true))
+                            {
+                                // Using loGZipStream, compress lbtArrayProfileAsString to loMemoryStream.
+                                loGZipStream.Write(lbtArrayProfileAsString, 0, lbtArrayProfileAsString.Length);
+                            }
+            byte[]          lbtArrayProfileZipped = new byte[loMemoryStream.Length];
+                            // Now write loMemoryStream to lbtArrayProfileZipped (an intermediate byte array).
+                            loMemoryStream.Position = 0;
+                            loMemoryStream.Read(lbtArrayProfileZipped, 0, lbtArrayProfileZipped.Length);
+
+            // Define the final array with the original profile string size as the first mciIntSizeInBytes bytes.
+            lbtArrayZipped = new byte[mciIntSizeInBytes + lbtArrayProfileZipped.Length];
+
+            // Copy the original profile string length to the first mciIntSizeInBytes bytes.
+            Buffer.BlockCopy(BitConverter.GetBytes(lbtArrayProfileAsString.Length), 0, lbtArrayZipped, 0, mciIntSizeInBytes);
+
+            // Copy the intermediate byte array to the new byte array (after the first first mciIntSizeInBytes bytes).
+            Buffer.BlockCopy(lbtArrayProfileZipped, 0, lbtArrayZipped, mciIntSizeInBytes, lbtArrayProfileZipped.Length);
+
+            return lbtArrayZipped;
+        }
 
         /// <summary>
         /// The count of profile entries with a key that matches asKey.
@@ -1899,7 +2000,7 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( loEntry.Key.ToString() == asKey )
+                    if ( asKey == (null == loEntry.Key ? "" : loEntry.Key.ToString()) )
                     {
                         liCount++;
                     }
@@ -1909,7 +2010,9 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( Regex.IsMatch(loEntry.Key.ToString(), this.sExpression(asKey), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asKey);
+
+                    if ( null != lsExpression && Regex.IsMatch(null == loEntry.Key ? "" : loEntry.Key.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                     {
                         liCount++;
                     }
@@ -1934,32 +2037,33 @@ namespace tvToolbox
             ++miCommandBlockRecursionLevel;
 
             string          lcsIndent = "".PadRight(4 * miCommandBlockRecursionLevel);
-            StringBuilder   lsbCommandBlock = new StringBuilder(Environment.NewLine);
+            StringBuilder   lsbCommandBlock = new StringBuilder(this.sNewLine);
 
             foreach ( DictionaryEntry loEntry in this )
             {
-                string lsValue = loEntry.Value.ToString();
+                string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
+                string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
-                if ( lsValue.Contains(Environment.NewLine) )
+                if ( lsValue.Contains(this.sNewLine) )
                 {
-                    lsbCommandBlock.Append(lcsIndent + loEntry.Key.ToString() + mcsAsnMark + mcsBlockBegMark + Environment.NewLine);
+                    lsbCommandBlock.Append(lcsIndent + lsKey + mcsAsnMark + mcsBlockBegMark + this.sNewLine);
                     lsbCommandBlock.Append(lsValue);
-                    lsbCommandBlock.Append(lcsIndent + loEntry.Key.ToString() + mcsAsnMark + mcsBlockEndMark + Environment.NewLine);
+                    lsbCommandBlock.Append(lcsIndent + lsKey + mcsAsnMark + mcsBlockEndMark + this.sNewLine);
                 }
                 else
                 {
                     if ( lsValue.Contains(mcsSpcMark) || lsValue.Contains(mcsArgMark) )
                     {
-                        lsbCommandBlock.Append(lcsIndent + loEntry.Key.ToString() + mcsAsnMark + mcsQteMark1 + lsValue + mcsQteMark1 + Environment.NewLine);
+                        lsbCommandBlock.Append(lcsIndent + lsKey + mcsAsnMark + mcsQteMark1 + lsValue + mcsQteMark1 + this.sNewLine);
                     }
                     else
                     {
-                        lsbCommandBlock.Append(lcsIndent + loEntry.Key.ToString() + mcsAsnMark + lsValue + Environment.NewLine);
+                        lsbCommandBlock.Append(lcsIndent + lsKey + mcsAsnMark + lsValue + this.sNewLine);
                     }
                 }
             }
 
-            lsbCommandBlock.Append(Environment.NewLine);
+            lsbCommandBlock.Append(this.sNewLine);
 
             --miCommandBlockRecursionLevel;
 
@@ -1979,18 +2083,19 @@ namespace tvToolbox
         public string sCommandLine()
         {
             foreach ( DictionaryEntry loEntry in this )
-                if ( loEntry.Value.ToString().Contains(Environment.NewLine) )
+                if ( (null == loEntry.Value ? "" : loEntry.Value.ToString()).Contains(this.sNewLine) )
                     return this.sCommandBlock();
 
             StringBuilder lsbCommandLine = new StringBuilder();
 
             foreach ( DictionaryEntry loEntry in this )
             {
-                string lsValue = loEntry.Value.ToString();
+                string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
+                string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                 if ( !lsValue.Contains(mcsSpcMark) && !lsValue.Contains(mcsArgMark) )
                 {
-                    lsbCommandLine.Append(mcsSpcMark + loEntry.Key.ToString() + mcsAsnMark + lsValue);
+                    lsbCommandLine.Append(mcsSpcMark + lsKey + mcsAsnMark + lsValue);
                 }
                 else
                 {
@@ -2000,7 +2105,7 @@ namespace tvToolbox
                             if ( -1 == liQteMark2Pos ) liQteMark2Pos = lsValue.Length;
                     string  lsQteMark = liQteMark1Pos < liQteMark2Pos ? mcsQteMark2 : mcsQteMark1;
 
-                    lsbCommandLine.Append(mcsSpcMark + loEntry.Key.ToString() + mcsAsnMark + lsQteMark + lsValue + lsQteMark);
+                    lsbCommandLine.Append(mcsSpcMark + lsKey + mcsAsnMark + lsQteMark + lsValue + lsQteMark);
                 }
             }
 
@@ -2023,7 +2128,7 @@ namespace tvToolbox
             {
                 DictionaryEntry loEntry = (DictionaryEntry) base[i];
 
-                lsCommandLineArray[i] = loEntry.Key.ToString() + mcsAsnMark + loEntry.Value.ToString();
+                lsCommandLineArray[i] = (null == loEntry.Key ? "" : loEntry.Key.ToString()) + mcsAsnMark + (null == loEntry.Value ? "" : loEntry.Value.ToString());
             }
 
             return lsCommandLineArray;
@@ -2047,7 +2152,7 @@ namespace tvToolbox
         /// </exception>
         public string sKey(int aiIndex)
         {
-            return oEntry(aiIndex).Key.ToString();
+            return (null == oEntry(aiIndex).Key ? "" : oEntry(aiIndex).Key.ToString());
         }
 
         /// <summary>
@@ -2125,8 +2230,8 @@ namespace tvToolbox
 
                         foreach ( DictionaryEntry loEntry in this )
                         {
-                            string lsKey = loEntry.Key.ToString();
-                            string lsValue = loEntry.Value.ToString();
+                            string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
+                            string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                             // "lbSaveSansCmdLine" is referenced here (in lieu of "this.bSaveSansCmdLine") to gain a little speed.
                             if ( !lbSaveSansCmdLine || null == moInputCommandLineProfile
@@ -2134,13 +2239,13 @@ namespace tvToolbox
                             {
                                 loXmlTextWriter.WriteStartElement(lsXpathArray[i]);
 
-                                    bool lbTextBlock = -1 != lsValue.IndexOf(Environment.NewLine);
+                                    bool lbTextBlock = -1 != lsValue.IndexOf(this.sNewLine);
 
                                     loXmlTextWriter.WriteAttributeString(this.sXmlKeyKey, lsKey);
 
                                     if ( lbTextBlock )
                                     {
-                                        loXmlTextWriter.WriteAttributeString(this.sXmlValueKey, Environment.NewLine + lsValue + Environment.NewLine);
+                                        loXmlTextWriter.WriteAttributeString(this.sXmlValueKey, this.sNewLine + lsValue + this.sNewLine);
                                     }
                                     else
                                     {
@@ -2162,7 +2267,7 @@ namespace tvToolbox
                     loXmlTextWriter.WriteEndDocument();
 
                 // Replace entities since they have no impact on subsequent successful XML reads.
-                lsbFileAsStream.Replace("&#xD;&#xA;", Environment.NewLine);
+                lsbFileAsStream.Replace("&#xD;&#xA;", this.sNewLine);
 
                 // Replace "utf-16" with "UTF-8" to allow current browser support.
                 lsbFileAsStream.Replace("encoding=\"utf-16\"", "encoding=\"UTF-8\"");
@@ -2224,7 +2329,7 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    string lsKey = loEntry.Key.ToString();
+                    string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
 
                     if ( lsKey == asKey )
                     {
@@ -2243,9 +2348,10 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    string lsKey = loEntry.Key.ToString();
+                    string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
+                    string lsExpression = this.sExpression(asKey);
 
-                    if ( Regex.IsMatch(lsKey, this.sExpression(asKey), RegexOptions.IgnoreCase) )
+                    if ( null != lsExpression && Regex.IsMatch(lsKey, lsExpression, RegexOptions.IgnoreCase) )
                     {
                         if ( abRemoveKeyPrefix )
                         {
@@ -2284,9 +2390,9 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( loEntry.Key.ToString() == asKey )
+                    if ( asKey == (null == loEntry.Key ? "" : loEntry.Key.ToString()) )
                     {
-                        string lsValue = loEntry.Value.ToString();
+                        string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                         // The return limit of ExpandEnvironmentVariables is 32K. The difference allows for variable expansion.
                         if ( 32000 > lsValue.Length )
@@ -2302,9 +2408,11 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( Regex.IsMatch(loEntry.Key.ToString(), this.sExpression(asKey), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asKey);
+
+                    if ( null != lsExpression && Regex.IsMatch(null == loEntry.Key ? "" : loEntry.Key.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                     {
-                        string lsValue = loEntry.Value.ToString();
+                        string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                         // The return limit of ExpandEnvironmentVariables is 32K. The difference allows for variable expansion.
                         if ( 32000 > lsValue.Length )
@@ -2351,9 +2459,9 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( loEntry.Key.ToString() == asKey )
+                    if ( asKey == (null == loEntry.Key ? "" : loEntry.Key.ToString()) )
                     {
-                        string lsValue = loEntry.Value.ToString();
+                        string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                         // The return limit of ExpandEnvironmentVariables is 32K. The difference allows for variable expansion.
                         if ( 32000 > lsValue.Length )
@@ -2369,9 +2477,11 @@ namespace tvToolbox
             {
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    if ( Regex.IsMatch(loEntry.Key.ToString(), this.sExpression(asKey), RegexOptions.IgnoreCase) )
+                    string lsExpression = this.sExpression(asKey);
+
+                    if ( null != lsExpression && Regex.IsMatch(null == loEntry.Key ? "" : loEntry.Key.ToString(), lsExpression, RegexOptions.IgnoreCase) )
                     {
-                        string lsValue = loEntry.Value.ToString();
+                        string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                         // The return limit of ExpandEnvironmentVariables is 32K. The difference allows for variable expansion.
                         if ( 32000 > lsValue.Length )
@@ -2598,6 +2708,7 @@ Copy and proceed from there?
                         {
                             loStreamReader = new StreamReader(lsPathFile);
                             lsFileAsStream = loStreamReader.ReadToEnd();
+                            this.sLoadedPathFile = lsPathFile;
                         }
                         catch (IOException ex)
                         {
@@ -2618,6 +2729,7 @@ Copy and proceed from there?
 
                                 loStreamReader = new StreamReader(lsPathFile);
                                 lsFileAsStream = loStreamReader.ReadToEnd();
+                                this.sLoadedPathFile = lsPathFile;
 	                        }
                         }
                         finally
@@ -2672,8 +2784,7 @@ Copy and proceed from there?
                                 liDoOver = 0;
 
                                 // The default file format is line delimited "command-line" format.
-                                this.LoadFromCommandLineArray(lsFileAsStream.Replace(Environment.NewLine, mcsSplitMark)
-                                        .Split(mccSplitMark), aeLoadAction);
+                                this.LoadFromCommandLineArray(this.sReplaceNewLine(lsFileAsStream).Split(mccSplitMark), aeLoadAction);
 
                                 if ( this.bUseXmlFiles )
                                 {
@@ -2690,8 +2801,6 @@ Copy and proceed from there?
                     }
                 }
                 while ( liDoOver-- > 0 );
-
-                this.sLoadedPathFile = lsPathFile;
 
                 if ( !this.bLockProfileFile(lsPathFile) )
                     this.bExit = true;
@@ -2733,11 +2842,10 @@ Copy and proceed from there?
             asCommandLine = asCommandLine.TrimStart(mccSpcMark);
             asCommandLine = asCommandLine.TrimStart('\t');
 
-            if ( -1 != asCommandLine.IndexOf('\n') )
+            if ( -1 != asCommandLine.IndexOf('\r') || -1 != asCommandLine.IndexOf('\n') )
             {
                 // If the command-line is actually already line delimited, then we're practically done.
-                this.LoadFromCommandLineArray(asCommandLine.Replace(Environment.NewLine, mcsSplitMark)
-                        .Split(mccSplitMark), aeLoadAction);
+                this.LoadFromCommandLineArray(this.sReplaceNewLine(asCommandLine).Split(mccSplitMark), aeLoadAction);
             }
             else
             {
@@ -2829,15 +2937,20 @@ Copy and proceed from there?
             {
                 string      lsBlockKey = null;
                 string      lsBlockValue = "";
+                string      lsBlockEnd = null;
+                string      lsBlockExc = null;
                 Hashtable   loMergeKeysMap = new Hashtable();
 
                 foreach ( string lsItem in asCommandLineArray )
                 {
-                    if ( !lsItem.TrimStart().StartsWith(mcsArgMark) )
+                    bool lbIsArg;
+
+                    if ( !(lbIsArg = lsItem.TrimStart().StartsWith(mcsArgMark))
+                            && (null == lsBlockEnd || !lsItem.Contains(lsBlockEnd)) )
                     {
                         if ( null != lsBlockKey )
                         {
-                            lsBlockValue += lsItem + Environment.NewLine;
+                            lsBlockValue += lsItem + this.sNewLine;
                         }
 
                         // If an item does not start with a mcsArgMark
@@ -2845,46 +2958,64 @@ Copy and proceed from there?
                     }
                     else
                     {
-                        string  lsKey;
-                        string  lsValue;
-                        object  loValue;
-                        int     liPos = lsItem.IndexOf(mcsAsnMark);
+                        string  lsKey   = null;
+                        string  lsValue = null;
+                        object  loValue = null;
+                        int     liPos   = 0;
 
-                        if ( -1 == liPos )
+                        if ( !lbIsArg )
                         {
-                            lsKey = lsItem.Trim();
-                            loValue = true;
+                            // lsBlockEnd must be in lsItem.
+
+                            liPos = lsItem.IndexOf(lsBlockEnd);
+                            lsBlockValue += lsItem.Substring(0, liPos) + this.sNewLine;
+                            lsKey = lsBlockKey;
+                            lsValue = mcsBlockEndMark;
+
+                            // This is the excess after the end of the block.
+                            // This will be discarded (at least for now).
+                            lsBlockExc = lsItem.Substring(liPos + lsBlockEnd.Length);
                         }
                         else
                         {
-                            bool lbQteMark1 = false;
-                            bool lbQteMark2 = false;
+                            liPos = lsItem.IndexOf(mcsAsnMark);
 
-                            lsKey = lsItem.Substring(0, liPos).Trim();
-                            lsValue = lsItem.Substring(liPos + 1).Trim();
-
-                            if ( lsValue.StartsWith(mcsQteMark1) && lsValue.EndsWith(mcsQteMark1) )
-                                lbQteMark1 = true;
-                            else
-                            if ( lsValue.StartsWith(mcsQteMark2) && lsValue.EndsWith(mcsQteMark2) )
-                                lbQteMark2 = true;
-
-                            if ( !lbQteMark1 && !lbQteMark2 )
+                            if ( -1 == liPos )
                             {
-                                // This is intentionally not trimmed.
-                                loValue = lsItem.Substring(liPos + 1);
+                                lsKey = lsItem.Trim();
+                                loValue = true;
                             }
                             else
                             {
-                                // First, remove quotation marks (if any).
-                                if ( lsValue.Length < 2 )
-                                    loValue = "";
+                                bool lbQteMark1 = false;
+                                bool lbQteMark2 = false;
+
+                                lsKey = lsItem.Substring(0, liPos).Trim();
+                                lsValue = lsItem.Substring(liPos + 1).Trim();
+
+                                if ( lsValue.StartsWith(mcsQteMark1) && lsValue.EndsWith(mcsQteMark1) )
+                                    lbQteMark1 = true;
                                 else
-                                    loValue = lsValue.Substring(1, lsValue.Length - 2);
-                            }
-                        }
+                                if ( lsValue.StartsWith(mcsQteMark2) && lsValue.EndsWith(mcsQteMark2) )
+                                    lbQteMark2 = true;
 
-                        lsValue = loValue.ToString();
+                                if ( !lbQteMark1 && !lbQteMark2 )
+                                {
+                                    // This is intentionally not trimmed.
+                                    loValue = lsItem.Substring(liPos + 1);
+                                }
+                                else
+                                {
+                                    // First, remove quotation marks (if any).
+                                    if ( lsValue.Length < 2 )
+                                        loValue = "";
+                                    else
+                                        loValue = lsValue.Substring(1, lsValue.Length - 2);
+                                }
+                            }
+
+                            lsValue = (null == loValue ? "" : loValue.ToString());
+                        }
 
                         if ( null != lsBlockKey )
                         {
@@ -2892,16 +3023,19 @@ Copy and proceed from there?
                             {
                                 lsBlockKey = null;
                                 loValue = lsBlockValue;
+                                lsBlockEnd = null;
+                                lsBlockExc = null;
                             }
                             else
                             {
-                                lsBlockValue += lsItem + Environment.NewLine;
+                                lsBlockValue += lsItem + this.sNewLine;
                             }
                         }
                         else if ( mcsBlockBegMark == lsValue )
                         {
                             lsBlockKey = lsKey;
                             lsBlockValue = "";
+                            lsBlockEnd = lsBlockKey + mcsAsnMark + mcsBlockEndMark;
                         }
 
                         if ( null == lsBlockKey )
@@ -2990,9 +3124,9 @@ Copy and proceed from there?
             foreach ( XmlNode loNode in loXmlDoc.SelectNodes(this.sXmlXpath) )
             {
                 string lsKey = loNode.Attributes[this.sXmlKeyKey].Value;
-                string lsValue = loNode.Attributes[this.sXmlValueKey].Value.StartsWith(Environment.NewLine)
-                        ? loNode.Attributes[this.sXmlValueKey].Value.Substring(Environment.NewLine.Length
-                                , loNode.Attributes[this.sXmlValueKey].Value.Length - 2 * Environment.NewLine.Length)
+                string lsValue = loNode.Attributes[this.sXmlValueKey].Value.StartsWith(this.sNewLine)
+                        ? loNode.Attributes[this.sXmlValueKey].Value.Substring(this.sNewLine.Length
+                                , loNode.Attributes[this.sXmlValueKey].Value.Length - 2 * this.sNewLine.Length)
                         : loNode.Attributes[this.sXmlValueKey].Value;
 
                 switch ( aeLoadAction )
@@ -3015,7 +3149,7 @@ Copy and proceed from there?
 
                             foreach ( DictionaryEntry loEntry in this.oOneKeyProfile(lsKey, false) )
                             {
-                                this.SetByIndex(this.IndexOfKey(loEntry.Key.ToString()), lsValue);
+                                this.SetByIndex(this.IndexOfKey(null == loEntry.Key ? "" : loEntry.Key.ToString()), lsValue);
                             }
                         }
                         else
@@ -3069,7 +3203,7 @@ Copy and proceed from there?
             {
                 if ( !lbAlreadyThere )
                 {
-                    lsFileAsStream = this.sXml(true, false);
+                    lsFileAsStream = this.sXml(true, false) + this.sNewLine;
                 }
                 else
                 {
@@ -3104,12 +3238,12 @@ Copy and proceed from there?
                                 }
 
                     // Replace entities since they have no impact on subsequent successful XML reads.
-                    lsFileAsStream = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + XDocument.Parse(loXmlDocument.InnerXml).ToString().Replace("&#xD;&#xA;", Environment.NewLine);
+                    lsFileAsStream = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + this.sNewLine + XDocument.Parse(loXmlDocument.InnerXml).ToString().Replace("&#xD;&#xA;", this.sNewLine) + this.sNewLine;
                 }
             }
             else
             {
-                StringBuilder lsbFileAsStream = new StringBuilder(Path.GetFileName(this.sExePathFile) + Environment.NewLine + Environment.NewLine);
+                StringBuilder lsbFileAsStream = new StringBuilder(Path.GetFileName(this.sExePathFile) + this.sNewLine + this.sNewLine);
 
                 // We use "lbSaveSansCmdLine" below instead of "mbSaveSansCmdLine" for the
                 // needed side effects. Also, we don't want "-SaveSansCmdLine" added here.
@@ -3120,25 +3254,25 @@ Copy and proceed from there?
 
                 foreach ( DictionaryEntry loEntry in this )
                 {
-                    string lsKey = loEntry.Key.ToString();
-                    string lsValue = loEntry.Value.ToString();
+                    string lsKey = (null == loEntry.Key ? "" : loEntry.Key.ToString());
+                    string lsValue = (null == loEntry.Value ? "" : loEntry.Value.ToString());
 
                     // "lbSaveSansCmdLine" is referenced here (in lieu of "this.bSaveSansCmdLine") to gain a little speed.
                     if ( !lbSaveSansCmdLine || null == moInputCommandLineProfile
                             || (lbSaveSansCmdLine && !moInputCommandLineProfile.ContainsKey(lsKey)) )
                     {
-                        if ( -1 == lsValue.IndexOf(Environment.NewLine) )
+                        if ( -1 == lsValue.IndexOf(this.sNewLine) )
                         {
                             if ( -1 == lsValue.IndexOf(mcsSpcMark) )
-                                lsbFileAsStream.Append(lsKey + mcsAsnMark + lsValue + Environment.NewLine);
+                                lsbFileAsStream.Append(lsKey + mcsAsnMark + lsValue + this.sNewLine);
                             else
-                                lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsQteMark1 + lsValue + mcsQteMark1 + Environment.NewLine);
+                                lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsQteMark1 + lsValue + mcsQteMark1 + this.sNewLine);
                         }
                         else
                         {
-                            lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsBlockBegMark + Environment.NewLine);
-                            lsbFileAsStream.Append(lsValue + ((lsValue.EndsWith(Environment.NewLine)) ? "" : Environment.NewLine).ToString());
-                            lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsBlockEndMark + Environment.NewLine);
+                            lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsBlockBegMark + this.sNewLine);
+                            lsbFileAsStream.Append(lsValue + ((lsValue.EndsWith(this.sNewLine)) ? "" : this.sNewLine).ToString());
+                            lsbFileAsStream.Append(lsKey + mcsAsnMark + mcsBlockEndMark + this.sNewLine);
                         }
                     }
                 }
@@ -3298,8 +3432,30 @@ Copy and proceed from there?
             }
         }
 
+        private string sReplaceNewLine(string asSource)
+        {
+            if ( asSource.Contains(Environment.NewLine) )
+                this.sNewLine = Environment.NewLine;    // this env
+            else
+            if ( -1 != asSource.IndexOf('\r') )
+                this.sNewLine = "\r";                   // MacOS
+            else
+            if ( -1 != asSource.IndexOf('\n') )
+                this.sNewLine = "\n";                   // *nix
+            else
+                return asSource;                        // no NL
+
+            StringBuilder   lsbReplaceNewLine = new StringBuilder(asSource);
+                            lsbReplaceNewLine = lsbReplaceNewLine.Replace(this.sNewLine, mcsSplitMark);
+
+            return lsbReplaceNewLine.ToString();
+        }
+
         private string sExpression(string asSource)
         {
+            if ( String.IsNullOrEmpty(asSource) )
+                return null;
+
             string lsExpression = asSource;
 
             if ( -1 == lsExpression.IndexOf(".*") )
@@ -3348,14 +3504,15 @@ Copy and proceed from there?
                 }
                 else
                 {
-                    string lsPreviousPathFile = asPathFile;
-
                     // Use a new pathfile (perhaps).
                     asPathFile = this.sDefaultPathFile;
                     this.Save(asPathFile);
 
-                    if ( this.bSaveEnabled )
-                        File.Delete(lsPreviousPathFile);
+                    if ( this.bSaveEnabled && this.sLoadedPathFile != asPathFile )
+                    {
+                        File.Delete(this.sLoadedPathFile);
+                        this.sLoadedPathFile = asPathFile;
+                    }
                 }
             }
 
@@ -3417,6 +3574,7 @@ Copy and proceed from there?
         private string       mcsSplitMark = '\u0001'.ToString();
         private FileStream   moFileStreamProfileFileLock;
         private tvProfile    moInputCommandLineProfile;
+        private static int   mciIntSizeInBytes = 4;
 
 
         private class tvProfileEnumerator : IEnumerator

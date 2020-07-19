@@ -71,7 +71,18 @@ namespace GetCert2
             catch (InvalidOperationException ex)
             {
                 if ( aoProfile.bValue("-DeclareErrorOnPrivateKeyFileCleanedUp", false) )
-                    DoGetCert.LogIt(aoProfile, DoGetCert.sExceptionMessage(ex));
+                {
+                    Type ltDoGetCert = Type.GetType("DoGetCert");
+                    if ( null == ltDoGetCert )
+                        throw ex;
+                    else
+                        ltDoGetCert.GetMethod("LogIt").Invoke(null, new object[]{
+                                  String.Format("GetCertServiceFault: {0}{1}{2}{3}"
+                                , ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message)
+                                , Environment.NewLine
+                                , ex.StackTrace)
+                                });
+                }
             }
 
             return lsMachineKeyPathFile;
@@ -135,15 +146,35 @@ namespace GetCert2
             return keyFileName;
         }
 
-        public static string sHashIt(tvProfile aoProfile)
+        public static string sEncryptedBase64(X509Certificate2 aoCertificate, string asClearText)
         {
-            return HashClass.sHashPw(aoProfile.ToString().Substring(0, 256));
+            RSACryptoServiceProvider loRSACSP = (RSACryptoServiceProvider)aoCertificate.PublicKey.Key;
+
+            return Convert.ToBase64String(loRSACSP.Encrypt(ASCIIEncoding.UTF8.GetBytes(asClearText), true));
         }
 
-        public static string sHashPw(string asPassword)
+        public static string sDecrypted(X509Certificate2 aoCertificate, string asEncryptedBase64)
+        {
+            if ( null == aoCertificate )
+                throw new InvalidOperationException("The given certificate does not exist!");
+            
+            RSACryptoServiceProvider loRSACSP = (RSACryptoServiceProvider)aoCertificate.PrivateKey;
+
+            if ( null == loRSACSP )
+                throw new InvalidOperationException("The given certificate has no private key!");
+
+            return ASCIIEncoding.UTF8.GetString(loRSACSP.Decrypt(Convert.FromBase64String(asEncryptedBase64), true));
+        }
+
+        public static string sHashIt(tvProfile aoProfile)
+        {
+            return HashClass.sHashPw(aoProfile);
+        }
+
+        public static string sHashPw(tvProfile aoProfile)
         {
             StringBuilder   lsbHashPw = new StringBuilder();
-            byte[]          lbtArray = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(asPassword));
+            byte[]          lbtArray = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(aoProfile.ToString().Substring(0, 256)));
                             foreach (byte lbtValue in lbtArray)
                                 lsbHashPw.Append(lbtValue.ToString());
 

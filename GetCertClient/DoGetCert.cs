@@ -1,6 +1,7 @@
 using Microsoft.Web.Administration;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
@@ -36,12 +37,7 @@ namespace GetCert2
     /// </summary>
     public class DoGetCert : System.Windows.Application
     {
-        private bool        mbPowerScriptError;
         private ChannelFactory<GetCertService.IGetCertServiceChannel> moGetCertServiceFactory = null;
-        private string      msPowerScriptOutput;
-
-        public static string sFetchPrefix = "Resources.Fetch.";
-        public static string sHostProcess = "GoPcBackup.exe";
 
         private DoGetCert()
         {
@@ -79,9 +75,9 @@ namespace GetCert2
                 // Make sure any previous parent instance is shutdown before proceeding
                 // (but only after everything has been installed and configured first).
                 if ( File.Exists(lsExePathFile + ".config") )
-                    DoGetCert.bKillProcessParent(new tvProfile(args), Process.GetCurrentProcess());
+                    DoGetCert.bKillProcessParent(Process.GetCurrentProcess());
 
-                loProfile = DoGetCert.oHandleUpdates(ref args, ref loStartupWaitMsg);
+                loProfile = tvProfile.oGlobal(DoGetCert.oHandleUpdates(ref args, ref loStartupWaitMsg));
 
                 if ( !loProfile.bExit )
                 {
@@ -96,7 +92,7 @@ server's local computer certificate store and binds it to port 443 in IIS (it's 
 by default - any other port can be used instead).
 
 If the current time is not within a given number of days prior to expiration
-of the current digital certificate (eg. 30 days, see -ExpirationDaysBeforeRenewal
+of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration
 below), this software does nothing. Otherwise, the retrieval process begins.
 
 It's as simple as that when the software runs in ""stand-alone"" mode (the default).
@@ -108,7 +104,7 @@ see ""SafeTrust.org"".
 If the software is not running in ""stand-alone"" mode, it also copies any new cert
 to a file anywhere on the local area network to be picked up by the load balancer
 administrator or process. It also replaces the SSO (single sign-on) certificate in
-your central SSO configuration (ie. ADFS) and restarts the SSO service on all
+your central SSO configuration (eg. ADFS) and restarts the SSO service on all
 servers in any defined SSO server farm. It also replaces all integrated application
 SSO certificate references in any number of configuration files anywhere in the
 local file system.
@@ -160,7 +156,7 @@ A brief description of each feature follows.
 
 -AcmePsModuleUseGallery=False
 
-    Set this switch True and the ""Powershell Gallery"" version of ""ACME-PS""
+    Set this switch True and the ""PowerShell Gallery"" version of ""ACME-PS""
     will be used in lieu of the version embedded in the EXE (see -AcmePsPath
     below).
 
@@ -171,18 +167,7 @@ A brief description of each feature follows.
     folder which, with no absolute path given, will be expected to be found within
     the folder containing ""{INI}"". Set -AcmePsModuleUseGallery=True
     (see above) and the OS will look to find ""ACME-PS"" in its usual place as a
-    module from the Powershell gallery.
-
--AdfsThumbprintFiles=""C:\inetpub\wwwroot\web.config""
-
-    This is the path and filename of files that will have their ADFS certificate
-    thumbprint replaced whenever the related ADFS certificate changes. Each file
-    with the same name at all levels of the directory hierarchy will be updated,
-    starting with the given base path, if the old ADFS certificate thumbprint is
-    found there. See -SkipAdfsThumbprintUpdates below.
-
-    Note: This key may appear any number of times in the profile and wildcards
-          can be used in the filename.
+    module from the PowerShell gallery.
 
 -Auto=False
 
@@ -203,7 +188,7 @@ A brief description of each feature follows.
 -CertificateRenewalDateOverride= NO DEFAULT VALUE
 
     Set this date value to override the date calculation that subtracts
-    -ExpirationDaysBeforeRenewal days (see below) from the current certificate
+    -RenewalDaysBeforeExpiration days (see below) from the current certificate
     expiration date to know when to start fetching a new certificate.
 
     Note: this parameter will be removed from the profile after a certificate
@@ -234,11 +219,6 @@ A brief description of each feature follows.
 
     Initial testing is done with the certificate provider staging network.
     Set this switch False to use the live production certificate network.
-
--ExpirationDaysBeforeRenewal=30
-
-    This is the number of days until certificate expiration before automated
-    gets of the next new certificate are attempted.
 
 -FetchSource=False
 
@@ -292,6 +272,11 @@ A brief description of each feature follows.
     clients the opportunity to lock the certificate renewal (ie. only one client
     at a time per domain can communicate with the certificate provider network).
 
+-NoIISBindingScript=""""
+
+    This is the PowerShell script that binds a new certificate when IIS is not in
+    use or the standard IIS binding procedure does not work for whatever reason.
+
 -NoPrompts=False
 
     Set this switch True and all pop-up prompts will be suppressed. Messages
@@ -301,39 +286,39 @@ A brief description of each feature follows.
 
 -PowerScriptPathFile=PowerScript.ps1
 
-    This is the path\file location of the current (ie. temporary) Powershell script
+    This is the path\file location of the current (ie. temporary) PowerShell script
     file.
 
 -PowerScriptSleepMS=200
 
     This is the number of sleep milliseconds between loops while waiting for the
-    Powershell script process to complete.
+    PowerShell script process to complete.
 
 -PowerScriptTimeoutSecs=300
 
-    This is the maximum number of seconds allocated to any Powershell script
+    This is the maximum number of seconds allocated to any PowerShell script
     process to run prior to throwing a timeout exception.
 
--PowershellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File ""{{0}}"" ""{{1}}""
+-PowerShellExeArgs=-NoProfile -ExecutionPolicy unrestricted -File ""{{0}}"" ""{{1}}""
 
-    These are the arguments passed to the Windows Powershell EXE (see below).
+    These are the arguments passed to the Windows PowerShell EXE (see below).
 
--PowershellExePathFile=C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe
+-PowerShellExePathFile=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 
-    This is the path\file location of the Windows Powershell EXE.
+    This is the path\file location of the Windows PowerShell EXE.
 
--RegexDnsNamePrimary=""^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$""
+-RegexDnsNamePrimary=""^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$""
 
     This regular expression is used to validate -CertificateDomainName (see above).
 
--RegexDnsNameSanList=""^[^.][\*a-zA-Z0-9\-\.]+\.$""
+-RegexDnsNameSanList=""^([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)([a-zA-Z]{2,18}|)$""
 
     This regular expression is used to validate -SanList names (see below).
 
     Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are used to validate
           SAN list names. A match of either pattern will pass validation.
 
--RegexEmailAddress=""^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$""
+-RegexEmailAddress=""^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)[a-zA-Z]{2,18}$""
 
     This regular expression is used to validate -ContactEmailAddress (see above).
 
@@ -343,6 +328,11 @@ A brief description of each feature follows.
     removed whenever a new retrieved certificate is bound to replace it.
 
     Note: this switch is ignored when -UseStandAloneMode is False.
+
+-RenewalDaysBeforeExpiration=30
+
+    This is the number of days until certificate expiration before automated
+    gets of the next new certificate are attempted.
 
 -ResetStagingLogs=True
 
@@ -360,7 +350,7 @@ A brief description of each feature follows.
 
     Here's a command-line example:
 
-    -SanList=""-Domain=MyDomain.com -Domain=www.MyDomain.com""
+    -SanList=""-Domain='MyDomain.com' -Domain='www.MyDomain.com'""
 
     Note: the {EXE} UI limits you to 100 SAN values (the certificate provider
           does the same). If you add more names than this limit, an error results and
@@ -379,14 +369,14 @@ A brief description of each feature follows.
     but command line keys will be saved. When false, not even status information
     will be written to the profile file (ie. ""{INI}"").
 
--ScriptADFS= SEE PROFILE FOR DEFAULT VALUE
+-ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
-    This is the Powershell script that updates ADFS servers with new certificates.
+    This is the PowerShell script that updates SSO servers with new certificates.
 
 -ScriptStage1= SEE PROFILE FOR DEFAULT VALUE
 
     There are multiple stages involved with the process of getting a certificate
-    from the certificate provider network. Each stage has an associated Powershell
+    from the certificate provider network. Each stage has an associated PowerShell
     script snippet. The stages are represented in this profile by -ScriptStage1
     thru -ScriptStage7.
 
@@ -404,7 +394,7 @@ A brief description of each feature follows.
     By default, all activity logged on the client during non-interactive mode
     is uploaded to the SCS server. This can be very helpful during automation
     testing. Once testing is complete, set this switch False to report errors
-    only, thereby saving a considerable amount of network bandwidth.
+    only.
 
     Note: ""non-interactive mode"" means the -Auto switch is set (see above).
           This switch is ignored when -UseStandAloneMode=True.
@@ -416,29 +406,40 @@ A brief description of each feature follows.
 
 -SingleSessionEnabled=False
 
-    Set this switch True to run all powershell scripts in a single global session.
+    Set this switch True to run all PowerShell scripts in a single global session.
 
--SkipAdfsServer=False
+-SkipSsoServer=False
 
-    When a client is on an ADFS domain (ie. it's a member of an ADFS server farm),
-    it will automatically attempt to update ADFS services with each new certificate
-    retrieved. Set this switch True to disable ADFS updates (for this client only).
+    When a client is on an SSO domain (ie. it's a member of an SSO server farm),
+    it will automatically attempt to update SSO services with each new certificate
+    retrieved. Set this switch True to disable SSO updates (for this client only).
 
--SkipAdfsThumbprintUpdates=False
+-SkipSsoThumbprintUpdates=False
 
-    When a client's domain references an ADFS domain, the client will automatically
-    attempt to update configuration files with each new ADFS certificate thumbprint.
-    Set this switch True to disable ADFS thumbprint configuration updates (for this
-    client only). See -AdfsThumbprintFiles above.
+    When a client's domain references an SSO domain, the client will automatically
+    attempt to update configuration files with each new SSO certificate thumbprint.
+    Set this switch True to disable SSO thumbprint configuration updates (for this
+    client only). See {SsoKey} below.
 
--SubmissionRetries=99
+{SsoKey}=""C:\inetpub\wwwroot\web.config""
+
+    This is the path and filename of files that will have their SSO certificate
+    thumbprint replaced whenever the related SSO certificate changes. Each file
+    with the same name at all levels of the directory hierarchy will be updated,
+    starting with the given base path, if the old SSO certificate thumbprint is
+    found there. See -SkipSsoThumbprintUpdates above.
+
+    Note: This key may appear any number of times in the profile and wildcards
+          can be used in the filename.
+
+-SubmissionRetries=42
 
     Pending submissions to the certificate provider network will be retried until
     they succeed or fail, at most this many times. By default, the  process will
-    retry for almost 10 minutes (-SubmissionRetries times -SubmissionWaitSecs,
-    see below).
+    retry for 7 minutes (-SubmissionRetries times -SubmissionWaitSecs, see below)
+    for challenge status updates as well as certificate request status updates.
 
--SubmissionWaitSecs=5
+-SubmissionWaitSecs=10
 
     These are the seconds of wait time after the DNS website challenge has been
     submitted to the certificate network as well as after the certificate request
@@ -466,6 +467,7 @@ Notes:
 "
                             .Replace("{EXE}", Path.GetFileName(ResourceAssembly.Location))
                             .Replace("{INI}", Path.GetFileName(loProfile.sActualPathFile))
+                            .Replace("{SsoKey}", DoGetCert.sSsoThumbprintFilestKey)
                             .Replace("{{", "{")
                             .Replace("}}", "}")
                             );
@@ -495,6 +497,8 @@ Notes:
                                 UI  loUI = new UI(loMain);
                                     loUI.oStartupWaitMsg = loStartupWaitMsg;
                                     loMain.oUI = loUI;
+                                    loMain.MainWindow = loUI;
+                                    loMain.ShutdownMode = System.Windows.ShutdownMode.OnMainWindowClose;
 
                                 loMain.Run(loUI);
                             }
@@ -509,25 +513,26 @@ Notes:
                                             loStartupWaitMsg.Close();
 
                             ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                                                                    DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
+                                                                                    DoGetCert.SetCertificate(loGetCertServiceFactory);
 
-                            string  lsProfile = DoGetCert.sProfile(loProfile);
-                            string  lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
-                            string  lsLogFileTextReported = null;
-                            bool    lbReplaceAdfsThumbprint = loDoDa.bReplaceAdfsThumbprint(loProfile, loGetCertServiceFactory, lsHash, lsProfile);
-                            bool    lbGetCertificate = loDoDa.bGetCertificate();
+                            tvProfile   loMinProfile = DoGetCert.oMinProfile(loProfile);
+                            byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                            string      lsHash = HashClass.sHashIt(loMinProfile);
+                            string      lsLogFileTextReported = null;
+                            bool        lbReplaceSsoThumbprint = loDoDa.bReplaceSsoThumbprint(loGetCertServiceFactory, lsHash, lbtArrayMinProfile);
+                            bool        lbGetCertificate = loDoDa.bGetCertificate();
 
                                     // Reinitialize the communications channel in case the certificate was just replaced.
                                     loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                    DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
+                                    DoGetCert.SetCertificate(loGetCertServiceFactory);
 
-                            if ( !lbGetCertificate || !lbReplaceAdfsThumbprint )
+                            if ( !lbGetCertificate || !lbReplaceSsoThumbprint )
                             {
-                                DoGetCert.ReportErrors(loProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
+                                DoGetCert.ReportErrors(loGetCertServiceFactory, lsHash, lbtArrayMinProfile, out lsLogFileTextReported);
                             }
                             else
                             {
-                                DoGetCert.ReportEverything(loProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
+                                DoGetCert.ReportEverything(loGetCertServiceFactory, lsHash, lbtArrayMinProfile, out lsLogFileTextReported);
                             }
 
                             loProfile["-PreviousProcessOutputText"] = lsLogFileTextReported
@@ -539,18 +544,19 @@ Notes:
             }
             catch (Exception ex)
             {
-                DoGetCert.LogIt(loProfile, DoGetCert.sExceptionMessage(ex));
+                DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
 
                 try
                 {
                     ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                                                            DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
+                                                                            DoGetCert.SetCertificate(loGetCertServiceFactory);
 
-                    string lsProfile = DoGetCert.sProfile(loProfile);
-                    string lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
-                    string lsLogFileTextReported = null;
+                    tvProfile   loMinProfile = DoGetCert.oMinProfile(loProfile);
+                    byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                    string      lsHash = HashClass.sHashIt(loMinProfile);
+                    string      lsLogFileTextReported = null;
 
-                    DoGetCert.ReportErrors(loProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
+                    DoGetCert.ReportErrors(loGetCertServiceFactory, lsHash, lbtArrayMinProfile, out lsLogFileTextReported);
                 }
                 catch {}
             }
@@ -579,8 +585,16 @@ Notes:
         /// </summary>
         public UI oUI
         {
-            get;set;
+            get
+            {
+                return goUI;
+            }
+            set
+            {
+                goUI = value;
+            }
         }
+        private static UI goUI;
 
         public bool bCertificateSetupDone
         {
@@ -594,7 +608,7 @@ Notes:
                 {
                     // Get setup cert's private key file.
                     string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, goSetupCertificate);
-                            if ( null != lsMachineKeyPathFile )
+                            if ( null != lsMachineKeyPathFile && DoGetCert.sCertName(goSetupCertificate) == DoGetCert.sNewClientSetupCertName )
                             {
                                 // Remove cert's private key file (sadly, the OS typically let's these things accumulate forever).
                                 File.Delete(lsMachineKeyPathFile);
@@ -610,18 +624,77 @@ Notes:
         /// This switch is used within the main loop of the UI (see "this.oUI")
         /// to stop any loops running within this object as well.
         /// </summary>
+        private bool bPowerScriptError
+        {
+            get
+            {
+                return gbPowerScriptError;
+            }
+            set
+            {
+                gbPowerScriptError = value;
+            }
+        }
+        private static bool gbPowerScriptError;
+
+        /// <summary>
+        /// This switch is used within the main loop of the UI (see "this.oUI")
+        /// to stop any loops running within this object as well.
+        /// </summary>
+        private bool bPowerScriptSkipLog
+        {
+            get
+            {
+                return gbPowerScriptSkipLog;
+            }
+            set
+            {
+                gbPowerScriptSkipLog = value;
+            }
+        }
+        private static bool gbPowerScriptSkipLog;
+
+        /// <summary>
+        /// This switch is used within the main loop of the UI (see "this.oUI")
+        /// to stop any loops running within this object as well.
+        /// </summary>
+        private string sPowerScriptOutput
+        {
+            get
+            {
+                return gsPowerScriptOutput;
+            }
+            set
+            {
+                gsPowerScriptOutput = value;
+            }
+        }
+        private static string gsPowerScriptOutput;
+
+
+        public static string sContentKey  = "-Content";
+        public static string sFetchPrefix = "Resources.Fetch.";
+        public static string sHostProcess = "GoPcBackup.exe";
+        public static string sNewClientSetupCertName = "GetCertClientSetup";
+        public static string sSsoThumbprintFilestKey = "-SsoThumbprintFiles";
+
+
+        /// <summary>
+        /// This switch is used within the main loop of the UI (see "this.oUI")
+        /// to stop any loops running within this object as well.
+        /// </summary>
         public bool bMainLoopStopped
         {
             get
             {
-                return mbMainLoopStopped;
+                return gbMainLoopStopped;
             }
             set
             {
-                mbMainLoopStopped = value;
+                gbMainLoopStopped = value;
             }
         }
-        private bool mbMainLoopStopped;
+        private static bool gbMainLoopStopped;
 
         /// <summary>
         /// This is used to suppress prompts when
@@ -653,15 +726,16 @@ Notes:
                         if ( null == moGetCertServiceFactory )
                         {
                             moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                            DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
+                            DoGetCert.SetCertificate(moGetCertServiceFactory);
                         }
 
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                         {
-                            string lsProfile = DoGetCert.sProfile(moProfile);
-                            string lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
+                            tvProfile   loMinProfile = DoGetCert.oMinProfile(moProfile);
+                            byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                            string      lsHash = HashClass.sHashIt(loMinProfile);
 
-                            moDomainProfile = new tvProfile(loGetCertServiceClient.sDomainProfile(lsHash, lsProfile));
+                            moDomainProfile = new tvProfile(loGetCertServiceClient.sDomainProfile(lsHash, lbtArrayMinProfile));
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                 loGetCertServiceClient.Abort();
                             else
@@ -685,7 +759,12 @@ Notes:
         {
             get
             {
-                return DoGetCert.sCertName(DoGetCert.oCurrentCertificate());
+                string              lsCurrentCertificateName = null;
+                X509Certificate2    loCurrentCertificate = DoGetCert.oCurrentCertificate();
+                                    if ( null != loCurrentCertificate )
+                                        lsCurrentCertificateName = DoGetCert.sCertName(loCurrentCertificate);
+
+                return lsCurrentCertificateName;
             }
         }
 
@@ -700,52 +779,96 @@ Notes:
             }
         }
 
-        public bool bReplaceAdfsThumbprint(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
-                                                , string asHash, string asProfile)
+        public bool bReplaceSsoThumbprint(ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory, string asHash, byte[] abtArrayMinProfile)
         {
-            bool lbReplaceAdfsThumbprint = false;
+            bool lbReplaceSsoThumbprint = false;
 
-            // Do nothing if this is an ADFS server (or we are not doing thrumprint updates on this server).
-            if ( this.oDomainProfile.bValue("-IsAdfsDomain", false) || moProfile.bValue("-SkipAdfsThumbprintUpdates", false) )
+            // Do nothing if this is an SSO server (or we are not doing thrumprint updates on this server).
+            if ( this.oDomainProfile.bValue("-IsSsoDomain", false) || moProfile.bValue("-SkipSsoThumbprintUpdates", false) )
                 return true;
 
-            // Do nothing if no ADFS domain is defined for the current domain.
-            string  lsAdfsDnsName = this.oDomainProfile.sValue("-AdfsDnsName", "");
-                    if ( "" == lsAdfsDnsName )
-                        return true;
-            // At this point it is an error if no ADFS thumbprint exists for the current domain.
-            string  lsAdfsThumbprint = this.oDomainProfile.sValue("-AdfsThumbprint", "");
-                    if ( "" == lsAdfsThumbprint )
-                    {
-                        this.LogIt("");
-                        throw new Exception(String.Format("The ADFS certificate thumbprint for the \"{0}\" domain has not yet been set!", lsAdfsDnsName));
-                    }
-            string  lsAdfsOldThumbprint = moProfile.sValue("-AdfsThumbprint", "");
-                    if ( "" == lsAdfsOldThumbprint )
-                    {
-                        // Define the previous ADFS thumbprint if this is the first time through.
-                        moProfile["-AdfsThumbprint"] = lsAdfsThumbprint;
-                        moProfile.Save();
-                        return true;
-                    }
-                    // There is nothing to do if the ADFS thumbprint hasn't changed.
-                    if ( lsAdfsOldThumbprint == lsAdfsThumbprint )
+            // Do nothing if no SSO domain is defined for the current domain.
+            string  lsSsoDnsName = this.oDomainProfile.sValue("-SsoDnsName", "");
+                    if ( "" == lsSsoDnsName )
                         return true;
 
-                        // Add the default filespec.
-                        moProfile.sValue("-AdfsThumbprintFiles", @"C:\inetpub\wwwroot\web.config");
-            tvProfile   loFileList = new tvProfile();
-                        foreach(DictionaryEntry loEntry in moProfile.oOneKeyProfile("-AdfsThumbprintFiles"))
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("Checking for SSO thumbprint change ...");
+            
+            // At this point it is an error if no SSO thumbprint exists for the current domain.
+            string      lsSsoThumbprint = this.oDomainProfile.sValue("-SsoThumbprint", "");
+                        if ( "" == lsSsoThumbprint )
                         {
-                            // Change "-AdfsThumbprintFiles" to "-Files".
+                            DoGetCert.LogIt("");
+                            throw new Exception(String.Format("The SSO certificate thumbprint for the \"{0}\" domain has not yet been set!", lsSsoDnsName));
+                        }
+            string      lsSsoPreviousThumbprint = moProfile.sValue("-SsoThumbprint", "");
+                        if ( !moProfile.ContainsKey(DoGetCert.sSsoThumbprintFilestKey) )
+                        {
+                            string  lsDefaultPhysicalPathFiles = Path.Combine(moProfile.sValue("-DefaultPhysicalPath", @"%SystemDrive%\inetpub\wwwroot"), "web.config");
+                            Site[]  loSetupCertBoundSiteArray = DoGetCert.oSetupCertBoundSiteArray(new ServerManager());
+                                    moProfile.Remove(DoGetCert.sSsoThumbprintFilestKey + "Note");
+                                    if ( null == loSetupCertBoundSiteArray || 0 == loSetupCertBoundSiteArray.Length )
+                                    {
+                                        DoGetCert.LogIt(String.Format("{0} will be set to the IIS default since no sites could be found bound to the current certificate.", DoGetCert.sSsoThumbprintFilestKey));
+
+                                        if ( null != loSetupCertBoundSiteArray )
+                                        {
+                                            moProfile.Add(DoGetCert.sSsoThumbprintFilestKey, Environment.ExpandEnvironmentVariables(lsDefaultPhysicalPathFiles));
+                                            moProfile.Add(DoGetCert.sSsoThumbprintFilestKey + "Note", "No IIS websites could be found bound to the current certificate.");
+                                        }
+                                        else
+                                        {
+                                            DoGetCert.LogIt("");
+                                            throw new Exception("The current setup certificate is null. This is an error.");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        foreach(Site loSite in loSetupCertBoundSiteArray)
+                                            moProfile.Add(DoGetCert.sSsoThumbprintFilestKey
+                                                    , Path.Combine(Environment.ExpandEnvironmentVariables(loSite.Applications["/"].VirtualDirectories["/"].PhysicalPath)
+                                                    , Path.GetFileName(lsDefaultPhysicalPathFiles)));
+                                    }
+                                    moProfile.Save();
+                        }
+                        if ( "" == lsSsoPreviousThumbprint )
+                        {
+                            // Define the previous SSO thumbprint (only if this is the first time through).
+                            moProfile["-SsoThumbprint"] = lsSsoThumbprint;
+                            moProfile.Save();
+
+                            DoGetCert.LogIt(String.Format("No new SSO thumbprint found (caching old: \"{0}\").", lsSsoThumbprint));
+
+                            using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
+                            {
+                                loGetCertServiceClient.NotifySsoThumbprintReplacementSuccess(asHash, abtArrayMinProfile);
+                                if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                    loGetCertServiceClient.Abort();
+                                else
+                                    loGetCertServiceClient.Close();
+                            }
+
+                            return true;
+                        }
+                        // There is nothing to do if the SSO thumbprint hasn't changed.
+                        if ( lsSsoPreviousThumbprint == lsSsoThumbprint )
+                        {
+                            DoGetCert.LogIt("No new SSO thumbprint found.");
+                            return true;
+                        }
+            tvProfile   loFileList = new tvProfile();
+                        foreach(DictionaryEntry loEntry in moProfile.oOneKeyProfile(DoGetCert.sSsoThumbprintFilestKey))
+                        {
+                            // Change DoGetCert.sSsoThumbprintFilestKey to "-Files".
                             loFileList.Add("-Files", loEntry.Value);
                         }
             Process     loProcess = new Process();
-                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessErrorHandler);
-                        loProcess.OutputDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessOutputHandler);
+                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessErrorHandler);
+                        loProcess.OutputDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessOutputHandler);
                         loProcess.StartInfo.FileName = "ReplaceText.exe";
-                        loProcess.StartInfo.Arguments = "-OldText={OldAdfsThumbprint} -NewText={NewAdfsThumbprint}"
-                                .Replace("{OldAdfsThumbprint}", lsAdfsOldThumbprint).Replace("{NewAdfsThumbprint}", lsAdfsThumbprint)
+                        loProcess.StartInfo.Arguments = "-OldText={OldSsoThumbprint} -NewText={NewSsoThumbprint}"
+                                .Replace("{OldSsoThumbprint}", lsSsoPreviousThumbprint).Replace("{NewSsoThumbprint}", lsSsoThumbprint)
                                 + loFileList.sCommandLine()
                                 ;
                         loProcess.StartInfo.UseShellExecute = false;
@@ -762,12 +885,12 @@ Notes:
 
             System.Windows.Forms.Application.DoEvents();
 
-            mbPowerScriptError = false;
-            msPowerScriptOutput = null;
+            this.bPowerScriptError = false;
+            this.sPowerScriptOutput = null;
 
-            this.LogIt("");
-            this.LogIt("Replacing ADFS Thumbprint ...");
-            this.LogIt(loProcess.StartInfo.Arguments);
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("Replacing SSO thumbprint ...");
+            DoGetCert.LogIt(loProcess.StartInfo.Arguments);
 
             loProcess.Start();
             loProcess.BeginErrorReadLine();
@@ -787,84 +910,87 @@ Notes:
             if ( !this.bMainLoopStopped )
             {
                 if ( !loProcess.HasExited )
-                    this.LogIt(moProfile.sValue("-ReplaceTextTimeoutMsg", "*** thumbprint replacement sub-process timed-out ***\r\n\r\n"));
+                    DoGetCert.LogIt(moProfile.sValue("-ReplaceTextTimeoutMsg", "*** thumbprint replacement sub-process timed-out ***\r\n\r\n"));
 
-                if ( mbPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
+                if ( this.bPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
                 {
-                    this.LogIt(DoGetCert.sExceptionMessage("The thumbprint replacement sub-process experienced a critical failure."));
+                    DoGetCert.LogIt(DoGetCert.sExceptionMessage("The thumbprint replacement sub-process experienced a critical failure."));
                 }
                 else
                 {
-                    lbReplaceAdfsThumbprint = true;
+                    lbReplaceSsoThumbprint = true;
 
-                    this.LogSuccess();
+                    DoGetCert.LogSuccess();
                 }
             }
 
             loProcess.CancelErrorRead();
             loProcess.CancelOutputRead();
 
-            DoGetCert.bKillProcess(moProfile, loProcess);
+            DoGetCert.bKillProcess(loProcess);
 
-            moProfile["-AdfsThumbprint"] = lsAdfsThumbprint;
-            moProfile.Save();
+            if ( lbReplaceSsoThumbprint )
+            {
+                File.Delete("ReplaceText.exe");
+                File.Delete("ReplaceText.exe.txt");
 
-            File.Delete("ReplaceText.exe");
+                moProfile["-SsoThumbprint"] = lsSsoThumbprint;
+                moProfile.Save();
 
-            if ( lbReplaceAdfsThumbprint )
-                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
+                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.NotifyAdfsThumbprintReplacementSuccess(asHash, asProfile);
+                    loGetCertServiceClient.NotifySsoThumbprintReplacementSuccess(asHash, abtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
                         loGetCertServiceClient.Close();
                 }
+            }
             else
-                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
+                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.NotifyAdfsThumbprintReplacementFailure(asHash, asProfile);
+                    loGetCertServiceClient.NotifySsoThumbprintReplacementFailure(asHash, abtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
                         loGetCertServiceClient.Close();
                 }
 
-            return lbReplaceAdfsThumbprint;
+            return lbReplaceSsoThumbprint;
         }
 
-        public bool bUploadCertToLoadBalancer(string asHash, string asProfile, string asCertName, string asCertPathFile, string asCertificatePassword)
+        public bool bUploadCertToLoadBalancer(string asHash, byte[] abtArrayMinProfile, string asCertName, string asCertPathFile, string asCertificatePassword)
         {
             bool    lbUploadCertToLoadBalancer = false;
             string  lsLoadBalancerPfxPathFile = this.oDomainProfile.sValue("-LoadBalancerPfxPathFile", "");
 
-            this.LogIt("");
-            this.LogIt("Checking for load balancer ...");
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("Checking for load balancer ...");
 
             // Do nothing if a load balancer PFX file location is not defined.
             if ( "" == lsLoadBalancerPfxPathFile )
             {
-                this.LogIt("No load balancer found.");
+                DoGetCert.LogIt("No load balancer found.");
                 return true;
             }
 
-            this.LogIt(String.Format("Copying new certificate for use on the \"{0}\" load balancer ...", asCertName));
+            DoGetCert.LogIt(String.Format("Copying new certificate for use on the \"{0}\" load balancer ...", asCertName));
 
             X509Certificate2 loLbCertificate = new X509Certificate2(asCertPathFile, asCertificatePassword
                     , X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.Exportable);
 
             Directory.CreateDirectory(Path.GetDirectoryName(lsLoadBalancerPfxPathFile));
             File.WriteAllBytes(lsLoadBalancerPfxPathFile
-                    , loLbCertificate.Export(X509ContentType.Pfx, this.oDomainProfile.sValue("-LoadBalancerPfxPassword", "")));
+                    , loLbCertificate.Export(X509ContentType.Pfx, HashClass.sDecrypted(goSetupCertificate, this.oDomainProfile.sValue("-LoadBalancerPfxPassword", ""))));
 
-            this.LogSuccess();
+            DoGetCert.LogSuccess();
 
             string  lsLoadBalancerExePathFile = this.oDomainProfile.sValue("-LoadBalancerExePathFile", "");
                     if ( "" == lsLoadBalancerExePathFile && !this.bMainLoopStopped )
                     {
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                         {
-                            loGetCertServiceClient.NotifyLoadBalancerCertificatePending(asHash, asProfile);
+                            loGetCertServiceClient.NotifyLoadBalancerCertificatePending(asHash, abtArrayMinProfile);
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                 loGetCertServiceClient.Abort();
                             else
@@ -875,8 +1001,8 @@ Notes:
                     }
 
             Process     loProcess = new Process();
-                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessErrorHandler);
-                        loProcess.OutputDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessOutputHandler);
+                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessErrorHandler);
+                        loProcess.OutputDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessOutputHandler);
                         loProcess.StartInfo.FileName = lsLoadBalancerExePathFile;
                         loProcess.StartInfo.Arguments = lsLoadBalancerPfxPathFile;
                         loProcess.StartInfo.UseShellExecute = false;
@@ -887,13 +1013,13 @@ Notes:
 
             System.Windows.Forms.Application.DoEvents();
 
-            mbPowerScriptError = false;
-            msPowerScriptOutput = null;
+            this.bPowerScriptError = false;
+            this.sPowerScriptOutput = null;
 
             if ( !this.bMainLoopStopped )
             {
-                this.LogIt("");
-                this.LogIt("Uploading certificate to load balancer directly ...");
+                DoGetCert.LogIt("");
+                DoGetCert.LogIt("Uploading certificate to load balancer directly ...");
 
                 loProcess.Start();
                 loProcess.BeginErrorReadLine();
@@ -914,11 +1040,11 @@ Notes:
             if ( !this.bMainLoopStopped )
             {
                 if ( !loProcess.HasExited )
-                    this.LogIt(moProfile.sValue("-ReplaceLBcertTimeoutMsg", "*** load balancer certificate replacement sub-process timed-out ***\r\n\r\n"));
+                    DoGetCert.LogIt(moProfile.sValue("-ReplaceLBcertTimeoutMsg", "*** load balancer certificate replacement sub-process timed-out ***\r\n\r\n"));
 
-                if ( mbPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
+                if ( this.bPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
                 {
-                    this.LogIt(DoGetCert.sExceptionMessage("The load balancer certificate replacement sub-process experienced a critical failure."));
+                    DoGetCert.LogIt(DoGetCert.sExceptionMessage("The load balancer certificate replacement sub-process experienced a critical failure."));
                 }
                 else
                 {
@@ -926,19 +1052,19 @@ Notes:
 
                     lbUploadCertToLoadBalancer = true;
 
-                    this.LogSuccess();
+                    DoGetCert.LogSuccess();
                 }
             }
 
             loProcess.CancelErrorRead();
             loProcess.CancelOutputRead();
 
-            DoGetCert.bKillProcess(moProfile, loProcess);
+            DoGetCert.bKillProcess(loProcess);
 
             if ( lbUploadCertToLoadBalancer && !this.bMainLoopStopped )
                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.NotifyLoadBalancerCertificateExeSuccess(asHash, asProfile);
+                    loGetCertServiceClient.NotifyLoadBalancerCertificateExeSuccess(asHash, abtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
@@ -947,7 +1073,7 @@ Notes:
             else
                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.NotifyLoadBalancerCertificateExeFailure(asHash, asProfile);
+                    loGetCertServiceClient.NotifyLoadBalancerCertificateExeFailure(asHash, abtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
@@ -957,18 +1083,24 @@ Notes:
             return lbUploadCertToLoadBalancer;
         }
 
+        public void ClearCache()
+        {
+            // Clear the domain profile cache.
+            moDomainProfile = null;
+        }
+
         public void LoadBalancerReleaseCert()
         {
             if ( moProfile.bValue("-UseStandAloneMode", true) )
                 return;
 
-            this.LogIt("");
-            this.LogIt("The load balancer admin asserts the new certificate is ready for general release during the next maintenance window ...");
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("The load balancer admin asserts the new certificate is ready for general release during the next maintenance window ...");
 
             string  lsCaption = "Release Load Balancer Certificate";
-            string  lsLoadBalancerPfxComputer = this.oDomainProfile.sValue("-LoadBalancerPfxComputer", "COMPUTERNAME not found");
-            string  lsLoadBalancerPfxPathFile = this.oDomainProfile.sValue("-LoadBalancerPfxPathFile", "load balancer file not found");
-            bool    lbWrongServer = lsLoadBalancerPfxComputer != DoGetCert.sCurrentComputerName;
+            string  lsLoadBalancerPfxComputer = this.oDomainProfile.sValue("-LoadBalancerPfxComputer", "-LoadBalancerPfxComputer not defined");
+            string  lsLoadBalancerPfxPathFile = this.oDomainProfile.sValue("-LoadBalancerPfxPathFile", "-LoadBalancerPfxPathFile not defined");
+            bool    lbWrongServer = "" != lsLoadBalancerPfxComputer && lsLoadBalancerPfxComputer != DoGetCert.sCurrentComputerName;
                     if ( lbWrongServer )
                         this.Show(String.Format("The load balancer certificate (\"{0}\") is found on another server (ie. \"{1}\").", lsLoadBalancerPfxPathFile, lsLoadBalancerPfxComputer)
                                 , lsCaption
@@ -978,11 +1110,12 @@ Notes:
                         this.Show(String.Format("The load balancer certificate (\"{0}\") does not yet exist on this server or it has already been released.", lsLoadBalancerPfxPathFile)
                                 , lsCaption
                                 , tvMessageBoxButtons.OK, tvMessageBoxIcons.Alert, "LoadBalancerCertDoesNotExist");
-            string lsLogFileTextReported = null;
-            string lsProfile = DoGetCert.sProfile(moProfile);
-            string lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
+            string      lsLogFileTextReported = null;
+            tvProfile   loMinProfile = DoGetCert.oMinProfile(moProfile);
+            byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+            string      lsHash = HashClass.sHashIt(loMinProfile);
             ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                                                    DoGetCert.SetCertificate(moProfile, loGetCertServiceFactory);
+                                                                    DoGetCert.SetCertificate(loGetCertServiceFactory);
 
             try
             {
@@ -996,7 +1129,7 @@ Notes:
                 this.ShowError(String.Format("The load balancer certificate (\"{0}\") on \"{1}\" can't be removed! ({2})"
                                                 , lsLoadBalancerPfxPathFile, DoGetCert.sCurrentComputerName, ex.Message), lsCaption);
 
-                DoGetCert.ReportErrors(moProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
+                DoGetCert.ReportErrors(loGetCertServiceFactory, lsHash, lbtArrayMinProfile, out lsLogFileTextReported);
             }
 
             if ( lbReleased || lbWrongServer )
@@ -1004,7 +1137,7 @@ Notes:
 
                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = loGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.NotifyLoadBalancerCertificateReady(lsHash, lsProfile);
+                    loGetCertServiceClient.NotifyLoadBalancerCertificateReady(lsHash, lbtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
@@ -1052,53 +1185,100 @@ Notes:
         /// <summary>
         /// Returns the current "LogPathFile" name.
         /// </summary>
-        public static string sLogPathFile(tvProfile aoProfile)
+        public static string sLogPathFile()
         {
             return DoGetCert.sUniqueIntOutputPathFile(
-                        DoGetCert.sLogPathFileBase(aoProfile)
-                    , aoProfile.sValue("-LogFileDateFormat", "-yyyy-MM-dd")
+                        DoGetCert.sLogPathFileBase()
+                    , tvProfile.oGlobal().sValue("-LogFileDateFormat", "-yyyy-MM-dd")
                     , true
                     );
         }
 
-        public static string sProfile(tvProfile aoProfile)
+        public static tvProfile oMinProfile(tvProfile aoProfile)
         {
-            tvProfile           loProfile = new tvProfile(aoProfile.ToString());
-                                loProfile.Remove("-Help");
-                                loProfile.Remove("-PreviousProcessOutputText");
-                                loProfile.Add("-CurrentLocalTime", DateTime.Now);
-                                loProfile.Add("-COMPUTERNAME", DoGetCert.sCurrentComputerName);
+            string      lsIpAddress = null;
+                        DoGetCert.bRunPowerScript(out lsIpAddress, aoProfile.sValue("-IpAddressScript", "(ipconfig | findstr \"IPv4\").Split(\":\")[1].Trim()"), false, true);
+                        if ( !String.IsNullOrEmpty(lsIpAddress) && aoProfile.sValue("-IpAddress", "IP address not found.") != lsIpAddress )
+                        {
+                            aoProfile["-IpAddress"] = lsIpAddress;
+                            aoProfile.Save();
+                        }
+            tvProfile   loProfile = new tvProfile(aoProfile.ToString());
+                        loProfile.Remove("-Help");
+                        loProfile.Remove("-PreviousProcessOutputText");
+                        loProfile.Remove("-IpAddress");
+                        loProfile.Add("-CurrentLocalTime", DateTime.Now);
+                        loProfile.Add("-COMPUTERNAME", DoGetCert.sCurrentComputerName);
+                        loProfile.Add("-IpAddress", aoProfile.sValue("-IpAddress", "IP address not found."));
+
+            return loProfile;
+        }
+        public static string sMinProfile(tvProfile aoProfile)
+        {
+            string      lsIpAddress = null;
+                        DoGetCert.bRunPowerScript(out lsIpAddress, aoProfile.sValue("-IpAddressScript", "(ipconfig | findstr \"IPv4\").Split(\":\")[1].Trim()"), false, true);
+                        if ( !String.IsNullOrEmpty(lsIpAddress) && aoProfile.sValue("-IpAddress", "IP address not found.") != lsIpAddress )
+                        {
+                            aoProfile["-IpAddress"] = lsIpAddress;
+                            aoProfile.Save();
+                        }
+            tvProfile   loProfile = new tvProfile(aoProfile.ToString());
+                        loProfile.Remove("-Help");
+                        loProfile.Remove("-PreviousProcessOutputText");
+                        loProfile.Remove("-IpAddress");
+                        loProfile.Add("-CurrentLocalTime", DateTime.Now);
+                        loProfile.Add("-COMPUTERNAME", DoGetCert.sCurrentComputerName);
+                        loProfile.Add("-IpAddress", aoProfile.sValue("-IpAddress", "IP address not found."));
 
             return loProfile.ToString();
         }
 
         /// <summary>
-        /// Write the given asMessageText to a text file as well as
-        /// to the output console of the UI window (if it exists).
+        /// Write the given asText to a text file as well as to
+        /// the output console of the UI window (if it exists).
         /// </summary>
-        /// <param name="asMessageText">The text message string to log.</param>
-        public void LogIt(string asMessageText)
+        /// <param name="asText">The text string to log.</param>
+        public static void LogIt(string asText)
         {
-            StreamWriter loStreamWriter = null;
+            string          lsLogPathFileBase = null;
+            StreamWriter    loStreamWriter = null;
 
             try
             {
-                loStreamWriter = new StreamWriter(moProfile.sRelativeToProfilePathFile(DoGetCert.sLogPathFile(moProfile)), true);
-                loStreamWriter.WriteLine(DateTime.Now.ToString(moProfile.sValueNoTrim(
+                lsLogPathFileBase = DoGetCert.sLogPathFileBase();
+
+                // Move down to the base folder if we're running an update.
+                string  lsPathSep = Path.DirectorySeparatorChar.ToString();
+                string  lsPath = Path.GetDirectoryName(tvProfile.oGlobal().sRelativeToProfilePathFile(lsLogPathFileBase)).Replace(
+                                    String.Format("{0}{1}{0}",  lsPathSep, tvProfile.oGlobal().sValue("-UpdateFolder", "Update")), lsPathSep);
+                        Directory.CreateDirectory(lsPath);
+
+                loStreamWriter = new StreamWriter(tvProfile.oGlobal().sRelativeToProfilePathFile(
+                        DoGetCert.sUniqueIntOutputPathFile(lsLogPathFileBase
+                        , tvProfile.oGlobal().sValue("-LogFileDateFormat", "-yyyy-MM-dd"), true)), true);
+                loStreamWriter.WriteLine(DateTime.Now.ToString(tvProfile.oGlobal().sValueNoTrim(
                         "-LogEntryDateTimeFormatPrefix", "yyyy-MM-dd hh:mm:ss:fff tt  "))
-                        + asMessageText);
+                        + asText);
             }
-            catch { /* Can't log a log failure. */ }
+            catch
+            {
+                try
+                {
+                    // Give it one last try ...
+                    File.WriteAllText(lsLogPathFileBase, asText);
+                }
+                catch { /* Can't log a log failure. */ }
+            }
             finally
             {
                 if ( null != loStreamWriter )
                     loStreamWriter.Close();
             }
 
-            if ( null != this.oUI )
-            this.oUI.Dispatcher.BeginInvoke((Action)(() =>
+            if ( null != goUI )
+            goUI.Dispatcher.BeginInvoke((Action)(() =>
             {
-                this.oUI.AppendOutputTextLine(asMessageText);
+                goUI.AppendOutputTextLine(asText);
             }
             ));
             System.Windows.Forms.Application.DoEvents();
@@ -1106,27 +1286,27 @@ Notes:
 
         public void LogStage(string asStageId)
         {
-            this.LogIt("");
-            this.LogIt("");
-            this.LogIt(String.Format("Stage {0} ...", asStageId));
-            this.LogIt("");
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt(String.Format("Stage {0} ...", asStageId));
+            DoGetCert.LogIt("");
         }
 
-        public void LogSuccess()
+        public static void LogSuccess()
         {
-            this.LogIt("Success.");
+            DoGetCert.LogIt("Success.");
         }
 
-        public static void ReportErrors(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
-                , string asHash, string asProfile, out string asLogFileTextReported)
+        public static void ReportErrors(ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
+                , string asHash, byte[] abtArrayMinProfile, out string asLogFileTextReported)
         {
-            string  lsLogPathFile = aoProfile.sRelativeToProfilePathFile(DoGetCert.sLogPathFile(aoProfile));
+            string  lsLogPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(DoGetCert.sLogPathFile());
                     asLogFileTextReported = File.ReadAllText(lsLogPathFile);
 
-            if ( aoProfile.bValue("-UseStandAloneMode", true) )
+            if ( tvProfile.oGlobal().bValue("-UseStandAloneMode", true) )
                 return;
 
-            string  lsPreviousErrorsLogPathFile = aoProfile.sRelativeToProfilePathFile(aoProfile.sValue("-PreviousErrorsLogPathFile", "PreviousErrorsLog.txt"));
+            string  lsPreviousErrorsLogPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-PreviousErrorsLogPathFile", "PreviousErrorsLog.txt"));
                     if ( File.Exists(lsPreviousErrorsLogPathFile) )
                         File.AppendAllText(lsPreviousErrorsLogPathFile, asLogFileTextReported);
                     else
@@ -1134,7 +1314,10 @@ Notes:
 
             using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
             {
-                loGetCertServiceClient.ReportErrors(asHash, asProfile, File.ReadAllText(lsPreviousErrorsLogPathFile));
+                tvProfile   loCompressContentProfile = new tvProfile();
+                            loCompressContentProfile.Add(DoGetCert.sContentKey, File.ReadAllText(lsPreviousErrorsLogPathFile));
+
+                loGetCertServiceClient.ReportErrors(asHash, abtArrayMinProfile, loCompressContentProfile.btArrayZipped());
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -1144,31 +1327,34 @@ Notes:
             }
         }
 
-        public static void ReportEverything(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
-                , string asHash, string asProfile, out string asLogFileTextReported)
+        public static void ReportEverything(ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
+                , string asHash, byte[] abtArrayMinProfile, out string asLogFileTextReported)
         {
-            string  lsLogPathFile = aoProfile.sRelativeToProfilePathFile(DoGetCert.sLogPathFile(aoProfile));
+            string  lsLogPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(DoGetCert.sLogPathFile());
                     asLogFileTextReported = File.ReadAllText(lsLogPathFile);
 
-            if ( aoProfile.bValue("-UseStandAloneMode", true) || !aoProfile.bValue("-ServiceReportEverything", true) )
+            if ( tvProfile.oGlobal().bValue("-UseStandAloneMode", true) || !tvProfile.oGlobal().bValue("-ServiceReportEverything", true) )
                 return;
 
             using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
             {
-                loGetCertServiceClient.ReportEverything(asHash, asProfile, asLogFileTextReported);
+                tvProfile   loCompressContentProfile = new tvProfile();
+                            loCompressContentProfile.Add(DoGetCert.sContentKey, asLogFileTextReported);
+
+                loGetCertServiceClient.ReportEverything(asHash, abtArrayMinProfile, loCompressContentProfile.btArrayZipped());
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
                     loGetCertServiceClient.Close();
             }
 
-            if ( aoProfile.bValue("-DoStagingTests", true) && aoProfile.bValue("-ResetStagingLogs", true) )
+            if ( tvProfile.oGlobal().bValue("-DoStagingTests", true) && tvProfile.oGlobal().bValue("-ResetStagingLogs", true) )
                 File.Delete(lsLogPathFile);
         }
 
         public void ShowError(string asMessageText, string asMessageCaption)
         {
-            this.LogIt(String.Format("{1}; {0}", asMessageText, asMessageCaption));
+            DoGetCert.LogIt(String.Format("{1}; {0}", asMessageText, asMessageCaption));
 
             if ( null != this.oUI && !this.bNoPrompts )
             this.oUI.Dispatcher.BeginInvoke((Action)(() =>
@@ -1181,7 +1367,7 @@ Notes:
 
      
         // This kludge is necessary since neither "Process.CloseMainWindow()" nor "Process.Kill()" work reliably.
-        private static bool bKillProcess(tvProfile aoProfile, Process aoProcess)
+        private static bool bKillProcess(Process aoProcess)
         {
             bool    lbKillProcess = true;
                     if ( null == aoProcess )
@@ -1204,12 +1390,12 @@ Notes:
                 loKillProcess.StartInfo.CreateNoWindow = true;
                 loKillProcess.Start();
 
-                aoProcess.WaitForExit(1000 * aoProfile.iValue("-KillProcessOrderlyWaitSecs", 10));
+                aoProcess.WaitForExit(1000 * tvProfile.oGlobal().iValue("-KillProcessOrderlyWaitSecs", 10));
             }
             catch (Exception ex)
             {
                 lbKillProcess = false;
-                DoGetCert.LogIt(aoProfile, String.Format("Orderly bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, DoGetCert.sExceptionMessage(ex)));
+                DoGetCert.LogIt(String.Format("Orderly bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, DoGetCert.sExceptionMessage(ex)));
             }
 
             if ( lbKillProcess && !aoProcess.HasExited )
@@ -1225,28 +1411,28 @@ Notes:
                     loKillProcess.StartInfo.CreateNoWindow = true;
                     loKillProcess.Start();
 
-                    aoProcess.WaitForExit(aoProfile.iValue("-KillProcessForcedWaitMS", 1000));
+                    aoProcess.WaitForExit(tvProfile.oGlobal().iValue("-KillProcessForcedWaitMS", 1000));
 
                     lbKillProcess = aoProcess.HasExited;
                 }
                 catch (Exception ex)
                 {
                     lbKillProcess = false;
-                    DoGetCert.LogIt(aoProfile, String.Format("Forced bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, DoGetCert.sExceptionMessage(ex)));
+                    DoGetCert.LogIt(String.Format("Forced bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, DoGetCert.sExceptionMessage(ex)));
                 }
             }
 
             return lbKillProcess;
         }
 
-        private static bool bKillProcessParent(tvProfile aoProfile, Process aoProcess)
+        private static bool bKillProcessParent(Process aoProcess)
         {
             bool lbKillProcess = true;
 
             foreach (Process loProcess in Process.GetProcessesByName(aoProcess.ProcessName))
             {
                 if ( loProcess.Id != aoProcess.Id )
-                    lbKillProcess = DoGetCert.bKillProcess(aoProfile, loProcess);
+                    lbKillProcess = DoGetCert.bKillProcess(loProcess);
             }
 
             return lbKillProcess;
@@ -1261,164 +1447,166 @@ Notes:
         }
         private static X509Certificate2 oCurrentCertificate(string asCertName)
         {
+            string[]        lsSanArray = null;
             ServerManager   loServerManager = null;
             Site            loSite = null;
-            Binding         loBinding = null;
+            Site            loPrimarySiteForDefaults = null;
 
-            return DoGetCert.oCurrentCertificate(asCertName, out loServerManager, out loSite, out loBinding);
-        }
+            return DoGetCert.oCurrentCertificate(asCertName, lsSanArray, out loServerManager, out loSite, out loPrimarySiteForDefaults);
+          }
         private static X509Certificate2 oCurrentCertificate(string asCertName, out ServerManager aoServerManager)
         {
-            Site            loSite = null;
-            Binding         loBinding = null;
-
-            return DoGetCert.oCurrentCertificate(asCertName, out aoServerManager, out loSite, out loBinding);
-        }
-        private static X509Certificate2 oCurrentCertificate(string asCertName, out ServerManager aoServerManager, out Site aoSiteFound)
-        {
-            Binding         loBinding = null;
-
-            return DoGetCert.oCurrentCertificate(asCertName, out aoServerManager, out aoSiteFound, out loBinding);
-        }
-        private static X509Certificate2 oCurrentCertificate(
-                  string asCertName
-                , out ServerManager aoServerManager
-                , out Site aoSiteFound
-                , out Binding aoBindingFound
-                )
-        {
             string[]        lsSanArray = null;
-            Site            loDefaultSite = null;
+            Site            loSite = null;
+            Site            loPrimarySiteForDefaults = null;
 
-            return DoGetCert.oCurrentCertificate(asCertName, out aoServerManager, out aoSiteFound, out aoBindingFound, lsSanArray, out loDefaultSite);
+            return DoGetCert.oCurrentCertificate(asCertName, lsSanArray, out aoServerManager, out loSite, out loPrimarySiteForDefaults);
         }
         private static X509Certificate2 oCurrentCertificate(
                   string asCertName
-                , out Site aoSiteFound
                 , string[] asSanArray
+                , out Site aoSiteFound
                 )
         {
             ServerManager   loServerManager = null;
-            Binding         loBinding = null;
-            Site            loDefaultSite = null;
+            Site            loPrimarySiteForDefaults = null;
 
-            return DoGetCert.oCurrentCertificate(asCertName, out loServerManager, out aoSiteFound, out loBinding, asSanArray, out loDefaultSite);
+            return DoGetCert.oCurrentCertificate(asCertName, asSanArray, out loServerManager, out aoSiteFound, out loPrimarySiteForDefaults);
         }
         private static X509Certificate2 oCurrentCertificate(
                   string asCertName
+                , string[] asSanArray
                 , out ServerManager aoServerManager
                 , out Site aoSiteFound
-                , string[] asSanArray
-                , out Site aoDefaultSiteFound
                 )
         {
-            Binding         loBinding = null;
+            Site            loPrimarySiteForDefaults = null;
 
-            return DoGetCert.oCurrentCertificate(asCertName, out aoServerManager, out aoSiteFound, out loBinding, asSanArray, out aoDefaultSiteFound);
+            return DoGetCert.oCurrentCertificate(asCertName, asSanArray, out aoServerManager, out aoSiteFound, out loPrimarySiteForDefaults);
         }
         private static X509Certificate2 oCurrentCertificate(
                   string asCertName
+                , string[] asSanArray
                 , out ServerManager aoServerManager
                 , out Site aoSiteFound
-                , out Binding aoBindingFound
-                , string[] asSanArray
-                , out Site aoDefaultSiteFound
+                , out Site aoPrimarySiteForDefaults
                 )
         {
-            // ServerManager is the IIS ServerManager. It gives us the website for binding the cert.
-            aoServerManager = new ServerManager();
-            aoSiteFound = null;
-            aoBindingFound = null;
-            aoDefaultSiteFound = null;
-
-            string              lsCertName = null == asCertName ? null : asCertName.ToLower();
             X509Certificate2    loCurrentCertificate = null;
 
-            foreach(Site loSite in aoServerManager.Sites)
+            // ServerManager is the IIS ServerManager. It gives us the website objectfor binding the cert.
+            aoServerManager = new ServerManager();
+            aoSiteFound = null;
+            aoPrimarySiteForDefaults = null;
+
+            try
             {
-                // First, look for a binding by matching certificate.
-                foreach (Binding loBinding in loSite.Bindings)
+                string  lsCertName = null == asCertName ? null : asCertName.ToLower();
+                Binding loBindingFound = null;
+
+                foreach(Site loSite in aoServerManager.Sites)
                 {
-                    // Use the first binding found with a certificate (and a matching name - if lsCertName is not null).
-                    foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
+                    // First, look for a binding by matching certificate.
+                    foreach (Binding loBinding in loSite.Bindings)
                     {
-                        if ( null != loBinding.CertificateHash && loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
-                            && (null == lsCertName || lsCertName == DoGetCert.sCertName(loCertificate).ToLower()) )
+                        // Select the first binding with a certificate (and a matching name - if lsCertName is not null).
+                        foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
                         {
-                            // Binding found that matches a certificate and certificate name (or no name).
-                            loCurrentCertificate = loCertificate;
+                            if ( null != loBinding.CertificateHash && loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
+                                && (null == lsCertName || lsCertName == DoGetCert.sCertName(loCertificate).ToLower()) )
+                            {
+                                // Binding found that matches a certificate and certificate name (or no name).
+                                loCurrentCertificate = loCertificate;
+                                aoSiteFound = loSite;
+                                loBindingFound = loBinding;
+                                break;
+                            }
+                        }
+
+                        if ( null != loBindingFound )
+                            break;
+                    }
+
+                    // Next, look for a binding by matching certificate (name match not required).
+                    if ( null == loBindingFound && null != goSetupCertificate )
+                    foreach (Binding loBinding in loSite.Bindings)
+                    {
+                        if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
+                        {
+                            // Binding found that matches the setup certificate.
+                            loCurrentCertificate = null;
                             aoSiteFound = loSite;
-                            aoBindingFound = loBinding;
+                            loBindingFound = loBinding;
                             break;
                         }
                     }
 
-                    if ( null != aoBindingFound )
+                    // Next, if no binding certificate match exists, look by binding hostname (ie. SNI).
+                    if ( null == loBindingFound )
+                        foreach (Binding loBinding in loSite.Bindings)
+                        {
+                            if ( null == loBinding.CertificateHash && null != lsCertName
+                                    && lsCertName == loBinding.Host.ToLower() && "https" == loBinding.Protocol )
+                            {
+                                // Site found with a binding hostname that matches lsCertName.
+                                aoSiteFound = loSite;
+                                loBindingFound = loBinding;
+                                break;
+                            }
+
+                            if ( null != loBindingFound )
+                                break;
+                        }
+
+                    // Finally, with no binding found, try to match against the site name.
+                    if ( null == loBindingFound && asCertName == loSite.Name )
+                        aoSiteFound = loSite;
+
+                    if ( null != aoSiteFound )
                         break;
                 }
 
-                // Next, if no binding certificate match exists, look by binding hostname (ie. SNI).
-                if ( null == aoBindingFound )
-                    foreach (Binding loBinding in loSite.Bindings)
+                // Finally, finally (no really), with no site found, find a related primary site to use for defaults.
+                string lsPrimaryCertName = null == asSanArray || 0 == asSanArray.Length ? null : asSanArray[0].ToLower();
+
+                if ( null == aoSiteFound && null != lsPrimaryCertName && lsCertName != lsPrimaryCertName )
+                {
+                    // Use the primary site in the SAN array as defaults for any new site (to be created).
+                    DoGetCert.oCurrentCertificate(lsPrimaryCertName, asSanArray, out aoPrimarySiteForDefaults);
+                }
+
+                // As a last resort (so much for finally), use the newest certificate found in the local store (by name).
+                if ( null == loCurrentCertificate && null != lsCertName )
+                    foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
                     {
-                        if ( null == loBinding.CertificateHash && null != lsCertName
-                                && lsCertName == loBinding.Host.ToLower() && "https" == loBinding.Protocol )
+                        if ( lsCertName == DoGetCert.sCertName(loCertificate).ToLower()
+                                && (null == loCurrentCertificate || loCertificate.NotAfter > loCurrentCertificate.NotAfter) )
                         {
-                            // Site found with a binding hostname that matches lsCertName.
-                            aoSiteFound = loSite;
-                            aoBindingFound = loBinding;
-                            break;
+                            loCurrentCertificate = loCertificate;
                         }
-
-                        if ( null != aoBindingFound )
-                            break;
                     }
-
-                // Finally, with no binding found, try to match against the site name.
-                if ( null == aoBindingFound && asCertName == loSite.Name )
-                {
-                    // Site found with a name that matches lsCertName.
-                    aoSiteFound = loSite;
-                    aoBindingFound = DoGetCert.oSslBinding(loSite);
-                    break;
-                }
-
-                if ( null != aoBindingFound )
-                    break;
             }
-
-            // Finally, finally (no really), with no site found, find a related primary site to use for defaults.
-            string lsPrimaryCertName = null == asSanArray || 0 == asSanArray.Length ? null : asSanArray[0].ToLower();
-
-            if ( null == aoSiteFound && null != lsPrimaryCertName && lsCertName != lsPrimaryCertName )
+            catch (Exception ex)
             {
-                // Use the primary site in the SAN array as defaults for any new site (to be created).
-                DoGetCert.oCurrentCertificate(lsPrimaryCertName, out aoDefaultSiteFound, asSanArray);
+                DoGetCert.LogIt(ex.Message);
+                DoGetCert.LogIt("IIS may not be fully configured. This will prevent certificate-to-site binding in IIS.");
             }
-
-            // As a last resort (so much for finally), use the newest certificate found in the local store (by name).
-            if ( null == loCurrentCertificate && null != lsCertName )
-                foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
-                {
-                    if ( lsCertName == DoGetCert.sCertName(loCertificate).ToLower()
-                            && (null == loCurrentCertificate || loCertificate.NotAfter > loCurrentCertificate.NotAfter) )
-                    {
-                        loCurrentCertificate = loCertificate;
-                    }
-                }
 
             return loCurrentCertificate;
         }
 
         private static Binding oSslBinding(Site aoSite)
         {
+            if ( null == aoSite || null == aoSite.Bindings )
+                return null;
+
             Binding loSslBinding = null;
 
-            if ( null != aoSite )
-                foreach (Binding loBinding in aoSite.Bindings)
+            foreach (Binding loBinding in aoSite.Bindings)
+                if ( null != loBinding && "https" == loBinding.Protocol )
                 {
-                    if ( "https" == loBinding.Protocol )
-                        loSslBinding = loBinding;
+                    loSslBinding = loBinding;
+                    break;
                 }
 
             return loSslBinding;
@@ -1442,11 +1630,34 @@ Notes:
 
         public static string sExceptionMessage(Exception ex)
         {
-            return "GetCertServiceFault: " + ex.Message + (null == ex.InnerException ? "": "; " + ex.InnerException.Message) + "\r\n" + ex.StackTrace;
+            return String.Format("GetCertServiceFault: {0}{1}{2}{3}", ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message), Environment.NewLine, ex.StackTrace);
         }
         public static string sExceptionMessage(string asMessage)
         {
             return "GetCertServiceFault: " + asMessage;
+        }
+
+        /// <summary>
+        /// Returns the current "LogPathFile" base name.
+        /// </summary>
+        private static string sLogPathFileBase()
+        {
+            string lsPath = "Logs";
+            string lsLogFile = "Log.txt";
+            string lsLogPathFileBase = lsLogFile;
+
+            try
+            {
+                lsLogPathFileBase = tvProfile.oGlobal().sValue("-LogPathFile"
+                        , Path.Combine(lsPath, Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sLoadedPathFile) + lsLogFile));
+
+                lsPath = Path.GetDirectoryName(tvProfile.oGlobal().sRelativeToProfilePathFile(lsLogPathFileBase));
+                if ( !Directory.Exists(lsPath) )
+                    Directory.CreateDirectory(lsPath);
+            }
+            catch {}
+
+            return lsLogPathFileBase;
         }
 
         private static string sProcessExePathFile(string asExePathFile)
@@ -1469,29 +1680,6 @@ Notes:
             }
 
             return lsFindProcessExePathFile;
-        }
-
-        /// <summary>
-        /// Returns the current "LogPathFile" base name.
-        /// </summary>
-        private static string sLogPathFileBase(tvProfile aoProfile)
-        {
-            string  lsPath = "Logs";
-            string  lsLogFile = "Log.txt";
-            string  lsLogPathFileBase = lsLogFile;
-
-            try
-            {
-                lsLogPathFileBase = aoProfile.sValue("-LogPathFile"
-                        , Path.Combine(lsPath, Path.GetFileNameWithoutExtension(aoProfile.sLoadedPathFile) + lsLogFile));
-
-                lsPath = Path.GetDirectoryName(aoProfile.sRelativeToProfilePathFile(lsLogPathFileBase));
-                if ( !Directory.Exists(lsPath) )
-                    Directory.CreateDirectory(lsPath);
-            }
-            catch {}
-
-            return lsLogPathFileBase;
         }
 
         /// <summary>
@@ -1539,116 +1727,99 @@ Notes:
             return lsOutputPathFile;
         }
 
-        private static void DoCheckIn(tvProfile aoProfile, string asHash, string asProfile, tvMessageBox aoStartupWaitMsg)
+        private static bool bDoCheckIn(string asHash, byte[] abtArrayMinProfile, tvMessageBox aoStartupWaitMsg)
         {
-            if ( aoProfile.bValue("-UseStandAloneMode", true) )
-                return;
+            bool lbDoCheckIn = false;
+
+            if ( tvProfile.oGlobal().bValue("-UseStandAloneMode", true) )
+                return true;
+
+            DoGetCert.LogIt("Attempting check-in with the certificate repository ...");
 
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
                 if ( null != aoStartupWaitMsg )
                     aoStartupWaitMsg.Hide();
 
-                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                if ( null != aoStartupWaitMsg && !aoProfile.bExit )
+                if ( null != aoStartupWaitMsg && !tvProfile.oGlobal().bExit )
                     aoStartupWaitMsg.Show();
 
-                string lsPreviousErrorsLogPathFile = aoProfile.sRelativeToProfilePathFile(aoProfile.sValue("-PreviousErrorsLogPathFile", "PreviousErrorsLog.txt"));
-                string lsErrorLog = null;
+                string      lsPreviousErrorsLogPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-PreviousErrorsLogPathFile", "PreviousErrorsLog.txt"));
+                string      lsErrorLog = null;
+                tvProfile   loCompressContentProfile = new tvProfile();
                         if ( File.Exists(lsPreviousErrorsLogPathFile) )
+                        {
                             lsErrorLog = File.ReadAllText(lsPreviousErrorsLogPathFile);
+                            loCompressContentProfile.Add(DoGetCert.sContentKey, lsErrorLog);
+                        }
 
-                loGetCertServiceClient.ClientCheckIn(asHash, asProfile, lsErrorLog);
+                lbDoCheckIn = loGetCertServiceClient.bClientCheckIn(asHash, abtArrayMinProfile, loCompressContentProfile.btArrayZipped());
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
                     loGetCertServiceClient.Close();
 
-                DoGetCert.LogIt(aoProfile, "");
-                DoGetCert.LogIt(aoProfile, String.Format("Client checked in with the certificate repository{0}.", null == lsErrorLog ? "" : " (and reported previous errors)"));
-
-                File.Delete(lsPreviousErrorsLogPathFile);
-            }
-        }
-
-        public static void LogIt(tvProfile aoProfile, string asText)
-        {
-            string          lsLogPathFileBase = null;
-            StreamWriter    loStreamWriter = null;
-
-            try
-            {
-                if ( null == aoProfile )
-                    aoProfile = new tvProfile();
-
-                lsLogPathFileBase = DoGetCert.sLogPathFileBase(aoProfile);
-
-                // Move down to the base folder if we're running an update.
-                string  lsPathSep = Path.DirectorySeparatorChar.ToString();
-                string  lsPath = Path.GetDirectoryName(aoProfile.sRelativeToProfilePathFile(lsLogPathFileBase)).Replace(
-                                    String.Format("{0}{1}{0}",  lsPathSep, aoProfile.sValue("-UpdateFolder", "Update")), lsPathSep);
-                        Directory.CreateDirectory(lsPath);
-
-                loStreamWriter = new StreamWriter(aoProfile.sRelativeToProfilePathFile(
-                        DoGetCert.sUniqueIntOutputPathFile(lsLogPathFileBase
-                        , aoProfile.sValue("-LogFileDateFormat", "-yyyy-MM-dd"), true)), true);
-                loStreamWriter.WriteLine(DateTime.Now.ToString(aoProfile.sValueNoTrim(
-                        "-LogEntryDateTimeFormatPrefix", "yyyy-MM-dd hh:mm:ss:fff tt  "))
-                        + asText);
-            }
-            catch
-            {
-                try
+                DoGetCert.LogIt("");
+                if ( !lbDoCheckIn )
                 {
-                    // Give it one last try ...
-                    File.WriteAllText(lsLogPathFileBase, asText);
+                    throw new Exception("Client FAILED to check-in with the certificate repository. Can't continue.");
                 }
-                catch { /* Can't log a log failure. */ }
+                else
+                {
+                    DoGetCert.LogIt(String.Format("Client successfully checked-in with the certificate repository{0}.", null == lsErrorLog ? "" : " (and reported previous errors)"));
+
+                    File.Delete(lsPreviousErrorsLogPathFile);
+                }
             }
-            finally
-            {
-                if ( null != loStreamWriter )
-                    loStreamWriter.Close();
-            }
+
+            return lbDoCheckIn;
         }
 
         /// <summary>
         /// Set client certificate.
         /// </summary>
-        private static void SetCertificate(tvProfile aoProfile, ChannelFactory<GetCertService.IGetCertServiceChannel> aoChannelFactory)
+        public static void SetCertificate(ChannelFactory<GetCertService.IGetCertServiceChannel> aoChannelFactory)
         {
-            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bExit )
+            tvProfile loProfile = tvProfile.oGlobal();
+
+            if ( loProfile.bValue("-UseStandAloneMode", true) || loProfile.bExit )
                 return;
 
             if ( null == aoChannelFactory.Credentials.ClientCertificate.Certificate )
             {
-                if (null == goSetupCertificate)
-                    DoGetCert.SetCertificate(aoProfile, new GetCertService.GetCertServiceClient());
+                if ( null == goSetupCertificate )
+                    DoGetCert.SetCertificate(new GetCertService.GetCertServiceClient());
 
                 aoChannelFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
             }
+            else
+            if ( null == goSetupCertificate )
+                goSetupCertificate = aoChannelFactory.Credentials.ClientCertificate.Certificate;
         }
-        private static void SetCertificate(tvProfile aoProfile, GetCertService.GetCertServiceClient aoGetCertServiceClient)
+        private static void SetCertificate(GetCertService.GetCertServiceClient aoGetCertServiceClient)
         {
-            if ( aoProfile.bValue("-UseStandAloneMode", true) || aoProfile.bExit )
+            tvProfile loProfile = tvProfile.oGlobal();
+
+            if ( loProfile.bValue("-UseStandAloneMode", true) || loProfile.bExit )
                 return;
 
             if ( null == aoGetCertServiceClient.ClientCredentials.ClientCertificate.Certificate )
             {
-                if ( null == goSetupCertificate && "" != aoProfile.sValue("-ContactEmailAddress" ,"") )
-                    goSetupCertificate = DoGetCert.oCurrentCertificate(aoProfile.sValue("-CertificateDomainName" ,""));
+                if ( null == goSetupCertificate && "" != loProfile.sValue("-ContactEmailAddress" ,"") )
+                    goSetupCertificate = DoGetCert.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
 
-                if ( null == goSetupCertificate && !aoProfile.bValue("-CertificateSetupDone", false) && !aoProfile.bValue("-NoPrompts", false) )
+                if ( null == goSetupCertificate && !loProfile.bValue("-CertificateSetupDone", false) && !loProfile.bValue("-NoPrompts", false) )
                 {
                     System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
-                                                        loOpenDialog.FileName = "GetCertClientSetup.pfx";
+                                                        loOpenDialog.FileName = DoGetCert.sNewClientSetupCertName + ".pfx";
                     System.Windows.Forms.DialogResult   leDialogResult = System.Windows.Forms.DialogResult.None;
                                                         leDialogResult = loOpenDialog.ShowDialog();
 
                     if ( System.Windows.Forms.DialogResult.OK != leDialogResult )
                     {
-                        aoProfile.bExit = true;
+                        loProfile.bExit = true;
                     }
                     else
                     {
@@ -1656,7 +1827,7 @@ Notes:
 
                         if ( "" == lsPassword )
                         {
-                            aoProfile.bExit = true;
+                            loProfile.bExit = true;
                         }
                         else
                         {
@@ -1666,8 +1837,8 @@ Notes:
                             }
                             catch (Exception ex)
                             {
-                                aoProfile.bExit = true;
-                                DoGetCert.LogIt(aoProfile, DoGetCert.sExceptionMessage(ex));
+                                loProfile.bExit = true;
+                                DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
                             }
                         }
                     }
@@ -1693,7 +1864,7 @@ Notes:
                 , string asProfilePromptKey
                 )
         {
-            this.LogIt(asMessageText);
+            DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -1725,7 +1896,7 @@ Notes:
                 , string asProfilePromptKey
                 )
         {
-            this.LogIt(asMessageText);
+            DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -1751,7 +1922,7 @@ Notes:
 
         private void ShowError(string asMessageText)
         {
-            this.LogIt(asMessageText);
+            DoGetCert.LogIt(asMessageText);
 
             if ( null != this.oUI && !this.bNoPrompts )
             this.oUI.Dispatcher.BeginInvoke((Action)(() =>
@@ -1764,7 +1935,7 @@ Notes:
 
         private void ShowModelessError(string asMessageText, string asMessageCaption, string asProfilePromptKey)
         {
-            this.LogIt(String.Format("{1}; {0}", asMessageText, asMessageCaption));
+            DoGetCert.LogIt(String.Format("{1}; {0}", asMessageText, asMessageCaption));
 
             if ( null != this.oUI && !this.bNoPrompts )
             this.oUI.Dispatcher.BeginInvoke((Action)(() =>
@@ -1784,8 +1955,8 @@ Notes:
 
         private void DoGetCert_SessionEnding(object sender, System.Windows.SessionEndingCancelEventArgs e)
         {
-            this.LogIt("");
-            this.LogIt(String.Format("{0} exiting due to log-off or system shutdown.", Path.GetFileName(System.Windows.Application.ResourceAssembly.Location)));
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt(String.Format("{0} exiting due to log-off or system shutdown.", Path.GetFileName(System.Windows.Application.ResourceAssembly.Location)));
 
             if ( null != this.oUI )
             this.oUI.HandleShutdown();
@@ -1801,19 +1972,19 @@ Notes:
         {
             string lsOutput = null;
 
-            return this.bRunPowerScript(out lsOutput, asScript, abOpenOrCloseSingleSession);
+            return DoGetCert.bRunPowerScript(out lsOutput, asScript, abOpenOrCloseSingleSession, false);
         }
         private bool bRunPowerScript(out string asOutput, string asScript)
         {
-            return this.bRunPowerScript(out asOutput, asScript, false);
+            return DoGetCert.bRunPowerScript(out asOutput, asScript, false, false);
         }
-        private bool bRunPowerScript(out string asOutput, string asScript, bool abOpenOrCloseSingleSession)
+        private static bool bRunPowerScript(out string asOutput, string asScript, bool abOpenOrCloseSingleSession, bool abSkipLog)
         {
-            bool            lbSingleSessionEnabled = moProfile.bValue("-SingleSessionEnabled", false);
+            bool            lbSingleSessionEnabled = tvProfile.oGlobal().bValue("-SingleSessionEnabled", false);
             string          lsSingleSessionScriptPathFile = null;
                             if ( lbSingleSessionEnabled )
                             {
-                                lsSingleSessionScriptPathFile = moProfile.sRelativeToProfilePathFile(moProfile.sValue("-PowerScriptSessionPathFile", "InGetCertSession.ps1"));
+                                lsSingleSessionScriptPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-PowerScriptSessionPathFile", "InGetCertSession.ps1"));
 
                                 // Fetch global session script.
                                 tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
@@ -1827,7 +1998,7 @@ Notes:
                                 return true;
                             }
             bool            lbRunPowerScript = false;
-            string          lsScriptPathFile = moProfile.sRelativeToProfilePathFile(moProfile.sValue("-PowerScriptPathFile", "PowerScript.ps1"));
+            string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1"));
             StreamWriter    loStreamWriter   = null;
             string          lsScript = null;
                             string          lsKludgeHide1 = Guid.NewGuid().ToString();  // Apparently Regex can't handle "++" in the text to process.
@@ -1839,8 +2010,8 @@ Notes:
                                     foreach (Match loMatch in loRegex.Matches(lsbReplaceProfileTokens.ToString()))
                                     {
                                         string  lsKey = loMatch.Groups[1].ToString();
-                                                if ( moProfile.ContainsKey(lsKey) )
-                                                    lsbReplaceProfileTokens.Replace(loMatch.Groups[0].ToString(), moProfile[lsKey].ToString());
+                                                if ( tvProfile.oGlobal().ContainsKey(lsKey) )
+                                                    lsbReplaceProfileTokens.Replace(loMatch.Groups[0].ToString(), tvProfile.oGlobal()[lsKey].ToString());
                                     }
 
                             lsScript = lsbReplaceProfileTokens.ToString().Replace(lsKludgeHide1, "++");
@@ -1852,7 +2023,7 @@ Notes:
             }
             catch (Exception ex)
             {
-                this.LogIt(DoGetCert.sExceptionMessage(ex));
+                DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
             }
             finally
             {
@@ -1860,20 +2031,22 @@ Notes:
                     loStreamWriter.Close();
             }
 
-            string  lsProcessPathFile = moProfile.sValue("-PowerShellExePathFile", @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe");
-            string  lsProcessArgs = moProfile.sValue("-PowerShellExeArgs", @"-NoProfile -ExecutionPolicy unrestricted -File ""{0}"" ""{1}""");
+            string  lsProcessPathFile = tvProfile.oGlobal().sValue("-PowerShellExePathFile", @"C:\Windows\System32\WindowsPowerShell\v1.0\PowerShell.exe");
+            string  lsProcessArgs = tvProfile.oGlobal().sValue("-PowerShellExeArgs", @"-NoProfile -ExecutionPolicy unrestricted -File ""{0}"" ""{1}""");
                     if ( !lbSingleSessionEnabled || abOpenOrCloseSingleSession )
                         lsProcessArgs = String.Format(lsProcessArgs, lsScriptPathFile, "");
                     else
                         lsProcessArgs = String.Format(lsProcessArgs, lsSingleSessionScriptPathFile, lsScriptPathFile);
             string  lsLogScript = !lsScript.Contains("-CertificateKey") ? lsScript : lsScript.Substring(0, lsScript.IndexOf("-CertificateKey"));
 
-            if ( !lbSingleSessionEnabled || !abOpenOrCloseSingleSession )
-                this.LogIt(lsLogScript);
+            if ( !abSkipLog && (!lbSingleSessionEnabled || !abOpenOrCloseSingleSession) )
+                DoGetCert.LogIt(lsLogScript);
+
+            gbPowerScriptSkipLog = abSkipLog;
 
             Process loProcess = new Process();
-                    loProcess.ErrorDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessErrorHandler);
-                    loProcess.OutputDataReceived += new DataReceivedEventHandler(this.PowerScriptProcessOutputHandler);
+                    loProcess.ErrorDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessErrorHandler);
+                    loProcess.OutputDataReceived += new DataReceivedEventHandler(DoGetCert.PowerScriptProcessOutputHandler);
                     loProcess.StartInfo.FileName = lsProcessPathFile;
                     loProcess.StartInfo.Arguments = lsProcessArgs;
                     loProcess.StartInfo.UseShellExecute = false;
@@ -1884,154 +2057,259 @@ Notes:
 
             System.Windows.Forms.Application.DoEvents();
 
-            mbPowerScriptError = false;
-            msPowerScriptOutput = null;
+            gbPowerScriptError = false;
+            gsPowerScriptOutput = null;
 
             loProcess.Start();
             loProcess.BeginErrorReadLine();
             loProcess.BeginOutputReadLine();
 
-            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(moProfile.dValue("-PowerScriptTimeoutSecs", 300));
+            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-PowerScriptTimeoutSecs", 300));
 
             // Wait for the process to finish.
-            while ( !this.bMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
+            while ( !gbMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
             {
                 System.Windows.Forms.Application.DoEvents();
 
-                if ( !this.bMainLoopStopped )
-                    Thread.Sleep(moProfile.iValue("-PowerScriptSleepMS", 200));
+                if ( !gbMainLoopStopped )
+                    Thread.Sleep(tvProfile.oGlobal().iValue("-PowerScriptSleepMS", 200));
             }
 
-            if ( !this.bMainLoopStopped )
+            if ( !gbMainLoopStopped )
             {
                 if ( !loProcess.HasExited )
-                    this.LogIt(moProfile.sValue("-PowerScriptTimeoutMsg", "*** sub-process timed-out ***\r\n\r\n"));
+                    DoGetCert.LogIt(tvProfile.oGlobal().sValue("-PowerScriptTimeoutMsg", "*** sub-process timed-out ***\r\n\r\n"));
 
-                if ( mbPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
+                if ( gbPowerScriptError || loProcess.ExitCode != 0 || !loProcess.HasExited )
                 {
-                    this.LogIt(DoGetCert.sExceptionMessage("The sub-process experienced a critical failure."));
+                    DoGetCert.LogIt(DoGetCert.sExceptionMessage("The sub-process experienced a critical failure."));
                 }
                 else
                 {
                     lbRunPowerScript = true;
-                    File.Delete(lsScriptPathFile);
 
-                    if ( !lbSingleSessionEnabled || !abOpenOrCloseSingleSession )
-                        this.LogSuccess();
+                    if ( null != lsScriptPathFile )
+                        File.Delete(lsScriptPathFile);
+
+                    if ( !abSkipLog && (!lbSingleSessionEnabled || !abOpenOrCloseSingleSession) )
+                        DoGetCert.LogSuccess();
                 }
             }
 
             loProcess.CancelErrorRead();
             loProcess.CancelOutputRead();
 
-            DoGetCert.bKillProcess(moProfile, loProcess);
+            DoGetCert.bKillProcess(loProcess);
 
-            asOutput = msPowerScriptOutput;
+            asOutput = gsPowerScriptOutput;
+            gbPowerScriptSkipLog = false;
 
             return lbRunPowerScript;
         }
 
-        private void PowerScriptProcessOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
-        {
-            if ( null != outLine.Data && 0 != outLine.Data.Length && !outLine.Data.Contains("WARNING: PSSession GetCert") )
-            {
-                msPowerScriptOutput += outLine.Data;
-                this.LogIt(outLine.Data);
-            }
-        }
-
-        private void PowerScriptProcessErrorHandler(object sendingProcess, DataReceivedEventArgs outLine)
+        private static void PowerScriptProcessOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if ( null != outLine.Data && 0 != outLine.Data.Length )
             {
-                msPowerScriptOutput += outLine.Data;
-                mbPowerScriptError = true;
-                this.LogIt(outLine.Data);
+                gsPowerScriptOutput += outLine.Data;
+
+                if ( !gbPowerScriptSkipLog )
+                    DoGetCert.LogIt(outLine.Data);
             }
         }
 
-        private bool bApplyNewCertToADFS(X509Certificate2 aoNewCertificate, X509Certificate2 aoOldCertificate, string asHash, string asProfile)
+        private static void PowerScriptProcessErrorHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
-            // Do nothing if running stand-alone or this isn't an ADFS server (or we are not doing ADFS certificate updates on this server).
-            if ( moProfile.bValue("-UseStandAloneMode", true) || !this.oDomainProfile.bValue("-IsAdfsDomain", false)
-                        || null == aoOldCertificate || moProfile.bValue("-SkipAdfsServer", false) )
-                return true;
-            
-            this.LogIt("");
-            this.LogIt("But first, replace ADFS certificates ...");
+            if ( null != outLine.Data && 0 != outLine.Data.Length )
+            {
+                gsPowerScriptOutput += outLine.Data;
+                gbPowerScriptError = true;
+                DoGetCert.LogIt(outLine.Data);
+            }
+        }
 
-            bool lbApplyNewCertToADFS = this.bRunPowerScript(moProfile.sValue("-ScriptADFS", @"
+        private bool bApplyNewCertToSSO(X509Certificate2 aoNewCertificate, X509Certificate2 aoOldCertificate, string asHash, byte[] abtArrayMinProfile)
+        {
+            // Do nothing if running stand-alone or this isn't an SSO server (or we are not doing SSO certificate updates on this server).
+            if ( moProfile.bValue("-UseStandAloneMode", true) || !this.oDomainProfile.bValue("-IsSsoDomain", false)
+                        || null == aoOldCertificate || moProfile.bValue("-SkipSsoServer", false) )
+                return true;
+
+            bool lbApplyNewCertToSSO = false;
+
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("But first, replace SSO certificates ...");
+
+            string  lsOutput = null;
+            bool    lbIsOlder = false;
+            bool    lbIsProxy = false;
+                    if ( !moProfile.ContainsKey("-IsSsoOlder") || !moProfile.ContainsKey("-IsSsoProxy") )
+                    {
+                        if ( !DoGetCert.bRunPowerScript(out lsOutput, moProfile.sValue("-ScriptSsoVerChk1", "try {(Get-AdfsProperties).HostName} catch {}"), false, true) )
+                        {
+                            DoGetCert.LogIt("Failed checking SSO vs. proxy.");
+                            return false;
+                        }
+
+                        lbIsProxy = String.IsNullOrEmpty(lsOutput);
+
+                        if ( lbIsProxy )
+                        {
+                            if ( !DoGetCert.bRunPowerScript(out lsOutput, moProfile.sValue("-ScriptSsoProxyVerChk", "try {(Get-WebApplicationProxySslCertificate).HostName} catch {}"), false, true) )
+                            {
+                                DoGetCert.LogIt("Failed checking SSO proxy version.");
+                                return false;
+                            }
+
+                            lbIsOlder = String.IsNullOrEmpty(lsOutput);
+                        }
+                        else
+                        {
+                            if ( !DoGetCert.bRunPowerScript(out lsOutput, moProfile.sValue("-ScriptSsoVerChk2", "try {(Get-AdfsProperties).AuditLevel} catch {}"), false, true) )
+                            {
+                                DoGetCert.LogIt("Failed checking SSO version.");
+                                return false;
+                            }
+
+                            lbIsOlder = String.IsNullOrEmpty(lsOutput);
+                        }
+
+                        moProfile["-IsSsoOlder"] = lbIsOlder;
+                        moProfile["-IsSsoProxy"] = lbIsProxy;
+                        moProfile.Save();
+                    }
+                    else
+                    {
+                        lbIsOlder = moProfile.bValue("-IsSsoOlder", false);
+                        lbIsProxy = moProfile.bValue("-IsSsoProxy", false);
+                    }
+            string  lsDefaultScript = null;
+                    if ( lbIsProxy )
+                    {
+                        if ( !lbIsOlder )
+                            // SSO proxy server, 3+ (nothing to do for older proxies).
+                            lsDefaultScript = @"
+Set-WebApplicationProxySslCertificate -Thumbprint ""{NewCertificateThumbprint}""
+
+Restart-Service -Name adfssrv
+                                    ";
+                    }
+                    else
+                    {
+                        lsDefaultScript = @"
 $ServiceName = ""adfssrv""
 # Wait at most 3 minutes for the ADFS service to start (after a likely reboot).
 if ( (Get-Service -Name $ServiceName).Status -ne ""Running"" ) {Start-Sleep -s 180}
 
-Add-PSSnapin Microsoft.Adfs.Powershell 2> $null
+Add-PSSnapin Microsoft.Adfs.PowerShell 2> $null
 
 if ( (Get-AdfsCertificate -CertificateType ""Service-Communications"").Thumbprint -eq ""{NewCertificateThumbprint}"" )
 {
-    echo ""ADFS certificates already replaced (by another server in the farm).""
+    echo ""SSO certificates already replaced (by another server in the farm).""
     echo ""The ADFS service will be restarted.""
 }
 else
 {
-    if ( !$Errors ) {try {Add-AdfsCertificate    -CertificateType ""Token-Decrypting""       -Thumbprint ""{NewCertificateThumbprint}"" -IsPrimary} catch {$Errors = $error}}
-    if ( !$Errors ) {try {Remove-AdfsCertificate -CertificateType ""Token-Decrypting""       -Thumbprint ""{OldCertificateThumbprint}""} catch {}}
+    Set-AdfsCertificate    -CertificateType ""Service-Communications"" -Thumbprint ""{NewCertificateThumbprint}""
 
-    if ( !$Errors ) {try {Add-AdfsCertificate    -CertificateType ""Token-Signing""          -Thumbprint ""{NewCertificateThumbprint}"" -IsPrimary} catch {$Errors = $error}}
-    if ( !$Errors ) {try {Remove-AdfsCertificate -CertificateType ""Token-Signing""          -Thumbprint ""{OldCertificateThumbprint}""} catch {}}
+    Add-AdfsCertificate    -CertificateType ""Token-Decrypting""       -Thumbprint ""{NewCertificateThumbprint}"" -IsPrimary
+    Remove-AdfsCertificate -CertificateType ""Token-Decrypting""       -Thumbprint ""{OldCertificateThumbprint}""
 
-    if ( !$Errors ) {try {Set-AdfsCertificate    -CertificateType ""Service-Communications"" -Thumbprint ""{NewCertificateThumbprint}""} catch {$Errors = $error}}
+    Add-AdfsCertificate    -CertificateType ""Token-Signing""          -Thumbprint ""{NewCertificateThumbprint}"" -IsPrimary
+    Remove-AdfsCertificate -CertificateType ""Token-Signing""          -Thumbprint ""{OldCertificateThumbprint}""
 }
 
 Restart-Service -Name $ServiceName
-                    ")
+                                ";
+
+                        // For ADFS 3+, insert the "HTTP.SYS" SSL assignment (above service restart).
+                        if ( !lbIsOlder )
+                            lsDefaultScript = @"
+#Error suppression is needed here since ""Set-AdfsSslCertificate"" always times out, even after a successful run.
+try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
+                                    "
+                                    + Environment.NewLine
+                                    + lsDefaultScript;
+                    }
+
+            lbApplyNewCertToSSO = this.bRunPowerScript(moProfile.sValue("-ScriptSSO", lsDefaultScript)
                     .Replace("{NewCertificateThumbprint}", aoNewCertificate.Thumbprint)
                     .Replace("{OldCertificateThumbprint}", aoOldCertificate.Thumbprint)
                     );
 
-            if ( lbApplyNewCertToADFS )
+            if ( null == lsDefaultScript )
+                throw new Exception("-ScriptSSO is empty. This is an error.");
+
+            if ( lbApplyNewCertToSSO && !lbIsProxy )
             {
-                this.LogIt("");
-                this.LogIt("Updating ADFS token signing certificate thumbprint in the database ...");
+                DoGetCert.LogIt("");
+                DoGetCert.LogIt("Updating SSO token signing certificate thumbprint in the database ...");
 
                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.SetAdfsThumbprint(asHash, asProfile, aoNewCertificate.Thumbprint);
-
+                    lbApplyNewCertToSSO = loGetCertServiceClient.bSetSsoThumbprint(asHash, abtArrayMinProfile, aoNewCertificate.Thumbprint);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
                         loGetCertServiceClient.Close();
                 }
+
+                if ( lbApplyNewCertToSSO )
+                    DoGetCert.LogSuccess();
+                else
+                    DoGetCert.LogIt(DoGetCert.sExceptionMessage("The SSO thumbprint update sub-process experienced a critical failure."));
             }
 
-            return lbApplyNewCertToADFS;
+            return lbApplyNewCertToSSO;
         }
 
-        private bool bCertificateNotExpiring(X509Certificate2 aoOldCertificate)
+        private bool bCertificateNotExpiring(ChannelFactory<GetCertService.IGetCertServiceChannel> aoGetCertServiceFactory
+                                                , string asHash, byte[] abtArrayMinProfile, X509Certificate2 aoOldCertificate)
         {
             bool lbCertificateNotExpiring = false;
 
             if ( moProfile.bValue("-DoStagingTests", true) )
             {
-                this.LogIt("");
-                this.LogIt("( staging mode is in effect (-DoStagingTests=True) )");
+                DoGetCert.LogIt("( staging mode is in effect (-DoStagingTests=True) )");
+                DoGetCert.LogIt("");
             }
 
             if ( null != aoOldCertificate )
             {
-                bool lbCheckExpiration = true;
+                bool    lbCheckExpiration = true;
+                string  lsCertOverridePfxComputer = this.oDomainProfile.sValue("-CertOverridePfxComputer", "");
+                string  lsCertOverridePfxPathFile = this.oDomainProfile.sValue("-CertOverridePfxPathFile", "");
 
-                if ( lbCheckExpiration )
-                    lbCheckExpiration = !moProfile.bValue("-DoStagingTests", true);
-
-                if ( lbCheckExpiration )
+                if ( "" != lsCertOverridePfxComputer + lsCertOverridePfxPathFile && ("" == lsCertOverridePfxComputer || "" == lsCertOverridePfxPathFile) )
                 {
+                    throw new Exception("Both CertOverridePfxComputer AND CertOverridePfxPathFile must be defined for certificate overrides to work properly.");
+                }
+                else
+                if ( !this.oDomainProfile.bValue("-CertOverridePfxReady", false) && DoGetCert.sCurrentComputerName == lsCertOverridePfxComputer && File.Exists(lsCertOverridePfxPathFile) )
+                    using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = aoGetCertServiceFactory.CreateChannel())
+                    {
+                        loGetCertServiceClient.NotifyCertOverrideCertificateReady(asHash, abtArrayMinProfile);
+                        if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                            loGetCertServiceClient.Abort();
+                        else
+                            loGetCertServiceClient.Close();
+                    }
+
+                // Allow checking staging certificates for expiration only in non-interactive mode.
+
+                if ( lbCheckExpiration && moProfile.bValue("-DoStagingTests", true) && !moProfile.bValue("-Auto", false) )
+                    lbCheckExpiration = false;
+
+                if ( lbCheckExpiration && !moProfile.bValue("-DoStagingTests", true) )
+                {
+                    // We are running in production mode. Only check valid production certificates for expiration.
                     lbCheckExpiration = aoOldCertificate.Verify();
+
                     if ( !lbCheckExpiration )
                     {
-                        this.LogIt(String.Format("The current certificate ({0}) appears to be invalid (if you know otherwise, make sure internet connectivity is available and the system clock is accurate).", aoOldCertificate.Subject));
-                        this.LogIt("Expiration status will therefore be ignored and the process will now run.");
+                        DoGetCert.LogIt(String.Format("The current certificate ({0}) appears to be invalid.", aoOldCertificate.Subject));
+                        DoGetCert.LogIt("  (If you know otherwise, make sure internet connectivity is available and the system clock is accurate.)");
+                        DoGetCert.LogIt("Expiration status will therefore be ignored and the process will now run.");
                     }
                 }
 
@@ -2045,16 +2323,23 @@ Restart-Service -Name $ServiceName
                                 else
                                 if ( moProfile.bValue("-UseStandAloneMode", true) )
                                 {
-                                    ldtBeforeExpirationDate = aoOldCertificate.NotAfter.AddDays(-moProfile.iValue("-ExpirationDaysBeforeRenewal", 30));
+                                    ldtBeforeExpirationDate = aoOldCertificate.NotAfter.AddDays(-moProfile.iValue("-RenewalDaysBeforeExpiration", 30));
                                 }
                                 else
                                 {
-                                    ldtBeforeExpirationDate = aoOldCertificate.NotAfter.AddDays(-this.oDomainProfile.iValue("-ExpirationDaysBeforeRenewal", 30));
+                                    int liRenewalDaysBeforeExpiration = this.oDomainProfile.iValue("-RenewalDaysBeforeExpiration", 30);
+                                        if ( moProfile.iValue("-RenewalDaysBeforeExpiration", 30) != liRenewalDaysBeforeExpiration )
+                                        {
+                                            moProfile["-RenewalDaysBeforeExpiration"] = liRenewalDaysBeforeExpiration;
+                                            moProfile.Save();
+                                        }
+
+                                    ldtBeforeExpirationDate = aoOldCertificate.NotAfter.AddDays(-liRenewalDaysBeforeExpiration);
                                 }
 
                     if ( DateTime.Now < ldtBeforeExpirationDate )
                     {
-                        this.LogIt(String.Format("Nothing to do until {0}. The current \"{1}\" certificate doesn't expire until {2}."
+                        DoGetCert.LogIt(String.Format("Nothing to do until {0}. The current \"{1}\" certificate doesn't expire until {2}."
                             , ldtBeforeExpirationDate.ToString(), aoOldCertificate.Subject, aoOldCertificate.NotAfter.ToString()));
 
                         lbCertificateNotExpiring = true;
@@ -2073,7 +2358,8 @@ Restart-Service -Name $ServiceName
             string      lsDelKey = "-UpdateDeletePathFile";
             string      lsUpdateRunExePathFile = null;
             string      lsUpdateDeletePathFile = null;
-            string      lsProfile = null;
+            tvProfile   loMinProfile = null;
+            byte[]      lbtArrayMinProfile = null;
             string      lsHash = null;
 
             try
@@ -2090,18 +2376,18 @@ Restart-Service -Name $ServiceName
                     args = loCmdLine.sCommandLineArray();
                 }
 
-                loProfile = new tvProfile(args, true);
+                loProfile = tvProfile.oGlobal(new tvProfile(args, true));
                 if ( loProfile.bExit )
                     return loProfile;
 
-                DoGetCert.VerifyDependenciesInit(loProfile);
-                DoGetCert.VerifyDependencies(loProfile);
+                DoGetCert.VerifyDependenciesInit();
+                DoGetCert.VerifyDependencies();
                 if ( loProfile.bExit )
                     return loProfile;
 
                 // Only do the following fetches before initial setup and if the containing application folder has been created.
                 if ( "" == loProfile.sValue("-ContactEmailAddress", "") && "" == loProfile.sValue("-CertificateDomainName", "")
-                        && Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Contains(ResourceAssembly.GetName().Name) )
+                        && Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Contains(Path.GetFileNameWithoutExtension(ResourceAssembly.Location)) )
                 {
                     //if ( null == DoGetCert.sProcessExePathFile(DoGetCert.sHostProcess) )
                     //{
@@ -2129,8 +2415,9 @@ Restart-Service -Name $ServiceName
                 if ( loProfile.bExit || loProfile.bValue("-UseStandAloneMode", true) )
                     return loProfile;
 
-                lsProfile = DoGetCert.sProfile(loProfile);
-                lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
+                loMinProfile = DoGetCert.oMinProfile(loProfile);
+                lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                lsHash = HashClass.sHashIt(loMinProfile);
 
                 if ( !loProfile.bValue("-NoPrompts", false) )
                 {
@@ -2142,18 +2429,19 @@ Restart-Service -Name $ServiceName
                 if ( null == lsUpdateRunExePathFile && null == lsUpdateDeletePathFile )
                 {
                     // Check-in with the GetCert service.
-                    DoGetCert.DoCheckIn(loProfile, lsHash, lsProfile, aoStartupWaitMsg);
+                    loProfile.bExit = !DoGetCert.bDoCheckIn(lsHash, lbtArrayMinProfile, aoStartupWaitMsg);
 
                     // Short-circuit updates until basic setup is complete.
                     if ( "" == loProfile.sValue("-ContactEmailAddress", "") )
                         return loProfile;
 
                     // Does the "hosts" file need updating?
-                    DoGetCert.HandleHostsEntryUpdate(loProfile, lsHash, lsProfile);
+                    if ( !loProfile.bExit )
+                        DoGetCert.HandleHostsEntryUpdate(loProfile, lsHash, lbtArrayMinProfile);
 
                     // A not-yet-updated EXE is running. Does it need updating?
                     if ( !loProfile.bExit )
-                        DoGetCert.HandleClientExeUpdate(loProfile, lsHash, lsProfile, lsRunKey, loCmdLine);
+                        DoGetCert.HandleClientExeUpdate(loProfile, lsHash, lbtArrayMinProfile, lsRunKey, loCmdLine);
                 }
                 else
                 {
@@ -2189,17 +2477,17 @@ Restart-Service -Name $ServiceName
                             Directory.Delete(Path.GetDirectoryName(lsUpdateDeletePathFile), true);
                         }
 
-                        DoGetCert.LogIt(loProfile, String.Format(
+                        DoGetCert.LogIt(String.Format(
                                 "Software update successfully completed. Version {0} is now running.", lsCurrentVersion));
                     }
                 }
 
                 if ( !loProfile.bExit )
                 {
-                    loProfile = DoGetCert.HandleClientCfgUpdate(loProfile, lsHash, lsProfile);
-                    loProfile = DoGetCert.HandleClientIniUpdate(loProfile, lsHash, lsProfile, args);
+                    loProfile = DoGetCert.oHandleClientCfgUpdate(loProfile, lsHash, lbtArrayMinProfile);
+                    loProfile = DoGetCert.oHandleClientIniUpdate(loProfile, lsHash, lbtArrayMinProfile, args);
 
-                    DoGetCert.HandleHostUpdates(loProfile, lsHash, lsProfile);
+                    DoGetCert.HandleHostUpdates(loProfile, lsHash, lbtArrayMinProfile);
                 }
             }
             catch (Exception ex)
@@ -2207,22 +2495,22 @@ Restart-Service -Name $ServiceName
                 if ( null != loProfile )
                     loProfile.bExit = true;
 
-                DoGetCert.LogIt(loProfile, DoGetCert.sExceptionMessage(ex));
+                DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
 
                 if ( !loProfile.bValue("-UseStandAloneMode", true) && !loProfile.bValue("-CertificateSetupDone", false) )
                 {
-                    DoGetCert.LogIt(loProfile, @"
+                    DoGetCert.LogIt(@"
 
 Checklist for {EXE} setup (SCS version):
 
     On this local server:
 
         .) Once ""-CertificateDomainName"" and ""-ContactEmailAddress"" have been
-           provided (after the initial use of the ""GetCertClientSetup"" certificate),
+           provided (after the initial use of the ""{CertName}"" certificate),
            the SCS will expect to use a domain specific certificate for further
            communications. You can blank out either ""-CertificateDomainName"" or
            ""-ContactEmailAddress"" in the profile file to force the use of the
-           ""GetCertClientSetup"" certificate again (instead of an existing domain
+           ""{CertName}"" certificate again (instead of an existing domain
            certificate).
 
         .) A ""Host process can't be located on disk. Can't continue."" message means
@@ -2234,13 +2522,14 @@ Checklist for {EXE} setup (SCS version):
         .) The ""-StagingTestsEnabled"" switch must be set to ""True"" for the staging
            tests (it gets reset automatically every night).
 
-        .) The ""GetCertClientSetup"" certificate must be added
+        .) The ""{CertName}"" certificate must be added
            to the trusted people store.
 
-        .) The ""GetCertClientSetup"" certificate must be removed 
+        .) The ""{CertName}"" certificate must be removed 
            from the ""untrusted"" certificate store (if it's there).
 "
                             .Replace("{EXE}", Path.GetFileName(ResourceAssembly.Location))
+                            .Replace("{CertName}", DoGetCert.sNewClientSetupCertName)
                             )
                             ;
                 }
@@ -2248,10 +2537,10 @@ Checklist for {EXE} setup (SCS version):
                 try
                 {
                     ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                                                            DoGetCert.SetCertificate(loProfile, loGetCertServiceFactory);
+                                                                            DoGetCert.SetCertificate(loGetCertServiceFactory);
                     string lsLogFileTextReported = null;
 
-                    DoGetCert.ReportErrors(loProfile, loGetCertServiceFactory, lsHash, lsProfile, out lsLogFileTextReported);
+                    DoGetCert.ReportErrors(loGetCertServiceFactory, lsHash, lbtArrayMinProfile, out lsLogFileTextReported);
                 }
                 catch {}
             }
@@ -2259,11 +2548,11 @@ Checklist for {EXE} setup (SCS version):
             return loProfile;
         }
 
-        private static string sHostExePathFile(tvProfile aoProfile, out Process aoProcessFound)
+        private static string sHostExePathFile(out Process aoProcessFound)
         {
-            return DoGetCert.sHostExePathFile(aoProfile, out aoProcessFound, false);
+            return DoGetCert.sHostExePathFile(out aoProcessFound, false);
         }
-        private static string sHostExePathFile(tvProfile aoProfile, out Process aoProcessFound, bool abQuietMode)
+        private static string sHostExePathFile(out Process aoProcessFound, bool abQuietMode)
         {
             string  lsHostExeFilename = DoGetCert.sHostProcess;
             string  lsHostExePathFile = DoGetCert.sProcessExePathFile(lsHostExeFilename, out aoProcessFound);
@@ -2271,7 +2560,7 @@ Checklist for {EXE} setup (SCS version):
             if ( null == lsHostExePathFile )
             {
                 if ( !abQuietMode )
-                    DoGetCert.LogIt(aoProfile, "Host image can't be located on disk based on the currently running process. Trying typical locations ...");
+                    DoGetCert.LogIt("Host image can't be located on disk based on the currently running process. Trying typical locations ...");
 
                 lsHostExePathFile = @"C:\ProgramData\GoPcBackup\GoPcBackup.exe";
                 if ( !File.Exists(lsHostExePathFile) )
@@ -2279,48 +2568,95 @@ Checklist for {EXE} setup (SCS version):
 
                 if ( !File.Exists(lsHostExePathFile) )
                 {
-                    DoGetCert.LogIt(aoProfile, "Host process can't be located on disk. Can't continue.");
+                    DoGetCert.LogIt("Host process can't be located on disk. Can't continue.");
                     throw new Exception("Exiting ...");
                 }
 
                 if ( !abQuietMode )
-                    DoGetCert.LogIt(aoProfile, "Host process image found on disk. It will be restarted.");
+                    DoGetCert.LogIt("Host process image found on disk. It will be restarted.");
             }
 
             return lsHostExePathFile;
         }
 
-        private static string sStopHostExePathFile(tvProfile aoProfile)
+        // Return an array of every site using the current setup certificate.
+        private static Site[] oSetupCertBoundSiteArray(ServerManager aoServerManager)
+        {
+            if ( null == goSetupCertificate )
+                return null;
+
+            List<Site>  loList = new List<Site>();
+            byte[]      lbtSetupCertHashArray = goSetupCertificate.GetCertHash();
+
+            // Walk thru the site list looking for all sites bound to the setup certificate.
+            foreach(Site loSite in aoServerManager.Sites)
+            {
+                foreach (Binding loBinding in loSite.Bindings)
+                {
+                    if ( null != loBinding.CertificateHash && lbtSetupCertHashArray.SequenceEqual(loBinding.CertificateHash) )
+                    {
+                        loList.Add(loSite);
+                        break;
+                    }
+                }
+            }
+
+            return loList.ToArray();
+        }
+
+        // Amend the SAN list with every site (by name) using the current setup certificate.
+        private static string[] sSanArrayAmended(ServerManager aoServerManager, string[] asSanArray)
+        {
+            Site[]  loSetupCertBoundSiteArray = DoGetCert.oSetupCertBoundSiteArray(aoServerManager);
+                    if ( null == loSetupCertBoundSiteArray )
+                        return asSanArray;
+
+            List<string> loList = new List<string>();
+
+            foreach(Site loSite in loSetupCertBoundSiteArray)
+                loList.Add(loSite.Name);
+
+            // Append the given SAN array.
+            foreach(string lsSanItem in asSanArray)
+            {
+                if ( !loList.Contains(lsSanItem) )
+                    loList.Add(lsSanItem);
+            }
+
+            return loList.ToArray();
+        }
+
+        private static string sStopHostExePathFile()
         {
             Process loProcessFound = null;
-            string  lsHostExePathFile = DoGetCert.sHostExePathFile(aoProfile, out loProcessFound, true);
+            string  lsHostExePathFile = DoGetCert.sHostExePathFile(out loProcessFound, true);
 
             // Stop the EXE (can't update it or the INI while it's running).
 
-            if ( !DoGetCert.bKillProcess(aoProfile, loProcessFound) )
+            if ( !DoGetCert.bKillProcess(loProcessFound) )
             {
-                DoGetCert.LogIt(aoProfile, "Host process can't be stopped. Update can't be applied.");
+                DoGetCert.LogIt("Host process can't be stopped. Update can't be applied.");
                 throw new Exception("Exiting ...");
             }
             else
             {
-                DoGetCert.LogIt(aoProfile, "Host process stopped successfully.");
+                DoGetCert.LogIt("Host process stopped successfully.");
             }
 
             return lsHostExePathFile;
         }
 
-        private static void HandleClientExeUpdate(tvProfile aoProfile, string asHash, string asProfile, string asRunKey, tvProfile aoCmdLine)
+        private static void HandleClientExeUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile, string asRunKey, tvProfile aoCmdLine)
         {
             string  lsCurrentVersion = FileVersionInfo.GetVersionInfo(aoProfile.sExePathFile).FileVersion;
             byte[]  lbtArrayExeUpdate = null;
 
-            // Look for GetCert2 EXE update.
+            // Look for EXE update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                lbtArrayExeUpdate = loGetCertServiceClient.btArrayGetCertExeUpdate(asHash, asProfile, lsCurrentVersion);
+                lbtArrayExeUpdate = loGetCertServiceClient.btArrayGetCertExeUpdate(asHash, abtArrayMinProfile, lsCurrentVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -2329,28 +2665,28 @@ Checklist for {EXE} setup (SCS version):
 
             if ( null == lbtArrayExeUpdate )
             {
-                DoGetCert.LogIt(aoProfile, String.Format("Client version {0} is running. No update.", lsCurrentVersion));
+                DoGetCert.LogIt(String.Format("Client version {0} is running. No update.", lsCurrentVersion));
             }
             else
             {
-                DoGetCert.LogIt(aoProfile, "");
-                DoGetCert.LogIt(aoProfile, String.Format("Client version {0} is running. Update found ...", lsCurrentVersion));
+                DoGetCert.LogIt("");
+                DoGetCert.LogIt(String.Format("Client version {0} is running. Update found ...", lsCurrentVersion));
 
                 string  lsUpdatePath = Path.Combine(Path.GetDirectoryName(aoProfile.sExePathFile), aoProfile.sValue("-UpdateFolder", "Update"));
                         Directory.CreateDirectory(lsUpdatePath);
                 string  lsNewExePathFile = Path.Combine(lsUpdatePath, Path.GetFileName(aoProfile.sExePathFile));
                 string  lsNewIniPathFile = Path.Combine(lsUpdatePath, Path.GetFileName(aoProfile.sLoadedPathFile));
 
-                DoGetCert.LogIt(aoProfile, String.Format("Writing update to \"{0}\".", lsNewExePathFile));
+                DoGetCert.LogIt(String.Format("Writing update to \"{0}\".", lsNewExePathFile));
                 File.WriteAllBytes(lsNewExePathFile, lbtArrayExeUpdate);
 
-                DoGetCert.LogIt(aoProfile, String.Format("Writing update profile to \"{0}\".", lsNewIniPathFile));
+                DoGetCert.LogIt(String.Format("Writing update profile to \"{0}\".", lsNewIniPathFile));
                 File.Copy(aoProfile.sLoadedPathFile, lsNewIniPathFile, true);
 
-                DoGetCert.LogIt(aoProfile, String.Format("The file version of \"{0}\" is {1}."
+                DoGetCert.LogIt(String.Format("The file version of \"{0}\" is {1}."
                         , lsNewExePathFile, FileVersionInfo.GetVersionInfo(lsNewExePathFile).FileVersion));
 
-                DoGetCert.LogIt(aoProfile, String.Format("Starting update \"{0}\" ...", lsNewExePathFile));
+                DoGetCert.LogIt(String.Format("Starting update \"{0}\" ...", lsNewExePathFile));
                 Process loProcess = new Process();
                         loProcess.StartInfo.FileName = lsNewExePathFile;
                         loProcess.StartInfo.Arguments = String.Format("{0}=\"{1}\" {2}"
@@ -2363,7 +2699,7 @@ Checklist for {EXE} setup (SCS version):
             }
         }
 
-        private static tvProfile HandleClientCfgUpdate(tvProfile aoProfile, string asHash, string asProfile)
+        private static tvProfile oHandleClientCfgUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
         {
             string      lsCfgVersion = aoProfile.sValue("-CfgVersion", "1");
             string      lsCfgUpdate = null;
@@ -2371,9 +2707,9 @@ Checklist for {EXE} setup (SCS version):
             // Look for WCF configuration update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                lsCfgUpdate = loGetCertServiceClient.sCfgUpdate(asHash, asProfile, lsCfgVersion);
+                lsCfgUpdate = loGetCertServiceClient.sCfgUpdate(asHash, abtArrayMinProfile, lsCfgVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -2382,11 +2718,11 @@ Checklist for {EXE} setup (SCS version):
 
             if ( null == lsCfgUpdate )
             {
-                DoGetCert.LogIt(aoProfile, String.Format("WCF configuration version {0} is in use. No update.", lsCfgVersion));
+                DoGetCert.LogIt(String.Format("WCF configuration version {0} is in use. No update.", lsCfgVersion));
             }
             else
             {
-                DoGetCert.LogIt(aoProfile, String.Format("WCF configuration version {0} is in use. Update found ...", lsCfgVersion));
+                DoGetCert.LogIt(String.Format("WCF configuration version {0} is in use. Update found ...", lsCfgVersion));
 
                 // Overwrite WCF config with the current update.
                 File.WriteAllText(aoProfile.sLoadedPathFile, lsCfgUpdate
@@ -2397,14 +2733,14 @@ Checklist for {EXE} setup (SCS version):
                             aoProfile["-CfgVersion"] = loWcfCfg.sValue("-CfgVersion", "1");
                             aoProfile.Save();
 
-                DoGetCert.LogIt(aoProfile, String.Format(
+                DoGetCert.LogIt(String.Format(
                         "WCF configuration update successfully completed. Version {0} is now in use.", aoProfile.sValue("-CfgVersion", "1")));
             }
 
             return aoProfile;
         }
 
-        private static tvProfile HandleClientIniUpdate(tvProfile aoProfile, string asHash, string asProfile, string[] args)
+        private static tvProfile oHandleClientIniUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile, string[] args)
         {
             string lsIniVersion = aoProfile.sValue("-IniVersion", "1");
             string lsIniUpdate = null;
@@ -2412,9 +2748,9 @@ Checklist for {EXE} setup (SCS version):
             // Look for profile update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                lsIniUpdate = loGetCertServiceClient.sIniUpdate(asHash, asProfile, lsIniVersion);
+                lsIniUpdate = loGetCertServiceClient.sIniUpdate(asHash, abtArrayMinProfile, lsIniVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -2423,11 +2759,11 @@ Checklist for {EXE} setup (SCS version):
 
             if ( null == lsIniUpdate )
             {
-                DoGetCert.LogIt(aoProfile, String.Format("Profile version {0} is in use. No update.", lsIniVersion));
+                DoGetCert.LogIt(String.Format("Profile version {0} is in use. No update.", lsIniVersion));
             }
             else
             {
-                DoGetCert.LogIt(aoProfile, String.Format("Profile version {0} is in use. Update found ...", lsIniVersion));
+                DoGetCert.LogIt(String.Format("Profile version {0} is in use. Update found ...", lsIniVersion));
 
                 tvProfile loIniUpdateProfile = new tvProfile(lsIniUpdate);
 
@@ -2444,49 +2780,49 @@ Checklist for {EXE} setup (SCS version):
                 // Finally, reload the updated profile (and merge in the command-line).
                 aoProfile = new tvProfile(args, true);
 
-                DoGetCert.LogIt(aoProfile, String.Format(
+                DoGetCert.LogIt(String.Format(
                         "Profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-IniVersion", "1")));
             }
 
             return aoProfile;
         }
 
-        private static void HandleHostUpdates(tvProfile aoProfile, string asHash, string asProfile)
+        private static void HandleHostUpdates(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
         {
             bool        lbRestartHost = false;
             Process     loHostProcess = null;
-            string      lsHostExePathFile= DoGetCert.sHostExePathFile(aoProfile, out loHostProcess);
+            string      lsHostExePathFile= DoGetCert.sHostExePathFile(out loHostProcess);
             string      lsHostExeVersion = FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion;
             byte[]      lbtArrayGpcExeUpdate = null;
                         // Look for an updated GoPcBackup.exe.
                         using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
                         {
-                            DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                            DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                            lbtArrayGpcExeUpdate = loGetCertServiceClient.btArrayGoPcBackupExeUpdate(asHash, asProfile, lsHostExeVersion);
+                            lbtArrayGpcExeUpdate = loGetCertServiceClient.btArrayGoPcBackupExeUpdate(asHash, abtArrayMinProfile, lsHostExeVersion);
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                 loGetCertServiceClient.Abort();
                             else
                                 loGetCertServiceClient.Close();
                         }
                         if ( null != lbtArrayGpcExeUpdate )
-                            DoGetCert.LogIt(aoProfile, String.Format("Host version {0} is in use. Update found ...", lsHostExeVersion));
+                            DoGetCert.LogIt(String.Format("Host version {0} is in use. Update found ...", lsHostExeVersion));
 
             string      lsHostIniVersion = aoProfile.sValue("-HostIniVersion", "1");
             string      lsHostIniUpdate  = null;
                         // Look for an updated GoPcBackup.exe.txt.
                         using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
                         {
-                            DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                            DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                            lsHostIniUpdate = loGetCertServiceClient.sGpcIniUpdate(asHash, asProfile, lsHostIniVersion);
+                            lsHostIniUpdate = loGetCertServiceClient.sGpcIniUpdate(asHash, abtArrayMinProfile, lsHostIniVersion);
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                 loGetCertServiceClient.Abort();
                             else
                                 loGetCertServiceClient.Close();
                         }
                         if ( null != lsHostIniUpdate )
-                            DoGetCert.LogIt(aoProfile, String.Format("Host profile version {0} is in use. Update found ...", lsHostIniVersion));
+                            DoGetCert.LogIt(String.Format("Host profile version {0} is in use. Update found ...", lsHostIniVersion));
 
             if ( null == lbtArrayGpcExeUpdate && null == lsHostIniUpdate && null == loHostProcess )
                 lbRestartHost = true;
@@ -2495,7 +2831,7 @@ Checklist for {EXE} setup (SCS version):
             {
                 lbRestartHost = true;
 
-                DoGetCert.sStopHostExePathFile(aoProfile);
+                DoGetCert.sStopHostExePathFile();
 
                 // Write the updated EXE (if any).
                 if ( null != lbtArrayGpcExeUpdate )
@@ -2503,7 +2839,7 @@ Checklist for {EXE} setup (SCS version):
                     // Write the EXE.
                     File.WriteAllBytes(lsHostExePathFile, lbtArrayGpcExeUpdate);
 
-                    DoGetCert.LogIt(aoProfile, String.Format("Host update successfully completed. Version {0} is now in use."
+                    DoGetCert.LogIt(String.Format("Host update successfully completed. Version {0} is now in use."
                                                             , FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion));
                 }
 
@@ -2530,7 +2866,7 @@ Checklist for {EXE} setup (SCS version):
                                             }
                                 // Look for EXE folder references in the existing backup and cleanup sets. If found, skip them. In other words,
                                 // within the new loUpdateProfile, leave out all sets from loHostProfile that make any reference to this EXE.
-                                string      lsExeFolderNameToLower = String.Format(@"\{0}", ResourceAssembly.GetName().Name.ToLower());
+                                string      lsExeFolderNameToLower = String.Format(@"\{0}", Path.GetFileNameWithoutExtension(ResourceAssembly.Location).ToLower());
                                 tvProfile   loBackupSets = new tvProfile();
                                             foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-BackupSet"))
                                             {
@@ -2617,7 +2953,7 @@ Checklist for {EXE} setup (SCS version):
                     loHostProfile.Save();
                     loHostProfile.bEnableFileLock = false;
 
-                    DoGetCert.LogIt(aoProfile, String.Format(
+                    DoGetCert.LogIt(String.Format(
                             "Host profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostIniVersion", "1")));
                 }
             }
@@ -2632,11 +2968,11 @@ Checklist for {EXE} setup (SCS version):
                 loHostProcess.StartInfo.CreateNoWindow = true;
                 loHostProcess.Start();
 
-                DoGetCert.LogIt(aoProfile, "Host process restarted successfully.");
+                DoGetCert.LogIt("Host process restarted successfully.");
             }
         }
 
-        private static void HandleHostsEntryUpdate(tvProfile aoProfile, string asHash, string asProfile)
+        private static void HandleHostsEntryUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
         {
             string lsHstVersion = aoProfile.sValue("-HostsEntryVersion", "1");
             string lsHstUpdate = null;
@@ -2644,9 +2980,9 @@ Checklist for {EXE} setup (SCS version):
             // Look for hosts entry update.
             using (GetCertService.GetCertServiceClient loGetCertServiceClient = new GetCertService.GetCertServiceClient())
             {
-                DoGetCert.SetCertificate(aoProfile, loGetCertServiceClient);
+                DoGetCert.SetCertificate(loGetCertServiceClient);
 
-                lsHstUpdate = loGetCertServiceClient.sHostsEntryUpdate(asHash, asProfile, lsHstVersion);
+                lsHstUpdate = loGetCertServiceClient.sHostsEntryUpdate(asHash, abtArrayMinProfile, lsHstVersion);
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -2655,11 +2991,11 @@ Checklist for {EXE} setup (SCS version):
 
             if ( null == lsHstUpdate )
             {
-                DoGetCert.LogIt(aoProfile, String.Format("Hosts entry version {0} is in use. No update.", lsHstVersion));
+                DoGetCert.LogIt(String.Format("Hosts entry version {0} is in use. No update.", lsHstVersion));
             }
             else
             {
-                DoGetCert.LogIt(aoProfile, String.Format("Hosts entry version {0} is in use. Update found ...", lsHstVersion));
+                DoGetCert.LogIt(String.Format("Hosts entry version {0} is in use. Update found ...", lsHstVersion));
 
                 tvProfile       loHstUpdateProfile = new tvProfile(lsHstUpdate);
                 string          lsIpAddress = loHstUpdateProfile.sValue("-IpAddress", "0.0.0.0");
@@ -2682,8 +3018,8 @@ Checklist for {EXE} setup (SCS version):
                 {
                     if ( lsbHostsStream.ToString().ToLower().Contains(lsDnsName.ToLower()) )
                     {
-                        DoGetCert.LogIt(aoProfile,"Something's wrong with the local 'hosts' file format. Can't update IP address.");
-                        DoGetCert.LogIt(aoProfile, DoGetCert.sExceptionMessage(ex));
+                        DoGetCert.LogIt("Something's wrong with the local 'hosts' file format. Can't update IP address.");
+                        DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
                     }
                     else
                     {
@@ -2698,18 +3034,18 @@ Checklist for {EXE} setup (SCS version):
                 aoProfile["-HostsEntryVersion"] = loHstUpdateProfile.sValue("-HostsEntryVersion", "1");
                 aoProfile.Save();
 
-                DoGetCert.LogIt(aoProfile, String.Format(
+                DoGetCert.LogIt(String.Format(
                         "Hosts entry update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostsEntryVersion", "1")));
 
                 // Restart host (should restart this app as well - after a brief delay).
                 Process loHostProcess = new Process();
-                        loHostProcess.StartInfo.FileName = Path.Combine(Path.GetDirectoryName(DoGetCert.sStopHostExePathFile(aoProfile)), "Startup.cmd");
+                        loHostProcess.StartInfo.FileName = Path.Combine(Path.GetDirectoryName(DoGetCert.sStopHostExePathFile()), "Startup.cmd");
                         loHostProcess.StartInfo.Arguments = "-StartupTasksDelaySecs=10";
                         loHostProcess.StartInfo.UseShellExecute = false;
                         loHostProcess.StartInfo.CreateNoWindow = true;
                         loHostProcess.Start();
 
-                DoGetCert.LogIt(aoProfile, "Host process restarted successfully.");
+                DoGetCert.LogIt("Host process restarted successfully.");
 
                 aoProfile.bExit = true;
             }
@@ -2740,18 +3076,18 @@ Checklist for {EXE} setup (SCS version):
                 .SetValue(null, null);
         }
 
-        private static void VerifyDependenciesInit(tvProfile aoProfile)
+        private static void VerifyDependenciesInit()
         {
             string  lsFetchName = null;
 
             // Fetch IIS Manager DLL.
             tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
-                    , String.Format("{0}{1}", DoGetCert.sFetchPrefix, lsFetchName="Microsoft.Web.Administration.dll"), aoProfile.sRelativeToProfilePathFile(lsFetchName));
+                    , String.Format("{0}{1}", DoGetCert.sFetchPrefix, lsFetchName="Microsoft.Web.Administration.dll"), tvProfile.oGlobal().sRelativeToProfilePathFile(lsFetchName));
         }
 
-        private static void VerifyDependencies(tvProfile aoProfile)
+        private static void VerifyDependencies()
         {
-            if ( aoProfile.bExit )
+            if ( tvProfile.oGlobal().bExit )
                 return;
 
             bool    lbMinVer = true;
@@ -2769,41 +3105,44 @@ Checklist for {EXE} setup (SCS version):
                         + "Windows Server 2008 R2 or later must be installed.";
             }
 
-            try
-            {
-                int liCount = new ServerManager().Sites.Count;
-            }
-            catch (System.Runtime.InteropServices.COMException)
-            {
-                liErrors++;
-                lsErrors = ("" == lsErrors ? "" : lsErrors + Environment.NewLine + Environment.NewLine)
-                        + "IIS must be installed.";
-            }
-
-            using (Microsoft.Win32.RegistryKey loLocalMachineStoreRegistryKey
-                    = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\PowerShell\3", false))
+            if ( tvProfile.oGlobal().bValue("-UseStandAloneMode", true) )
             {
                 try
                 {
-                    if ( 0 == (int)loLocalMachineStoreRegistryKey.GetValue("Install", 0) )
-                        throw new Exception();
+                    int liCount = new ServerManager().Sites.Count;
                 }
-                catch
+                catch (System.Runtime.InteropServices.COMException)
                 {
                     liErrors++;
                     lsErrors = ("" == lsErrors ? "" : lsErrors + Environment.NewLine + Environment.NewLine)
-                            + "PowerShell 3 or later must be installed.";
+                            + "IIS must be installed.";
+                }
+
+                using (Microsoft.Win32.RegistryKey loLocalMachineStoreRegistryKey
+                        = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\PowerShell\3\PowerShellEngine", false))
+                {
+                    try
+                    {
+                        if ( String.Compare("5.1", (string)loLocalMachineStoreRegistryKey.GetValue("PowerShellVersion", "")) > 0 )
+                            throw new Exception();
+                    }
+                    catch
+                    {
+                        liErrors++;
+                        lsErrors = ("" == lsErrors ? "" : lsErrors + Environment.NewLine + Environment.NewLine)
+                                + "PowerShell 5 or later must be installed.";
+                    }
                 }
             }
 
             if ( "" != lsErrors )
             {
-                aoProfile.bExit = true;
+                tvProfile.oGlobal().bExit = true;
 
                 lsErrors = ("" == lsErrors ? "" : lsErrors + Environment.NewLine + Environment.NewLine)
                         + String.Format("Please install {0} and try again.", liErrors == 1 ? "it" : "them");
 
-                if ( !aoProfile.bValue("-NoPrompts", false) )
+                if ( !tvProfile.oGlobal().bValue("-NoPrompts", false) )
                     tvMessageBox.Show(null, lsErrors);
 
                 throw new Exception(lsErrors);
@@ -2819,18 +3158,19 @@ Checklist for {EXE} setup (SCS version):
             bool        lbGetCertificate = true;
             string      lsCertName = null;
             string      lsCertPathFile = null;
+            tvProfile   loMinProfile = null;
+            byte[]      lbtArrayMinProfile = null;
             string      lsHash = null;
-            string      lsProfile = null;
             X509Store   loStore = null;
 
-            this.LogIt("");
-            this.LogIt("Get certificate process started ...");
+            DoGetCert.LogIt("");
+            DoGetCert.LogIt("Get certificate process started ...");
             this.bMainLoopStopped = false;
 
             try
             {
                 moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
+                DoGetCert.SetCertificate(moGetCertServiceFactory);
 
                 string[]            lsSanArray = moProfile.oProfile("-SanList").sOneKeyArray("*");
                                     // The SAN list is the authoritative source for domain names, unless there's only one domain.
@@ -2851,23 +3191,28 @@ Checklist for {EXE} setup (SCS version):
 
                 lsCertName = moProfile.sValue("-CertificateDomainName" ,"");
                 lsCertPathFile = moProfile.sRelativeToProfilePathFile(Guid.NewGuid().ToString());
-                lsProfile = DoGetCert.sProfile(moProfile);
-                lsHash = HashClass.sHashIt(new tvProfile(lsProfile));
+                loMinProfile = DoGetCert.oMinProfile(moProfile);
+                lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                lsHash = HashClass.sHashIt(loMinProfile);
 
                 bool                lbSingleSessionEnabled = moProfile.bValue("-SingleSessionEnabled", false);
-                string              lsGuid = moProfile.sValue("-InstanceGuid", Guid.NewGuid().ToString());
+                string              lsInstanceGuid = moProfile.sValue("-InstanceGuid", Guid.NewGuid().ToString());
                 string              lsDefaultPhysicalPath = moProfile.sValue("-DefaultPhysicalPath", @"%SystemDrive%\inetpub\wwwroot");
                 bool                lbCertificatePassword = false;  // Set this "false" to use password only for load balancer file.
-                string              lsCertificatePassword = HashClass.sHashPw(lsProfile);
+                string              lsCertificatePassword = HashClass.sHashPw(loMinProfile);
+                bool                lbCreateSanSites = moProfile.bValue("-CreateSanSites", true);
                 ServerManager       loServerManager = null;
                 X509Certificate2    loOldCertificate = DoGetCert.oCurrentCertificate(lsCertName, out loServerManager);
-                                    if ( this.bCertificateNotExpiring(loOldCertificate) )
+                                    if ( this.bCertificateNotExpiring(moGetCertServiceFactory, lsHash, lbtArrayMinProfile, loOldCertificate) )
                                     {
                                         // The certificate is not ready to expire soon. There is nothing to do.
                                         return true;
                                     }
                 X509Certificate2    loNewCertificate = null;
                 byte[]              lbtArrayNewCertificate = null;
+                string              lsCertOverridePfxComputer = this.oDomainProfile.sValue("-CertOverridePfxComputer", "");
+                string              lsCertOverridePfxPathFile = this.oDomainProfile.sValue("-CertOverridePfxPathFile", "");
+                bool                lbCertOverrideApplies = "" != lsCertOverridePfxPathFile && "" != lsCertOverridePfxComputer;
                 bool                lbLoadBalancerCertPending = this.oDomainProfile.bValue("-LoadBalancerPfxPending", false);
                 bool                lbRepositoryCertsOnly = this.oDomainProfile.bValue("-RepositoryCertsOnly", false);
                 DateTime            ldtMaintenanceWindowBeginTime = this.oDomainProfile.dtValue("-MaintenanceWindowBeginTime", DateTime.MinValue);
@@ -2876,48 +3221,50 @@ Checklist for {EXE} setup (SCS version):
                                     {
                                         if ( lbLoadBalancerCertPending )
                                         {
-                                            string  lsMsg = "The load balancer administrator or process has not yet released the new certificate. {0}";
                                             int     liErrorCount = 1 + moProfile.iValue("-LoadBalancerPendingErrorCount", 0);
                                                     moProfile["-LoadBalancerPendingErrorCount"] = liErrorCount;
                                                     moProfile.Save();
+
+                                            DoGetCert.LogIt("The load balancer administrator or process has not yet released the new certificate.");
 
                                             if ( liErrorCount > moProfile.iValue("-LoadBalancerPendingMaxErrors", 1) )
                                             {
                                                 lbGetCertificate = false;
 
-                                                this.LogIt(String.Format(lsMsg, "This is an error."));
+                                                DoGetCert.LogIt("This is an error.");
                                             }
                                             else
                                             {
-                                                this.LogIt(String.Format(lsMsg, "Will try again next cycle."));
+                                                DoGetCert.LogIt("Will try again next cycle.");
+                                                DoGetCert.LogIt("");
 
                                                 return true;
                                             }
                                         }
                                         else
-                                            using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
+                                            using (GetCertService.IGetCertServiceChannel moGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                                             {
-                                                lbtArrayNewCertificate = loGetCertServiceClient.btArrayNewCertificate(lsHash, lsProfile);
-                                                if ( CommunicationState.Faulted == loGetCertServiceClient.State )
-                                                    loGetCertServiceClient.Abort();
+                                                lbtArrayNewCertificate = moGetCertServiceClient.btArrayNewCertificate(lsHash, lbtArrayMinProfile);
+                                                if ( CommunicationState.Faulted == moGetCertServiceClient.State )
+                                                    moGetCertServiceClient.Abort();
                                                 else
-                                                    loGetCertServiceClient.Close();
+                                                    moGetCertServiceClient.Close();
 
                                                 if ( null == lbtArrayNewCertificate )
                                                 {
-                                                    this.LogIt("No new certificate was found in the repository.");
+                                                    DoGetCert.LogIt("No new certificate was found in the repository.");
                                                 }
                                                 else
-                                                if ( DateTime.Now < ldtMaintenanceWindowBeginTime || DateTime.Now >= ldtMaintenanceWindowEndTime )
+                                                if ( moProfile.bValue("-Auto", false) && (DateTime.Now < ldtMaintenanceWindowBeginTime || DateTime.Now >= ldtMaintenanceWindowEndTime) )
                                                 {
                                                     lbGetCertificate = false;
 
-                                                    this.LogIt(String.Format("Can't proceed. The current time is \"{0}\". The maintenance window for the \"{1}\" domain is from \"{2}\" to \"{3}\"."
+                                                    DoGetCert.LogIt(String.Format("Can't proceed. The current time is \"{0}\". The maintenance window for the \"{1}\" domain is from \"{2}\" to \"{3}\"."
                                                             , DateTime.Now, lsCertName, ldtMaintenanceWindowBeginTime, ldtMaintenanceWindowEndTime));
                                                 }
                                                 else
                                                 {
-                                                    this.LogIt("New certificate downloaded from the repository.");
+                                                    DoGetCert.LogIt("New certificate downloaded from the repository.");
 
                                                     // Buffer certificate to disk (same as what's done below).
                                                     Directory.CreateDirectory(Path.GetDirectoryName(lsCertPathFile));
@@ -2926,7 +3273,7 @@ Checklist for {EXE} setup (SCS version):
                                             }
                                     }
 
-                if ( lbGetCertificate && !mbMainLoopStopped && null == lbtArrayNewCertificate && lbRepositoryCertsOnly )
+                if ( lbGetCertificate && !this.bMainLoopStopped && null == lbtArrayNewCertificate && lbRepositoryCertsOnly && !lbCertOverrideApplies )
                 {
                     int liErrorCount = 1 + moProfile.iValue("-RepositoryCertsOnlyErrorCount", 0);
                         moProfile["-RepositoryCertsOnlyErrorCount"] = liErrorCount;
@@ -2936,25 +3283,62 @@ Checklist for {EXE} setup (SCS version):
                     {
                         lbGetCertificate = false;
 
-                        this.LogIt("This is an error since -RepositoryCertsOnly=True.");
+                        DoGetCert.LogIt("This is an error since -RepositoryCertsOnly=True.");
                     }
                     else
                     {
-                        this.LogIt("-RepositoryCertsOnly=True. Will try again next cycle.");
+                        DoGetCert.LogIt("-RepositoryCertsOnly=True. Will try again next cycle.");
+                        DoGetCert.LogIt("");
 
                         return true;
                     }
                 }
-                if ( lbGetCertificate && !mbMainLoopStopped && null == lbtArrayNewCertificate && !lbRepositoryCertsOnly )
+
+                if ( lbGetCertificate && !this.bMainLoopStopped && null == lbtArrayNewCertificate && (!lbRepositoryCertsOnly || lbCertOverrideApplies) )
                 {
-                    // Certificate renewal locks are only needed during automation mode.
-                    if ( moProfile.bValue("-Auto", false) )
+                    if ( lbCertOverrideApplies )
                     {
-                                // Wait a random period each cycle to allow different clients the opportunity to lock the renewal.
+                        DoGetCert.LogIt("");
+
+                        if ( DoGetCert.sCurrentComputerName == lsCertOverridePfxComputer )
+                        {
+                            DoGetCert.LogIt(String.Format("A new certificate for \"{0}\" will come from the certificate override.", lsCertName));
+
+                            lsCertPathFile = lsCertOverridePfxPathFile;
+                        }
+                        else
+                        {
+                            int liErrorCount = 1 + moProfile.iValue("-CertOverrideErrorCount", 0);
+                                moProfile["-CertOverrideErrorCount"] = liErrorCount;
+                                moProfile.Save();
+
+                            DoGetCert.LogIt(String.Format("The certificate override for \"{0}\" will be found on another server (ie. \"{1}\").", lsCertName, lsCertOverridePfxComputer));
+
+                            if ( liErrorCount > moProfile.iValue("-CertOverrideMaxErrors", 3) )
+                            {
+                                lbGetCertificate = false;
+
+                                DoGetCert.LogIt("No more retries. This is an error.");
+                                DoGetCert.LogIt("");
+                            }
+                            else
+                            {
+                                DoGetCert.LogIt("Will try again next cycle.");
+                                DoGetCert.LogIt("");
+
+                                return true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // There is no certificate override file. So proceed to get a new certificate from the certificate provider network.
+
+                                // Wait a random period each cycle to allow different clients the opportunity to lock the renewal (skip if manually running tests).
                         int     liMaxCertRenewalLockDelaySecs = moProfile.iValue("-MaxCertRenewalLockDelaySecs", 300);
-                                if ( !moProfile.bValue("-UseStandAloneMode", true) )
+                                if ( !moProfile.bValue("-UseStandAloneMode", true) && !moProfile.bValue("-DoStagingTests", true) && moProfile.bValue("-Auto", false) )
                                 {
-                                    this.LogIt(String.Format("Waiting at most {0} seconds to set a certificate renewal lock for this domain ...", liMaxCertRenewalLockDelaySecs));
+                                    DoGetCert.LogIt(String.Format("Waiting at most {0} seconds to set a certificate renewal lock for this domain ...", liMaxCertRenewalLockDelaySecs));
                                     System.Windows.Forms.Application.DoEvents();
                                     Thread.Sleep(1000 * new Random().Next(liMaxCertRenewalLockDelaySecs));
                                 }
@@ -2962,7 +3346,7 @@ Checklist for {EXE} setup (SCS version):
                                 if ( !moProfile.bValue("-UseStandAloneMode", true) )
                                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                                 {
-                                    lbLockCertificateRenewal = loGetCertServiceClient.bLockCertificateRenewal(lsHash, lsProfile);
+                                    lbLockCertificateRenewal = loGetCertServiceClient.bLockCertificateRenewal(lsHash, lbtArrayMinProfile);
                                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                         loGetCertServiceClient.Abort();
                                     else
@@ -2974,29 +3358,19 @@ Checklist for {EXE} setup (SCS version):
                                 // Try again next time.
                                 if ( lbLockCertificateRenewal )
                                 {
-                                    this.LogIt("Certificate renewal has been locked for this domain.");
+                                    DoGetCert.LogIt("Certificate renewal has been locked for this domain.");
                                 }
                                 else
                                 if ( !moProfile.bValue("-UseStandAloneMode", true) )
                                 {
-                                    this.LogIt("Certificate renewal can't be locked. Will try again next cycle.");
+                                    DoGetCert.LogIt("Certificate renewal can't be locked. Will try again next cycle.");
+                                    DoGetCert.LogIt("");
 
                                     return true;
                                 }
-                    }
 
-                    this.LogIt("");
-                    if ( "" != this.oDomainProfile.sValue("-CertOverridePfxPathFile", "") )
-                    {
-                        this.LogIt(String.Format("Retrieving new certificate for \"{0}\" from the domain (via its own certificate override file) ...", lsCertName));
-
-                        lsCertPathFile = this.oDomainProfile.sValue("-CertOverridePfxPathFile", "");
-                        lsCertificatePassword = this.oDomainProfile.sValue("-CertOverridePfxPassword", "");
-                    }
-                    else
-                    {
-                        this.LogIt("");
-                        this.LogIt(String.Format("Retrieving new certificate for \"{0}\" from the certificate provider network ...", lsCertName));
+                        DoGetCert.LogIt("");
+                        DoGetCert.LogIt(String.Format("Retrieving new certificate for \"{0}\" from the certificate provider network ...", lsCertName));
 
                         string  lsAcmePsFile = "ACME-PS.zip";
                         string  lsAcmePsPath = Path.GetFileNameWithoutExtension(lsAcmePsFile);
@@ -3008,7 +3382,7 @@ Checklist for {EXE} setup (SCS version):
                         if ( !Directory.Exists(moProfile.sRelativeToProfilePathFile(lsAcmePsPath)) )
                             ZipFile.ExtractToDirectory(lsAcmePsPathFile, Path.GetDirectoryName(lsAcmePsPathFile));
 
-                        // Don't use the powershell gallery installed AcmePs module (by default, use what's embedded instead).
+                        // Don't use the PowerShell gallery installed AcmePs module (by default, use what's embedded instead).
                         if ( !moProfile.bValue("-AcmePsModuleUseGallery", false) )
                         {
                             string lsAcmePsPathFolder = moProfile.sValue("-AcmePsPath", lsAcmePsPath);
@@ -3028,7 +3402,7 @@ Checklist for {EXE} setup (SCS version):
                                     lsSanPsStringArray = lsSanPsStringArray.Replace("(,", "(") + ")";
 
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             this.LogStage("1 - init ACME workspace");
 
@@ -3041,7 +3415,7 @@ New-PSSession -ComputerName localhost -Name GetCert
 $session = Disconnect-PSSession -Name GetCert
                                     "), true);
 
-                            this.LogIt("");
+                            DoGetCert.LogIt("");
 
                             if ( lbGetCertificate )
                             {
@@ -3074,7 +3448,7 @@ Get-ACMEServiceDirectory ""{AcmeWorkPath}"" -ServiceName ""{AcmeServiceName}"" -
                             }
                         }
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             this.LogStage("2 - register domain contact, submit order & authorization request");
 
@@ -3119,20 +3493,19 @@ New-ACMEOrder      ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
                         {
                             string lsSanItem = lsSanArray[liSanArrayIndex];
 
-                            if ( lbGetCertificate && !mbMainLoopStopped )
+                            if ( lbGetCertificate && !this.bMainLoopStopped )
                             {
                                 this.LogStage(String.Format("3 - Define DNS name to be challenged (\"{0}\"), setup domain challenge in IIS and submit it to certificate provider", lsSanItem));
 
                                 Site    loSanSite = null;
-                                Site    loDefaultSite = null;
-                                        DoGetCert.oCurrentCertificate(lsSanItem, out loServerManager, out loSanSite, lsSanArray, out loDefaultSite);
+                                Site    loPrimarySiteForDefaults = null;
+                                        DoGetCert.oCurrentCertificate(lsSanItem, lsSanArray, out loServerManager, out loSanSite, out loPrimarySiteForDefaults);
 
                                 // If -CreateSanSites is false, only create a default
                                 // website (as needed) and use it for all SAN values.
-                                if ( null == loSanSite && !moProfile.bValue("-CreateSanSites", true)
-                                        && 0 != loServerManager.Sites.Count )
+                                if ( null == loSanSite && !lbCreateSanSites && 0 != loServerManager.Sites.Count )
                                 {
-                                    this.LogIt(String.Format("No website found for \"{0}\".\r\n-CreateSanSites is \"False\". So no website created.\r\n", lsSanItem));
+                                    DoGetCert.LogIt(String.Format("No website found for \"{0}\". -CreateSanSites is \"False\". So no website created.\r\n", lsSanItem));
 
                                     loSanSite = loServerManager.Sites[0];
                                 }
@@ -3143,14 +3516,14 @@ New-ACMEOrder      ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 
                                     if ( 0 == loServerManager.Sites.Count )
                                     {
-                                        this.LogIt("No default website could be found.");
+                                        DoGetCert.LogIt("No default website could be found.");
 
                                         lsPhysicalPath = lsDefaultPhysicalPath;
                                     }
                                     else
                                     {
-                                        if ( null != loDefaultSite )
-                                            lsPhysicalPath = loDefaultSite.Applications["/"].VirtualDirectories["/"].PhysicalPath;
+                                        if ( null != loPrimarySiteForDefaults )
+                                            lsPhysicalPath = loPrimarySiteForDefaults.Applications["/"].VirtualDirectories["/"].PhysicalPath;
                                         else
                                             lsPhysicalPath = loServerManager.Sites[0].Applications["/"].VirtualDirectories["/"].PhysicalPath;
                                     }
@@ -3165,8 +3538,8 @@ New-ACMEOrder      ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 
                                     loServerManager.CommitChanges();
 
-                                    this.LogIt(String.Format("No website found for \"{0}\". New website created.", lsSanItem));
-                                    this.LogIt("");
+                                    DoGetCert.LogIt(String.Format("No website found for \"{0}\". New website created.", lsSanItem));
+                                    DoGetCert.LogIt("");
                                 }
 
                                 string  lsAcmeBasePath = moProfile.sValue("-AcmeBasePath", @".well-known\acme-challenge");
@@ -3201,7 +3574,7 @@ New-ACMEOrder      ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
                                     loAcmeCleanedList.Add(lsAcmePath);
                                 }
 
-                                if ( lbGetCertificate && !mbMainLoopStopped )
+                                if ( lbGetCertificate && !this.bMainLoopStopped )
                                 {
                                     if ( lbSingleSessionEnabled )
                                         lbGetCertificate = this.bRunPowerScript(moProfile.sValue("-ScriptStage3s", @"
@@ -3253,14 +3626,14 @@ $challenge | Complete-ACMEChallenge ""{AcmeWorkPath}""
                             }
                         }
 
-                        int liSubmissionRetries = moProfile.iValue("-SubmissionRetries", 99);
+                        int liSubmissionRetries = moProfile.iValue("-SubmissionRetries", 42);
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             for (int i=0; i < liSubmissionRetries; ++i)
                             {
                                 System.Windows.Forms.Application.DoEvents();
-                                Thread.Sleep(1000 * moProfile.iValue("-SubmissionWaitSecs", 5));
+                                Thread.Sleep(1000 * moProfile.iValue("-SubmissionWaitSecs", 10));
 
                                 this.LogStage(String.Format("4 - update challenge{0} from certificate provider", 1 == lsSanArray.Length ? "" : "s"));
 
@@ -3289,12 +3662,12 @@ $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
                                             .Replace("{SanPsStringArray}", lsSanPsStringArray)
                                             );
 
-                                if ( !lsOutput.Contains(lsSubmissionPending) || mbMainLoopStopped )
+                                if ( !lsOutput.Contains(lsSubmissionPending) || this.bMainLoopStopped )
                                     break;
                             }
                         }
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             this.LogStage("5 - generate certificate request and submit");
 
@@ -3323,12 +3696,12 @@ Complete-ACMEOrder      ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                         );
                         }
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             for (int i=0; i < liSubmissionRetries; ++i)
                             {
                                 System.Windows.Forms.Application.DoEvents();
-                                Thread.Sleep(1000 * moProfile.iValue("-SubmissionWaitSecs", 5));
+                                Thread.Sleep(1000 * moProfile.iValue("-SubmissionWaitSecs", 10));
 
                                 this.LogStage("6 - update certificate request");
 
@@ -3357,12 +3730,12 @@ $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
                                             .Replace("{SanPsStringArray}", lsSanPsStringArray)
                                             );
 
-                                if ( !lsOutput.Contains(lsSubmissionPending) || mbMainLoopStopped )
+                                if ( !lsOutput.Contains(lsSubmissionPending) || this.bMainLoopStopped )
                                     break;
                             }
                         }
 
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             this.LogStage("7 - get certificate");
 
@@ -3398,38 +3771,51 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                     }
                 }
 
-                if ( lbGetCertificate && !mbMainLoopStopped )
+                if ( lbGetCertificate && !this.bMainLoopStopped )
                 {
-                    if ( null == lbtArrayNewCertificate && !moProfile.bValue("-UseStandAloneMode", true) )
+                    // At this point there must be a new certificate file ready on disk (ie. for upload, the local cert store, port binding, etc).
+                    lbGetCertificate = File.Exists(lsCertPathFile);
+
+                    if ( !lbGetCertificate )
+                        DoGetCert.LogIt(DoGetCert.sExceptionMessage("The new certificate could not be found!"));
+
+                    if ( lbGetCertificate && !this.bMainLoopStopped && null == lbtArrayNewCertificate && !moProfile.bValue("-UseStandAloneMode", true) )
                     {
                         // Upload new certificate to the load balancer.
-                        if ( lbGetCertificate && !mbMainLoopStopped )
-                            lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lsProfile, lsCertName, lsCertPathFile, lsCertificatePassword);
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
+                        {
+                            if ( lbCertOverrideApplies )
+                                lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, lsCertName, lsCertPathFile
+                                                                                    , HashClass.sDecrypted(goSetupCertificate, this.oDomainProfile.sValue("-CertOverridePfxPassword", "")));
+                            else
+                                lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, lsCertName, lsCertPathFile, lsCertificatePassword);
+                        }
 
                         // Upload new certificate to the repository.
-                        if ( lbGetCertificate && !mbMainLoopStopped )
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                         {
                             lbGetCertificate = loGetCertServiceClient.bNewCertificateUploaded(
-                                    lsHash, lsProfile, File.ReadAllBytes(lsCertPathFile));
+                                    lsHash, lbtArrayMinProfile, File.ReadAllBytes(lsCertPathFile));
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                                 loGetCertServiceClient.Abort();
                             else
                                 loGetCertServiceClient.Close();
 
-                            this.LogIt("");
+                            DoGetCert.LogIt("");
                             if ( lbGetCertificate )
-                                this.LogIt("New certificate successfully uploaded to the repository.");
+                                DoGetCert.LogIt("New certificate successfully uploaded to the repository.");
                             else
-                                this.LogIt(DoGetCert.sExceptionMessage("GetCertService.bNewCertificateUploaded: Failed uploading new certificate to repository."));
+                                DoGetCert.LogIt(DoGetCert.sExceptionMessage("Failed uploading new certificate to repository."));
                         }
                     }
 
-                    if ( null != lbtArrayNewCertificate || moProfile.bValue("-UseStandAloneMode", true) )
+                    if ( lbGetCertificate && !this.bMainLoopStopped && null != lbtArrayNewCertificate || moProfile.bValue("-UseStandAloneMode", true) )
                     {
                         // A non-null "lbtArrayNewCertificate" means the certificate was just downloaded from the
                         // repository. Load it to be installed and bound locally (same if running stand-alone).
-                        if ( !moProfile.bValue("-CertificatePrivateKeyExportable", false) || this.oDomainProfile.bValue("-CertPrvKeyExportOverride", false) )
+                        if ( !moProfile.bValue("-CertificatePrivateKeyExportable", false)
+                                || ( !moProfile.bValue("-UseStandAloneMode", true) && !this.oDomainProfile.bValue("-CertPrivateKeyExportAllowed", false)) )
                         {
                             if ( lbCertificatePassword )
                                 loNewCertificate = new X509Certificate2(lsCertPathFile, lsCertificatePassword
@@ -3440,8 +3826,8 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                         }
                         else 
                         {
-                            this.LogIt("");
-                            this.LogIt("The new certificate private key is exportable (\"-CertificatePrivateKeyExportable=True\"). This is not recommended.");
+                            DoGetCert.LogIt("");
+                            DoGetCert.LogIt("The new certificate private key is exportable (\"-CertificatePrivateKeyExportable=True\"). This is not recommended.");
 
                             if ( lbCertificatePassword )
                                 loNewCertificate = new X509Certificate2(lsCertPathFile, lsCertificatePassword
@@ -3453,45 +3839,221 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                     }
                 }
 
-                // Install and bind the certificate locally, if: 1) the certificate was just downloaded from the repository; or 2) we're running stand-alone.
-                if ( lbGetCertificate && !mbMainLoopStopped && (null != lbtArrayNewCertificate || moProfile.bValue("-UseStandAloneMode", true)) )
+                if ( lbGetCertificate && !this.bMainLoopStopped && (null != lbtArrayNewCertificate || moProfile.bValue("-UseStandAloneMode", true)) )
                 {
-                    this.LogIt("");
-                    this.LogIt(String.Format("Certificate thumbprint: {0} (\"{1}\")", loNewCertificate.Thumbprint, DoGetCert.sCertName(loNewCertificate)));
+                    // Install and bind the new certificate locally, if: 1) the certificate was just downloaded from the repository; or 2) we're running stand-alone.
+                    // Bottom line: for server farms, never get a new cert (from override file or certifcate network) and bind it during the same maintenance window.
 
-                    this.LogIt("");
-                    this.LogIt("Install and bind certificate in IIS ...");
+                    DoGetCert.LogIt("");
+                    DoGetCert.LogIt(String.Format("Certificate thumbprint: {0} (\"{1}\")", loNewCertificate.Thumbprint, DoGetCert.sCertName(loNewCertificate)));
 
-                    if ( lbGetCertificate && !mbMainLoopStopped )
+                    DoGetCert.LogIt("");
+                    DoGetCert.LogIt("Install and bind certificate ...");
+
+                    string lsMachineKeyPathFile = null;
+
+                    // Select the local machine certificate store (ie "Local Computer / Personal / Certificates").
+                    loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                    loStore.Open(OpenFlags.OpenExistingOnly | OpenFlags.ReadWrite);
+
+                    // Add the new cert to the certifcate store.
+                    loStore.Add(loNewCertificate);
+
+                    // Do SSO stuff (while both old and new certs are still in the certifcate store).
+                    if ( null != loOldCertificate && loOldCertificate.Thumbprint != loNewCertificate.Thumbprint )
+                        lbGetCertificate = this.bApplyNewCertToSSO(loNewCertificate, loOldCertificate, lsHash, lbtArrayMinProfile);
+
+                    if ( lbGetCertificate && !this.bMainLoopStopped )
                     {
-                        string lsMachineKeyPathFile = null;
-
-                        // Select the local machine certificate store (ie "Local Computer / Personal / Certificates").
-                        loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-                        loStore.Open(OpenFlags.OpenExistingOnly | OpenFlags.ReadWrite);
-
-                        // Add the new cert to the cert store.
-                        loStore.Add(loNewCertificate);
-
-                        // Do ADFS stuff (while both old and new certs are in the store).
-                        if ( null != loOldCertificate && loOldCertificate.Thumbprint != loNewCertificate.Thumbprint )
-                            lbGetCertificate = this.bApplyNewCertToADFS(loNewCertificate, loOldCertificate, lsHash, lsProfile);
-
-                        if ( !lbGetCertificate )
+                        if ( this.oDomainProfile.bValue("-NoIIS", false) )
                         {
-                            // Remove the new cert from the store.
-                            loStore.Remove(loNewCertificate);
+                            DoGetCert.LogIt("");
+                            DoGetCert.LogIt("Using non-IIS certificate binding ...");
 
-                            lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
-                            if ( null != lsMachineKeyPathFile )
-                            {
-                                // Remove cert's private key file (sadly, the OS typically let's these things accumulate forever).
-                                File.Delete(lsMachineKeyPathFile);
-                            }
+                            string lsDiscard = null;
+                            lbGetCertificate = DoGetCert.bRunPowerScript(out lsDiscard, moProfile.sValue("-NoIISBindingScript", ""), false, true);
                         }
                         else
+                        if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
-                            if ( null != loOldCertificate && loOldCertificate.Thumbprint == loNewCertificate.Thumbprint )
+                            DoGetCert.LogIt("");
+                            DoGetCert.LogIt("Bind certificate in IIS ...");
+
+                            // Apply new site-to-cert bindings.
+                            foreach(string lsSanItem in DoGetCert.sSanArrayAmended(loServerManager, lsSanArray))
+                            {
+                                if ( !lbGetCertificate || this.bMainLoopStopped )
+                                    break;
+
+                                DoGetCert.LogIt(String.Format("Applying new certificate for \"{0}\" ...", lsSanItem));
+
+                                Site    loSite = null;
+                                        DoGetCert.oCurrentCertificate(lsSanItem, lsSanArray, out loServerManager, out loSite);
+
+                                if ( null == loSite && lsSanItem == lsCertName )
+                                {
+                                    // No site found. Use the default site, if it exists (for the primary domain only).
+                                    if ( 0 != loServerManager.Sites.Count )
+                                        loSite = loServerManager.Sites[0];   // Default website.
+
+                                    DoGetCert.LogIt(String.Format("No SAN website match could be found for \"{0}\". The default will be used (ie. \"{1}\").", lsSanItem, loSite.Name));
+                                }
+
+                                if ( null == loSite )
+                                {
+                                    // Still no site found (not even the default). This is an error.
+
+                                    lbGetCertificate = false;
+
+                                    DoGetCert.LogIt(String.Format("No website could be found to bind the new certificate for \"{0}\" (no default website either; FYI, -CreateSanSites is \"{1}\").\r\nCan't continue.", lsSanItem, lbCreateSanSites));
+                                }
+                                else
+                                if ( null == DoGetCert.oSslBinding(loSite) )
+                                {
+                                    string  lsNewBindingMsg1 = "No SSL binding found.";
+                                    string  lsNewBindingInformation = "*:443:{0}";
+                                    Binding loNewBinding = null;
+
+                                    try
+                                    {
+                                        if ( !lsSanArray.Contains(lsSanItem) )
+                                        {
+                                            // The site found is not SAN specific (ie. don't use SNI flag).
+                                            lsNewBindingInformation = String.Format(lsNewBindingInformation, "");
+                                            loNewBinding = loSite.Bindings.Add(lsNewBindingInformation, null == loOldCertificate ? null : loOldCertificate.GetCertHash(), loStore.Name);
+
+                                            DoGetCert.LogIt(String.Format(lsNewBindingMsg1 + " Binding applied (with no SNI) using \"{0}\".", lsNewBindingInformation));
+                                        }
+                                        else
+                                        {
+                                            // Set the SNI (Server Name Indication) flag.
+                                            lsNewBindingInformation = String.Format(lsNewBindingInformation, lsSanItem);
+                                            loNewBinding = loSite.Bindings.Add(lsNewBindingInformation, null == loOldCertificate ? null : loOldCertificate.GetCertHash(), loStore.Name);
+                                            loNewBinding.SetAttributeValue("SslFlags", 1 /* SslFlags.Sni */);
+
+                                            DoGetCert.LogIt(String.Format(lsNewBindingMsg1 + " Binding applied (with SNI) using \"{0}\".", lsNewBindingInformation));
+                                        }
+                                    }
+                                    catch (Exception)
+                                    {
+                                        loSite.Bindings.Remove(loNewBinding);
+
+                                        // Reverting to the default binding usage (must be an older OS).
+                                        lsNewBindingInformation = "*:443:";
+                                        loSite.Bindings.Add(lsNewBindingInformation, null == loOldCertificate ? null : loOldCertificate.GetCertHash(), loStore.Name);
+
+                                        DoGetCert.LogIt(String.Format(lsNewBindingMsg1 + " Binding applied (on older OS) using \"{0}\".", lsNewBindingInformation));
+                                    }
+
+                                    loServerManager.CommitChanges();
+
+                                    DoGetCert.LogIt(String.Format("Default SSL binding added to site: \"{0}\".", loSite.Name));
+                                }
+
+                                if ( lbGetCertificate && !this.bMainLoopStopped )
+                                {
+                                    bool lbBindingFound = false;
+
+                                    foreach(Binding loBinding in loSite.Bindings)
+                                    {
+                                        if ( !lbGetCertificate || this.bMainLoopStopped )
+                                            break;
+
+                                        // Only try to bind the new certificate if a certificate binding already exists (ie. only replace what's already there).
+                                        bool    lbDoBinding = null != loBinding.CertificateHash;
+                                                if ( lbDoBinding )
+                                                {
+                                                    // Only replace an existing certificate binding if it matches the old certificate (if an old certificate exists).
+                                                    lbDoBinding = null != loOldCertificate && loOldCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash);
+
+                                                    // Finally, only replace an existing certificate binding if it matches the certificate used for communications.
+                                                    if ( !lbDoBinding )
+                                                        lbDoBinding = (null != goSetupCertificate && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash));
+                                                }
+                                        if ( lbDoBinding )
+                                        {
+                                            string[]    lsBindingInfoArray  = loBinding.BindingInformation.Split(':');
+                                            string      lsBindingAddress    = lsBindingInfoArray[0];
+                                            string      lsBindingPort       = lsBindingInfoArray[1];
+                                            string      lsBindingHost       = lsBindingInfoArray[2];
+
+                                            loBinding.CertificateHash = loNewCertificate.GetCertHash();
+
+                                            loServerManager.CommitChanges();
+
+                                            if ( "*" == lsBindingAddress )
+                                                DoGetCert.LogIt(String.Format("New certificate (\"{0}\") bound to port {1} in IIS for \"{2}\"."
+                                                                , loNewCertificate.Thumbprint, lsBindingPort, lsSanItem));
+                                            else
+                                                DoGetCert.LogIt(String.Format("New certificate (\"{0}\") bound to address {1} and port {2} in IIS for \"{3}\"."
+                                                                , loNewCertificate.Thumbprint, lsBindingAddress, lsBindingPort, lsSanItem));
+
+                                            lbBindingFound = true;
+                                        }
+                                    }
+
+                                    if ( !lbBindingFound )
+                                    {
+                                        // No binding was found matching the old certificate. Assign the new certificate to the default SSL binding.
+
+                                        Binding loDefaultSslBinding = DoGetCert.oSslBinding(loSite);
+
+                                        if ( null == loDefaultSslBinding )
+                                        {
+                                            // Still no binding found (not even the default). This is an error.
+
+                                            lbGetCertificate = false;
+
+                                            DoGetCert.LogIt(String.Format("No SSL binding could be found for \"{0}\" (no default SSL binding either).\r\nCan't continue.", lsSanItem));
+                                        }
+                                        else
+                                        {
+                                            if ( null != loDefaultSslBinding.CertificateHash && loNewCertificate.GetCertHash().SequenceEqual(loDefaultSslBinding.CertificateHash) )
+                                            {
+                                                DoGetCert.LogIt(String.Format("Binding already applied for  \"{0}\" (via \"{1}\").", lsSanItem, loSite.Name));
+                                            }
+                                            else
+                                            {
+                                                string[]    lsBindingInfoArray  = loDefaultSslBinding.BindingInformation.Split(':');
+                                                string      lsBindingAddress    = lsBindingInfoArray[0];
+                                                string      lsBindingPort       = lsBindingInfoArray[1];
+                                                string      lsBindingHost       = lsBindingInfoArray[2];
+
+                                                loDefaultSslBinding.CertificateHash = loNewCertificate.GetCertHash();
+
+                                                loServerManager.CommitChanges();
+
+                                                if ( "*" == lsBindingAddress )
+                                                    DoGetCert.LogIt(String.Format("New certificate (\"{0}\") bound to port {1} in IIS for \"{2}\"."
+                                                                    , loNewCertificate.Thumbprint, lsBindingPort, lsSanItem));
+                                                else
+                                                    DoGetCert.LogIt(String.Format("New certificate (\"{0}\") bound to address {1} and port {2} in IIS for \"{3}\"."
+                                                                    , loNewCertificate.Thumbprint, lsBindingAddress, lsBindingPort, lsSanItem));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if ( lbGetCertificate )
+                        {
+                            DoGetCert.LogSuccess();
+                            DoGetCert.LogIt("");
+                            DoGetCert.LogIt("A new certificate was successfully installed and bound.");
+                        }
+
+                        if ( lbGetCertificate && !this.bMainLoopStopped && !this.bCertificateSetupDone )
+                            this.bCertificateSetupDone = true;
+
+                        if ( lbGetCertificate && !this.bMainLoopStopped && null != loOldCertificate )
+                        {
+                            // Next to last step, remove old certificate from the local store.
+
+                            // Note: this MUST be done before the last step since multiple
+                            //       identifying certificates can't exist during SCS calls.
+
+                            if ( loOldCertificate.Thumbprint == loNewCertificate.Thumbprint )
                             {
                                 // It is necessary to do this here only
                                 // when old and new thumprints are the same.
@@ -3505,191 +4067,54 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                 }
                             }
 
-                            if ( null != loOldCertificate && lbGetCertificate && !mbMainLoopStopped )
+                            if ( !moProfile.bValue("-UseStandAloneMode", true)
+                                    || (moProfile.bValue("-UseStandAloneMode", true)
+                                        && moProfile.bValue("-RemoveReplacedCert", false))
+                                    )
                             {
-                                if ( !moProfile.bValue("-UseStandAloneMode", true)
-                                        || (moProfile.bValue("-UseStandAloneMode", true)
-                                         && moProfile.bValue("-RemoveReplacedCert", false))
-                                        )
+                                if ( loNewCertificate.Thumbprint == loOldCertificate.Thumbprint )
                                 {
-                                    if ( loNewCertificate.Thumbprint == loOldCertificate.Thumbprint )
-                                    {
-                                        this.LogIt(String.Format("New certificate (\"{0}\") same as old. Not removed from local store.", loOldCertificate.Thumbprint));
-                                    }
-                                    else
-                                    {
-                                        // Remove the old cert.
-                                        loStore.Remove(loOldCertificate);
-
-                                        // Get old cert's private key file.
-                                        lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
-                                        if ( null != lsMachineKeyPathFile )
-                                        {
-                                            // Remove old cert's private key file.
-                                            File.Delete(lsMachineKeyPathFile);
-                                        }
-
-                                        this.LogIt(String.Format("Old certificate (\"{0}\") removed from the local store.", loOldCertificate.Thumbprint));
-                                    }
-                                }
-                            }
-
-                            // Setup new site-to-cert bindings and remove any old ones.
-                            foreach(string lsSanItem in lsSanArray)
-                            {
-                                if ( !lbGetCertificate || mbMainLoopStopped )
-                                    break;
-
-                                Site    loOldSite = null;
-                                Binding loOldBinding = null;
-                                Site    loDefaultSite = null;
-
-                                DoGetCert.oCurrentCertificate(lsSanItem, out loServerManager, out loOldSite, out loOldBinding, lsSanArray, out loDefaultSite);
-
-                                if ( null == loOldSite && lsSanItem == lsCertName )
-                                {
-                                    // Use the default site (if it exists) for the primary domain.
-                                    if ( 0 != loServerManager.Sites.Count )
-                                        loOldSite = loServerManager.Sites[0];   // Default site.
-
-                                    // Use the default SSL binding (if it exists).
-                                    loOldBinding = DoGetCert.oSslBinding(loOldSite);
-                                }
-
-                                // Create a new site with the default port 80 binding (as needed).
-                                if ( null == loOldSite )
-                                {
-                                    if ( !moProfile.bValue("-CreateSanSites", true) )
-                                    {
-                                        this.LogIt(String.Format("No website could be found for \"{0}\".\r\n-CreateSanSites is \"False\". So no website created.\r\n", lsSanItem));
-                                    }
-                                    else
-                                    {
-                                        string lsPhysicalPath = null;
-
-                                        if ( 0 == loServerManager.Sites.Count )
-                                        {
-                                            lsPhysicalPath = lsDefaultPhysicalPath;
-                                        }
-                                        else
-                                        {
-                                            if ( null != loDefaultSite )
-                                                lsPhysicalPath = loDefaultSite.Applications["/"].VirtualDirectories["/"].PhysicalPath;
-                                            else
-                                                lsPhysicalPath = loServerManager.Sites[0].Applications["/"].VirtualDirectories["/"].PhysicalPath;
-                                        }
-
-                                        loOldSite = loServerManager.Sites.Add(
-                                                  lsSanItem
-                                                , "http"
-                                                , String.Format("*:80:{0}", lsSanItem)
-                                                , lsPhysicalPath
-                                                );
-
-                                        this.LogIt(String.Format("No website found for \"{0}\". New website created.", lsSanItem));
-                                    }
+                                    DoGetCert.LogIt(String.Format("New certificate (\"{0}\") same as old. Not removed from local store.", loOldCertificate.Thumbprint));
                                 }
                                 else
-                                if  ( null != loOldBinding )
                                 {
-                                    // Remove old IIS binding.
-                                    loOldSite.Bindings.Remove(loOldBinding);
+                                    // Remove the old cert.
+                                    loStore.Remove(loOldCertificate);
 
-                                    this.LogIt(String.Format("Old certificate port binding (\"{0}\") removed from IIS for \"{1}\".", loOldBinding.Protocol, lsSanItem));
-                                }
-
-                                string      lsBindingInformation = null != loOldBinding ? loOldBinding.BindingInformation : String.Format("*:443:{0}", lsSanItem);
-                                string[]    lsBindingInfArray = lsBindingInformation.Split(':');
-                                string      lsBindingPort = lsBindingInfArray[1];
-                                string      lsBindingHost = lsBindingInfArray[2].ToLower();
-
-                                try
-                                {
-                                    // If there's no binding host defined or this SAN is the primary domain (and it has no website of its
-                                    // own), use the default binding (ditto if the default binding host on the default site is undefined).
-                                    bool    lbUseDefaultBinding = ("" == lsBindingHost
-                                                    || (   lsSanItem == lsCertName
-                                                        && loOldSite.Name != lsSanItem
-                                                        && 0 != loServerManager.Sites[0].Bindings.Count && "" == loServerManager.Sites[0].Bindings[0].Host
-                                                        ));
-
-                                    if ( lbUseDefaultBinding )
+                                    // Get old cert's private key file.
+                                    lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loOldCertificate);
+                                    if ( null != lsMachineKeyPathFile )
                                     {
-                                        lsBindingHost = "";
-                                        lsBindingInformation = String.Format("*:{0}:{1}", lsBindingPort, lsBindingHost);
-                                        loOldSite.Bindings.Add(lsBindingInformation, loNewCertificate.GetCertHash(), loStore.Name);
-
-                                        this.LogIt(String.Format("Default binding for new certificate (\"{0}\") applied.", loNewCertificate.Thumbprint));
-                                    }
-                                    else
-                                    {
-                                        Binding loNewBinding = loOldSite.Bindings.Add(lsBindingInformation, loNewCertificate.GetCertHash(), loStore.Name);
-
-                                        try
-                                        {
-                                            // Attempt to set the SNI (Server Name Indication) flag.
-                                            loNewBinding.SetAttributeValue("SslFlags", 1 /* SslFlags.Sni */);
-
-                                            this.LogIt(String.Format("SNI binding applied for new certificate (\"{0}\").", loNewCertificate.Thumbprint));
-                                        }
-                                        catch (Exception)
-                                        {
-                                            // Reverting to the default binding usage (must be an older OS version).
-                                            this.LogIt(String.Format("Default binding applied (on older OS) for new certificate (\"{0}\").", loNewCertificate.Thumbprint));
-                                        }
+                                        // Remove old cert's private key file.
+                                        File.Delete(lsMachineKeyPathFile);
                                     }
 
-                                    loServerManager.CommitChanges();
-
-                                    this.LogIt(String.Format("New certificate (\"{0}\") bound to port {1} in IIS for \"{2}\"."
-                                                    , loNewCertificate.Thumbprint, lsBindingPort, lsSanItem));
-                                }
-                                catch (Exception ex)
-                                {
-                                    // Perhaps the certificate was just deleted from the store (leaving the binding behind).
-                                    if ( ex.Message.Contains("Cannot add duplicate collection entry of type 'binding'") )
-                                    {
-                                        this.LogIt(String.Format("Duplicate IIS port {0} binding entry found and removed for \"{1}\".", lsBindingPort, lsSanItem));
-                                    }
-                                    else
-                                    {
-                                        this.LogIt(DoGetCert.sExceptionMessage(ex));
-                                        lbGetCertificate = false;
-                                    }
+                                    DoGetCert.LogIt(String.Format("Old certificate (\"{0}\") removed from the local store.", loOldCertificate.Thumbprint));
                                 }
                             }
+                        }
 
-                            if ( lbGetCertificate )
+                        if ( lbGetCertificate && !this.bMainLoopStopped && !moProfile.bValue("-UseStandAloneMode", true) )
+                        {
+                            // At this point we need to load the new certificate into the service factory object.
+                            goSetupCertificate = null;
+                            moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                            DoGetCert.SetCertificate(moGetCertServiceFactory);
+
+                            DoGetCert.LogIt("Requesting removal of the old certificate from the repository.");
+
+                            // Last step, remove old certificate from the repository (it can't be removed until the new certificate is in place everywhere).
+                            if ( lbGetCertificate && !this.bMainLoopStopped )
+                            using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                             {
-                                this.LogSuccess();
-                                this.LogIt("");
-                                this.LogIt("A new certificate was successfully installed and bound in IIS.");
-                            }
+                                bool    bOldCertificateRemoved = loGetCertServiceClient.bOldCertificateRemoved(lsHash, lbtArrayMinProfile);
+                                        if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                            loGetCertServiceClient.Abort();
+                                        else
+                                            loGetCertServiceClient.Close();
 
-                            if ( lbGetCertificate && !mbMainLoopStopped && !this.bCertificateSetupDone )
-                                this.bCertificateSetupDone = true;
-
-                            if ( lbGetCertificate && !mbMainLoopStopped && !moProfile.bValue("-UseStandAloneMode", true) )
-                            {
-                                // At this point we need to load the new certificate into the service factory object (before removing the old one).
-                                moGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                DoGetCert.SetCertificate(moProfile, moGetCertServiceFactory);
-
-                                this.LogIt("Requesting removal of the old certificate from the repository.");
-
-                                // Last step, remove old certificate from the repository (it can't be removed until the new certificate is in place everywhere).
-                                if ( lbGetCertificate && !mbMainLoopStopped )
-                                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
-                                {
-                                    bool    bOldCertificateRemoved = loGetCertServiceClient.bOldCertificateRemoved(lsHash, lsProfile);
-                                            if ( CommunicationState.Faulted == loGetCertServiceClient.State )
-                                                loGetCertServiceClient.Abort();
-                                            else
-                                                loGetCertServiceClient.Close();
-
-                                    if ( !bOldCertificateRemoved )
-                                        this.LogIt(DoGetCert.sExceptionMessage("GetCertService.bOldCertificateRemoved: Failed removing old certificate."));
-                                }
+                                if ( !bOldCertificateRemoved )
+                                    DoGetCert.LogIt(DoGetCert.sExceptionMessage("GetCertService.bOldCertificateRemoved: Failed removing old certificate."));
                             }
                         }
                     }
@@ -3697,7 +4122,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
             }
             catch (Exception ex)
             {
-                this.LogIt(DoGetCert.sExceptionMessage(ex));
+                DoGetCert.LogIt(DoGetCert.sExceptionMessage(ex));
                 lbGetCertificate = false;
             }
             finally
@@ -3705,19 +4130,19 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                 if ( null != loStore )
                     loStore.Close();
 
-                if ( "" == this.oDomainProfile.sValue("-CertOverridePfxPathFile", "") )
+                if ( "" == this.oDomainProfile.sValue("-CertOverridePfxComputer", "") + this.oDomainProfile.sValue("-CertOverridePfxPathFile", "") )
                 {
                     // Remove the cert (ie. PFX file from cert provider).
                     File.Delete(lsCertPathFile);
                 }
                 else
-                if ( lbGetCertificate && !mbMainLoopStopped )
+                if ( lbGetCertificate && !this.bMainLoopStopped )
                 {
-                    // Remove the cert (ie. PFX file from domain - only upon success).
+                    // Remove the cert (ie. the override PFX file - only upon success).
                     File.Delete(lsCertPathFile);
                 }
 
-                this.LogIt("");
+                DoGetCert.LogIt("");
 
                 this.bRunPowerScript(moProfile.sValue("-ScriptSessionClose", @"
 $session = Connect-PSSession -ComputerName localhost -Name GetCert
@@ -3725,10 +4150,10 @@ $session | Remove-PSSession
 Get-WSManInstance -ResourceURI Shell -Enumerate
                         "), true);
 
-                if ( !moProfile.bValue("-UseStandAloneMode", true) && moProfile.bValue("-Auto", false) )
+                if ( !moProfile.bValue("-UseStandAloneMode", true) )
                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = moGetCertServiceFactory.CreateChannel())
                 {
-                    loGetCertServiceClient.bUnlockCertificateRenewal(lsHash, lsProfile);
+                    loGetCertServiceClient.bUnlockCertificateRenewal(lsHash, lbtArrayMinProfile);
                     if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                         loGetCertServiceClient.Abort();
                     else
@@ -3736,14 +4161,15 @@ Get-WSManInstance -ResourceURI Shell -Enumerate
                 }
             }
 
-            if ( mbMainLoopStopped )
+            if ( this.bMainLoopStopped )
             {
-                this.LogIt("Stopped.");
+                DoGetCert.LogIt("Stopped.");
                 lbGetCertificate = false;
             }
 
             if ( lbGetCertificate )
             {
+                moProfile.Remove("-CertOverrideErrorCount");
                 moProfile.Remove("-LoadBalancerPendingErrorCount");
                 moProfile.Remove("-RepositoryCertsOnlyErrorCount");
                 moProfile.Remove("-CertificateRenewalDateOverride");
@@ -3751,7 +4177,7 @@ Get-WSManInstance -ResourceURI Shell -Enumerate
                 moProfile["-PreviousProcessOk"] = true;
                 moProfile.Save();
 
-                this.LogIt("The get certificate process completed successfully.");
+                DoGetCert.LogIt("The get certificate process completed successfully.");
             }
             else
             {
@@ -3759,8 +4185,10 @@ Get-WSManInstance -ResourceURI Shell -Enumerate
                 moProfile["-PreviousProcessOk"] = false;
                 moProfile.Save();
 
-                this.LogIt("At least one stage failed (or the process was stopped). Check log for errors.");
+                DoGetCert.LogIt("At least one stage failed (or the process was stopped). Check log for errors.");
             }
+
+            DoGetCert.LogIt("");
 
             return lbGetCertificate;
         }

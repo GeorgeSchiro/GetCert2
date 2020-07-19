@@ -31,6 +31,12 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>GetCert2.pfx.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Microsoft.Web.Administration, Version=7.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -174,6 +180,7 @@
     <EmbeddedResource Include="Resources\Fetch\GetCert2.exe.config" />
     <EmbeddedResource Include="Resources\Fetch\ACME-PS.zip" />
     <EmbeddedResource Include="Resources\Fetch\InGetCertSession.ps1" />
+    <None Include="GetCert2.pfx.snk" />
     <None Include="Service References\GetCertService\GetCertService.wsdl" />
     <None Include="Service References\GetCertService\Service.xsd">
       <SubType>Designer</SubType>

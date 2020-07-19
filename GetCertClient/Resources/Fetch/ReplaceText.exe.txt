@@ -9,6 +9,7 @@ ReplaceText.exe
 -NewSubValue=
 -NoPrompts=True
 -DisplayResults=False
+-DisplayResultsModule=Notepad.exe
 -IgnoreNoFilesFound=False
 -CopyResultsToSTDOUT=True
 -SearchOnly=False
@@ -16,6 +17,5 @@ ReplaceText.exe
 -CaseInsensitiveSearch=False
 -UseRegularExpressions=False
 -UseSpecialCharacters=False
--Help=
--DisplayResultsCommand=Notepad.exe
 -FetchSource=False
+-Help=

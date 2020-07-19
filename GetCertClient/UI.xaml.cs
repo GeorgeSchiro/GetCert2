@@ -756,7 +756,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -781,7 +781,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -810,7 +810,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -840,7 +840,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -863,7 +863,7 @@ You can continue this later wherever you left off. "
         private void ShowError(Exception aoException)
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(aoException.Message);
+                DoGetCert.LogIt(aoException.Message);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, aoException);
@@ -872,7 +872,7 @@ You can continue this later wherever you left off. "
         private void ShowError(string asMessageText)
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, asMessageText);
@@ -881,7 +881,7 @@ You can continue this later wherever you left off. "
         public void ShowError(string asMessageText, string asMessageCaption)
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, asMessageText, asMessageCaption);
@@ -890,7 +890,7 @@ You can continue this later wherever you left off. "
         public void ShowWarning(string asMessageText, string asMessageCaption)
         {
             if ( this.bNoPrompts )
-                moDoGetCert.LogIt(asMessageText);
+                DoGetCert.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowWarning(this, asMessageText, asMessageCaption);
@@ -1039,8 +1039,8 @@ You can continue this later wherever you left off. "
             string  lsMessage = null;
             bool    lbHaveMovedForward = this.ConfigWizardTabs.SelectedIndex >= miPreviousConfigWizardSelectedIndex;
 
-            Regex loEmailRegex = new Regex(moProfile.sValue("-RegexEmailAddress", @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,7})$"));
-            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"));
+            Regex loEmailRegex = new Regex(moProfile.sValue("-RegexEmailAddress", @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)[a-zA-Z]{2,18}$"));
+            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$"));
 
             // Can't pass nulls to Regex.
             if ( null == this.ContactEmailAddress.Text )
@@ -1078,8 +1078,8 @@ You can continue this later wherever you left off. "
         {
             string  lsMessage = null;
 
-            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^[^.][\*a-zA-Z0-9\-\.]+\.[a-zA-Z0-9]{2,7}$"));
-            Regex loDnsNameRegexSanList = new Regex(moProfile.sValue("-RegexDnsNameSanList", @"^[^.][\*a-zA-Z0-9\-\.]+\.$"));
+            Regex loDnsNameRegex = new Regex(moProfile.sValue("-RegexDnsNamePrimary", @"^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$"));
+            Regex loDnsNameRegexSanList = new Regex(moProfile.sValue("-RegexDnsNameSanList", @"^([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)([a-zA-Z]{2,18}|)$"));
 
             // Rebuild (in case of review or SAN list was edited in the profile).
             DomainListTabs.Items.Clear();
@@ -1338,6 +1338,15 @@ If you would prefer to finish this setup at another time, you can exit now and c
         {
             this.bMainProcessRunning = true;
 
+            ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                                                                    DoGetCert.SetCertificate(loGetCertServiceFactory);
+
+            tvProfile   loMinProfile = DoGetCert.oMinProfile(moProfile);
+            byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+            string      lsHash = HashClass.sHashIt(loMinProfile);
+
+            moDoGetCert.ClearCache();
+            moDoGetCert.bReplaceSsoThumbprint(loGetCertServiceFactory, lsHash, lbtArrayMinProfile);
             moDoGetCert.bGetCertificate();
 
             this.bMainProcessRunning = false;
