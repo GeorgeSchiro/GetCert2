@@ -1338,15 +1338,12 @@ If you would prefer to finish this setup at another time, you can exit now and c
         {
             this.bMainProcessRunning = true;
 
-            ChannelFactory<GetCertService.IGetCertServiceChannel>   loGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
-                                                                    DoGetCert.SetCertificate(loGetCertServiceFactory);
-
             tvProfile   loMinProfile = DoGetCert.oMinProfile(moProfile);
             byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
             string      lsHash = HashClass.sHashIt(loMinProfile);
 
             moDoGetCert.ClearCache();
-            moDoGetCert.bReplaceSsoThumbprint(loGetCertServiceFactory, lsHash, lbtArrayMinProfile);
+            moDoGetCert.bReplaceSsoThumbprint(lsHash, lbtArrayMinProfile);
             moDoGetCert.bGetCertificate();
 
             this.bMainProcessRunning = false;

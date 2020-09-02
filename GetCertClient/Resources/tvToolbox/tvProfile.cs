@@ -142,7 +142,7 @@ namespace tvToolbox
     /// Author:     George Schiro (GeoCode@Schiro.name)
     /// </p>
     /// <p>
-    /// Version:    2.23
+    /// Version:    2.24
     /// Copyright:  1996 - 2121
     /// </p>
     /// </summary>
@@ -1018,6 +1018,19 @@ namespace tvToolbox
 
         /// <summary>
         /// Removes zero, one or many entries in the profile with keys
+        /// that match the given aoKey. aoKey will be cast as a string.
+        /// </summary>
+        /// <param name="aoKey">
+        /// The key string to look for. "*" or a regular expression may be
+        /// included.
+        /// </param>
+        public override void Remove(object aoKey)
+        {
+            this.Remove(aoKey.ToString());
+        }
+
+        /// <summary>
+        /// Removes zero, one or many entries in the profile with keys
         /// that match the given asKey.
         /// </summary>
         /// <param name="asKey">
@@ -1056,6 +1069,14 @@ namespace tvToolbox
             string lsKey = (null == ((DictionaryEntry) base[aiIndex]).Key ? "" : ((DictionaryEntry) base[aiIndex]).Key.ToString());
 
             base[aiIndex] = new DictionaryEntry(lsKey, aoValue);
+        }
+
+        /// <summary>
+        /// Sorts the the profile by its key strings.
+        /// </summary>
+        public override void Sort()
+        {
+            this.Sort(new tvProfileComparer());
         }
 
         /// <summary>
@@ -2153,21 +2174,6 @@ namespace tvToolbox
         public string sKey(int aiIndex)
         {
             return (null == oEntry(aiIndex).Key ? "" : oEntry(aiIndex).Key.ToString());
-        }
-
-        /// <summary>
-        /// Permanently replaces all hyphens in the given asSource string
-        /// with another character (eg. an underscore).
-        /// 
-        /// This is typically used as a precursor to calling "sCommandBlock()"
-        /// where embedded hyphens can't be preserved for whatever reason.
-        /// </summary>
-        /// <param name="asSource"></param>
-        /// The source string to have hyphens replaced.
-        /// <returns></returns>
-        public string sSwapHyphens(string asSource)
-        {
-            return asSource.Replace(mcsArgMark, "_");
         }
 
         /// <summary>
@@ -3576,6 +3582,14 @@ Copy and proceed from there?
         private tvProfile    moInputCommandLineProfile;
         private static int   mciIntSizeInBytes = 4;
 
+
+        private class tvProfileComparer : IComparer
+        {
+            public int Compare(object aoX, object aoY)
+            {
+                return ((DictionaryEntry)aoX).Key.ToString().CompareTo(((DictionaryEntry)aoY).Key.ToString());
+            }
+        }
 
         private class tvProfileEnumerator : IEnumerator
         {
