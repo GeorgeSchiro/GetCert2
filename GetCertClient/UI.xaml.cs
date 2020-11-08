@@ -1343,6 +1343,7 @@ If you would prefer to finish this setup at another time, you can exit now and c
             string      lsHash = HashClass.sHashIt(loMinProfile);
 
             moDoGetCert.ClearCache();
+            moDoGetCert.bGetClientCertificates(lsHash, lbtArrayMinProfile);
             moDoGetCert.bReplaceSsoThumbprint(lsHash, lbtArrayMinProfile);
             moDoGetCert.bGetCertificate();
 

@@ -21,6 +21,12 @@ namespace GetCert2.GetCertService {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/bClientCheckIn", ReplyAction="http://tempuri.org/IGetCertService/bClientCheckInResponse")]
         System.Threading.Tasks.Task<bool> bClientCheckInAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayErrorLog);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/bClientCheckOut", ReplyAction="http://tempuri.org/IGetCertService/bClientCheckOutResponse")]
+        bool bClientCheckOut(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/bClientCheckOut", ReplyAction="http://tempuri.org/IGetCertService/bClientCheckOutResponse")]
+        System.Threading.Tasks.Task<bool> bClientCheckOutAsync(string asHash, byte[] abtArrayProfile);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/bLockCertificateRenewal", ReplyAction="http://tempuri.org/IGetCertService/bLockCertificateRenewalResponse")]
         bool bLockCertificateRenewal(string asHash, byte[] abtArrayProfile);
         
@@ -50,6 +56,12 @@ namespace GetCert2.GetCertService {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/bUnlockCertificateRenewal", ReplyAction="http://tempuri.org/IGetCertService/bUnlockCertificateRenewalResponse")]
         System.Threading.Tasks.Task<bool> bUnlockCertificateRenewalAsync(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayClientCertificateList", ReplyAction="http://tempuri.org/IGetCertService/btArrayClientCertificateListResponse")]
+        byte[] btArrayClientCertificateList(string asHash, byte[] abtArrayProfile, ulong aiPreviousHash);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayClientCertificateList", ReplyAction="http://tempuri.org/IGetCertService/btArrayClientCertificateListResponse")]
+        System.Threading.Tasks.Task<byte[]> btArrayClientCertificateListAsync(string asHash, byte[] abtArrayProfile, ulong aiPreviousHash);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse")]
         byte[] btArrayGetCertExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
@@ -104,6 +116,18 @@ namespace GetCert2.GetCertService {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReady", ReplyAction="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReadyResponse")]
         System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalled", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalledResponse")]
+        void NotifyClientCertificateListInstalled(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalled", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalledResponse")]
+        System.Threading.Tasks.Task NotifyClientCertificateListInstalledAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailure", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailureResponse")]
+        void NotifyClientCertificateListFailure(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailure", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailureResponse")]
+        System.Threading.Tasks.Task NotifyClientCertificateListFailureAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure", ReplyAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailureRespons" +
             "e")]
@@ -193,6 +217,14 @@ namespace GetCert2.GetCertService {
             return base.Channel.bClientCheckInAsync(asHash, abtArrayProfile, abtArrayErrorLog);
         }
         
+        public bool bClientCheckOut(string asHash, byte[] abtArrayProfile) {
+            return base.Channel.bClientCheckOut(asHash, abtArrayProfile);
+        }
+        
+        public System.Threading.Tasks.Task<bool> bClientCheckOutAsync(string asHash, byte[] abtArrayProfile) {
+            return base.Channel.bClientCheckOutAsync(asHash, abtArrayProfile);
+        }
+        
         public bool bLockCertificateRenewal(string asHash, byte[] abtArrayProfile) {
             return base.Channel.bLockCertificateRenewal(asHash, abtArrayProfile);
         }
@@ -231,6 +263,14 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task<bool> bUnlockCertificateRenewalAsync(string asHash, byte[] abtArrayProfile) {
             return base.Channel.bUnlockCertificateRenewalAsync(asHash, abtArrayProfile);
+        }
+        
+        public byte[] btArrayClientCertificateList(string asHash, byte[] abtArrayProfile, ulong aiPreviousHash) {
+            return base.Channel.btArrayClientCertificateList(asHash, abtArrayProfile, aiPreviousHash);
+        }
+        
+        public System.Threading.Tasks.Task<byte[]> btArrayClientCertificateListAsync(string asHash, byte[] abtArrayProfile, ulong aiPreviousHash) {
+            return base.Channel.btArrayClientCertificateListAsync(asHash, abtArrayProfile, aiPreviousHash);
         }
         
         public byte[] btArrayGetCertExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
@@ -303,6 +343,22 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile) {
             return base.Channel.NotifyCertOverrideCertificateReadyAsync(asHash, abtArrayProfile);
+        }
+        
+        public void NotifyClientCertificateListInstalled(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
+            base.Channel.NotifyClientCertificateListInstalled(asHash, abtArrayProfile, abtArrayCerts);
+        }
+        
+        public System.Threading.Tasks.Task NotifyClientCertificateListInstalledAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
+            return base.Channel.NotifyClientCertificateListInstalledAsync(asHash, abtArrayProfile, abtArrayCerts);
+        }
+        
+        public void NotifyClientCertificateListFailure(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
+            base.Channel.NotifyClientCertificateListFailure(asHash, abtArrayProfile, abtArrayCerts);
+        }
+        
+        public System.Threading.Tasks.Task NotifyClientCertificateListFailureAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
+            return base.Channel.NotifyClientCertificateListFailureAsync(asHash, abtArrayProfile, abtArrayCerts);
         }
         
         public void NotifyLoadBalancerCertificateExeFailure(string asHash, byte[] abtArrayProfile) {

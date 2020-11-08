@@ -1072,11 +1072,28 @@ namespace tvToolbox
         }
 
         /// <summary>
-        /// Sorts the the profile by its key strings.
+        /// Sorts the the profile by its key strings
+        /// (alias of SortByKey).
         /// </summary>
         public override void Sort()
         {
-            this.Sort(new tvProfileComparer());
+            this.SortByKey();
+        }
+
+        /// <summary>
+        /// Sorts the the profile by its key strings.
+        /// </summary>
+        public void SortByKey()
+        {
+            this.Sort(new tvProfileKeyComparer());
+        }
+
+        /// <summary>
+        /// Sorts the the profile by its values (as strings).
+        /// </summary>
+        public void SortByValueAsString()
+        {
+            this.Sort(new tvProfileStringValueComparer());
         }
 
         /// <summary>
@@ -1478,7 +1495,11 @@ namespace tvToolbox
         {
             get
             {
-                return this.sExePathFile + this.sDefaultFileExt;
+                string  lsPathFile = this.sExePathFile + this.sDefaultFileExt;
+                        if ( !File.Exists(lsPathFile) )
+                            lsPathFile = Path.GetFileName(this.sExePathFile) + this.sDefaultFileExt;
+
+                return lsPathFile;
             }
         }
 
@@ -2592,9 +2613,11 @@ namespace tvToolbox
                 , tvProfileLoadActions aeLoadAction
                 )
         {
-            // If asPathFile is not null, check existence. Otherwise check for the existence
-            // of one of several default filenames. Returned null means none exist.
-            string  lsPathFile = this.sFileExistsFromList(this.sRelativeToProfilePathFile(asPathFile));
+            // Check for the existence of one of several default filenames
+            // (starting with asPathFile "as is"). Returned null means none exist.
+            string  lsPathFile = this.sFileExistsFromList(asPathFile);
+                    if ( null == lsPathFile )
+                        lsPathFile = this.sFileExistsFromList(this.sRelativeToProfilePathFile(asPathFile));
             string  lsFilnameOnly = Path.GetFileNameWithoutExtension(this.sExePathFile);
 
             if ( null == lsPathFile )
@@ -3401,6 +3424,7 @@ Copy and proceed from there?
             {
                 // Load the referenced profile file.
                 tvProfile   loNewProfile = new tvProfile();
+                            loNewProfile.sInputCommandLineArray = this.sInputCommandLineArray;
                             loNewProfile.eFileCreateAction = this.eFileCreateAction;
                             loNewProfile.bUseXmlFiles = this.bUseXmlFiles;
                             loNewProfile.bAddStandardDefaults = this.bAddStandardDefaults;
@@ -3583,11 +3607,19 @@ Copy and proceed from there?
         private static int   mciIntSizeInBytes = 4;
 
 
-        private class tvProfileComparer : IComparer
+        private class tvProfileKeyComparer : IComparer
         {
             public int Compare(object aoX, object aoY)
             {
                 return ((DictionaryEntry)aoX).Key.ToString().CompareTo(((DictionaryEntry)aoY).Key.ToString());
+            }
+        }
+
+        private class tvProfileStringValueComparer : IComparer
+        {
+            public int Compare(object aoX, object aoY)
+            {
+                return ((DictionaryEntry)aoX).Value.ToString().CompareTo(((DictionaryEntry)aoY).Value.ToString());
             }
         }
 

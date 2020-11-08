@@ -16,6 +16,21 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="bClientCheckOut">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bClientCheckOutResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="bClientCheckOutResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="bLockCertificateRenewal">
     <xs:complexType>
       <xs:sequence>
@@ -90,6 +105,22 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="bUnlockCertificateRenewalResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayClientCertificateList">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="aiPreviousHash" type="xs:unsignedLong" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayClientCertificateListResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArrayClientCertificateListResult" nillable="true" type="xs:base64Binary" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -228,6 +259,34 @@
     </xs:complexType>
   </xs:element>
   <xs:element name="NotifyCertOverrideCertificateReadyResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyClientCertificateListInstalled">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayCerts" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyClientCertificateListInstalledResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyClientCertificateListFailure">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayCerts" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyClientCertificateListFailureResponse">
     <xs:complexType>
       <xs:sequence />
     </xs:complexType>

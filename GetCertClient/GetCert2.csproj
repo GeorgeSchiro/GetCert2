@@ -6,11 +6,12 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>GetCert2</RootNamespace>
     <AssemblyName>GetCert2</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <WarningLevel>4</WarningLevel>
     <ApplicationIcon>Resources\images\HANDSHAK.ICO</ApplicationIcon>
     <ProjectGuid>{801D9779-B42A-43BD-B9E8-ACD27AA19C06}</ProjectGuid>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
