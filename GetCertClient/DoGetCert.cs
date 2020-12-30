@@ -3542,7 +3542,10 @@ Checklist for {EXE} setup:
                         tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
                                 , String.Format("{0}{1}", gsFetchPrefix, lsAcmePsFile), lsAcmePsPathFile);
                         if ( !Directory.Exists(moProfile.sRelativeToProfilePathFile(lsAcmePsPath)) )
-                            ZipFile.ExtractToDirectory(lsAcmePsPathFile, Path.GetDirectoryName(lsAcmePsPathFile));
+                        {
+                            string  lsZipDir = Path.GetDirectoryName(lsAcmePsPathFile);
+                                    ZipFile.ExtractToDirectory(lsAcmePsPathFile, String.IsNullOrEmpty(lsZipDir) ? "." : lsZipDir);
+                        }
 
                         // Don't use the PowerShell gallery installed AcmePs module (by default, use what's embedded instead).
                         if ( !moProfile.bValue("-AcmePsModuleUseGallery", false) )
@@ -3553,6 +3556,9 @@ Checklist for {EXE} setup:
                                     "Any alternative -AcmePsPath must include a subfolder named \"{0}\" that contains the files.", lsAcmePsPathFolder));
 
                             lsAcmePsPath = moProfile.sRelativeToProfilePathFile(moProfile.sValue("-AcmePsPath", lsAcmePsPath));
+
+                            if ( String.IsNullOrEmpty(Path.GetDirectoryName(lsAcmePsPath)) )
+                                lsAcmePsPath = Path.Combine(".", lsAcmePsPath);
                         }
 
                         string      lsAcmeWorkPath = moProfile.sRelativeToProfilePathFile(moProfile.sValue("-AcmePsWorkPath", "AcmeState"));
@@ -3920,11 +3926,6 @@ $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
 Using Module ""{AcmePsPath}""
 {AcmeSystemWide}
 Export-ACMECertificate $global:state -Order $global:order -CertificateKey $global:certKey -Path ""{CertificatePathFile}""
-
-cd  ""{AcmeWorkPath}\..\openssl""
-C:PFXtoPEM.cmd ""{CertificatePathFile}""   ""{AcmeWorkPath}\cert.pem"" -CertificateKey {CertificatePassword} 2>$null
-C:PEMtoPFX.cmd ""{AcmeWorkPath}\cert.pem"" ""{CertificatePathFile}""   -CertificateKey {CertificatePassword} 2>$null
-del ""{AcmeWorkPath}\cert.pem""
                                         ")
                                         .Replace("{AcmePsPath}", lsAcmePsPath)
                                         .Replace("{AcmeSystemWide}", moProfile.sValue("-AcmeSystemWide", ""))
@@ -3940,11 +3941,6 @@ Import-Module ""{AcmePsPath}""
 $order = Find-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $certKey = Import-ACMECertificateKey -Path ""{AcmeWorkPath}\cert.key.xml""
 Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKey -Path ""{CertificatePathFile}""
-
-cd  ""{AcmeWorkPath}\..\openssl""
-C:PFXtoPEM.cmd ""{CertificatePathFile}""   ""{AcmeWorkPath}\cert.pem"" -CertificateKey {CertificatePassword} 2>$null
-C:PEMtoPFX.cmd ""{AcmeWorkPath}\cert.pem"" ""{CertificatePathFile}""   -CertificateKey {CertificatePassword} 2>$null
-del ""{AcmeWorkPath}\cert.pem""
                                         ")
                                         .Replace("{AcmePsPath}", lsAcmePsPath)
                                         .Replace("{AcmeSystemWide}", moProfile.sValue("-AcmeSystemWide", ""))
