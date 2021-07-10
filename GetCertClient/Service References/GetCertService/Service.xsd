@@ -124,6 +124,22 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="btArrayFailSafeExeUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArrayFailSafeExeUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArrayFailSafeExeUpdateResult" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="btArrayGetCertExeUpdate">
     <xs:complexType>
       <xs:sequence>
@@ -199,6 +215,38 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" name="sDomainProfileResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sFailSafeCfgUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sFailSafeCfgUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sFailSafeCfgUpdateResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sFailSafeIniUpdate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asInstalledVersion" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sFailSafeIniUpdateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sFailSafeIniUpdateResult" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -287,6 +335,20 @@
     </xs:complexType>
   </xs:element>
   <xs:element name="NotifyClientCertificateListFailureResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyFailSafeInternalValidationResults">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayResults" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="NotifyFailSafeInternalValidationResultsResponse">
     <xs:complexType>
       <xs:sequence />
     </xs:complexType>

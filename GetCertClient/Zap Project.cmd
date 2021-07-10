@@ -1,8 +1,7 @@
-for /f "tokens=1-9 delims=\" %%a in ("%cd%") do set a=%%a %%b %%c %%d %%e %%f %%g %%h %%i
-for %%i in (%a%) do set Project=%%i
-if not "%Project%"=="Windows" goto Continue
-
 @echo off
+for %%I in (.) do set ProjectApp=%%~nxI
+if not "%ProjectApp%"=="Windows" goto Continue
+
 echo.
 echo Can't run this from a UNC path.
 pause
@@ -10,6 +9,7 @@ goto EOF
 
 
 :Continue
+echo on
 del *.user
 del *.suo
 del /ah *.suo

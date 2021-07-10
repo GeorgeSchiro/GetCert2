@@ -9,7 +9,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <WarningLevel>4</WarningLevel>
-    <ApplicationIcon>Resources\images\HANDSHAK.ICO</ApplicationIcon>
+    <ApplicationIcon>Resources\images\Handshake.ico</ApplicationIcon>
     <ProjectGuid>{801D9779-B42A-43BD-B9E8-ACD27AA19C06}</ProjectGuid>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -36,7 +36,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>GetCert2.pfx.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>GetCert2.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
@@ -99,6 +99,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Compile Include="Resources\Env.cs" />
     <Compile Include="Resources\HashClass.cs" />
     <Compile Include="Service References\GetCertService\Reference.cs">
       <AutoGen>True</AutoGen>
@@ -172,16 +173,18 @@
     <Resource Include="Resources\tvToolbox\tvMessageBox\images\OK.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\images\HANDSHAK.ICO" />
+    <Resource Include="Resources\images\Handshake.ico" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Resources\Fetch\Setup Application Folder.exe" />
+    <EmbeddedResource Include="Resources\Fetch\Microsoft.Web.Administration.dll" />
     <EmbeddedResource Include="Resources\Fetch\GetCert2.exe.config" />
     <EmbeddedResource Include="Resources\Fetch\ACME-PS.zip" />
     <EmbeddedResource Include="Resources\Fetch\InGetCertSession.ps1" />
-    <None Include="GetCert2.pfx.snk" />
+    <None Include="GetCert2.snk" />
     <None Include="Service References\GetCertService\GetCertService.wsdl" />
     <None Include="Service References\GetCertService\Service.xsd">
       <SubType>Designer</SubType>
@@ -207,12 +210,11 @@
     <EmbeddedResource Include="GetCert2.zip" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Fetch\Microsoft.Web.Administration.dll" />
-    <EmbeddedResource Include="Resources\Fetch\Setup Application Folder.exe" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Resources\Fetch\ReplaceText.exe" />
     <EmbeddedResource Include="Resources\Fetch\ReplaceText.exe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Fetch\GetCert2Task.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

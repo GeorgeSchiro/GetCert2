@@ -62,6 +62,7 @@ namespace GetCert2
 
             moProfile = aoDoGetCert.oProfile;
             moDoGetCert = aoDoGetCert;
+            Env.AppendOutputTextLine += this.AppendOutputTextLine;
         }
 
 
@@ -219,8 +220,7 @@ namespace GetCert2
             }
         }
 
-
-        public void AppendOutputTextLine(string asTextLine)
+        public void AppendOutputTextLine(object source, string asTextLine)
         {
             this.ProcessOutput.Inlines.Add(asTextLine + Environment.NewLine);
             if ( this.ProcessOutput.Inlines.Count > moProfile.iValue("-ConsoleTextLineLength", 200) )
@@ -506,7 +506,7 @@ You can continue this later wherever you left off. "
             this.SaveDomainList();
 
             string  lsMessage = this.bValidateConfigWizardSanList();
-                    if ( null != lsMessage )
+                    if ( !String.IsNullOrEmpty(lsMessage) )
                         this.ShowWarning(lsMessage, "Fix SAN List");
         }
 
@@ -674,8 +674,11 @@ You can continue this later wherever you left off. "
         {
             MiddlePanelDomainList.IsOpen = false;
 
-            Process.Start(moProfile.sValue("-WindowsExplorer"
-                    , "explorer.exe"), Path.GetDirectoryName(moProfile.sLoadedPathFile));
+            string  lsPath = Path.GetDirectoryName(moProfile.sLoadedPathFile);
+                    if ( String.IsNullOrEmpty(lsPath) )
+                        lsPath = Directory.GetCurrentDirectory();
+
+            Process.Start(moProfile.sValue("-WindowsExplorer", "explorer.exe"), lsPath);
         }
 
         private void btnClearDisplay_Click(object sender, RoutedEventArgs e)
@@ -756,7 +759,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -781,7 +784,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -810,7 +813,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -840,7 +843,7 @@ You can continue this later wherever you left off. "
                 )
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             tvMessageBoxResults ltvMessageBoxResults = tvMessageBoxResults.None;
 
@@ -863,7 +866,7 @@ You can continue this later wherever you left off. "
         private void ShowError(Exception aoException)
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(aoException.Message);
+                Env.LogIt(aoException.Message);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, aoException);
@@ -872,7 +875,7 @@ You can continue this later wherever you left off. "
         private void ShowError(string asMessageText)
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, asMessageText);
@@ -881,7 +884,7 @@ You can continue this later wherever you left off. "
         public void ShowError(string asMessageText, string asMessageCaption)
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowError(this, asMessageText, asMessageCaption);
@@ -890,7 +893,7 @@ You can continue this later wherever you left off. "
         public void ShowWarning(string asMessageText, string asMessageCaption)
         {
             if ( this.bNoPrompts )
-                DoGetCert.LogIt(asMessageText);
+                Env.LogIt(asMessageText);
 
             if ( !this.bNoPrompts )
                 tvMessageBox.ShowWarning(this, asMessageText, asMessageCaption);
@@ -980,9 +983,9 @@ You can continue this later wherever you left off. "
                     this.ContactEmailAddress.Text = moProfile.sValue("-ContactEmailAddress", "");
 
                     moCertNameList = new List<string>();
-                    foreach(X509Certificate2 loCertificate in DoGetCert.oCurrentCertificateCollection())
+                    foreach(X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                     {
-                        string lsCertName = DoGetCert.sCertName(loCertificate);
+                        string lsCertName = Env.sCertName(loCertificate);
 
                         if ( !moCertNameList.Contains(lsCertName) )
                             moCertNameList.Add(lsCertName);
@@ -992,7 +995,7 @@ You can continue this later wherever you left off. "
                     this.CertificateDomainName.ItemsSource = moCertNameList;
 
                     if ( "" == moProfile.sValue("-CertificateDomainName", "") )
-                        this.CertificateDomainName.Text = DoGetCert.sCurrentCertificateName;
+                        this.CertificateDomainName.Text = Env.sCurrentCertificateName;
                     else
                         this.CertificateDomainName.Text = moProfile.sValue("-CertificateDomainName", "");
 
@@ -1055,23 +1058,23 @@ You can continue this later wherever you left off. "
                     )
             {
                 if ( !loEmailRegex.IsMatch(this.ContactEmailAddress.Text) )
-                    lsMessage += (null == lsMessage ? "" : Environment.NewLine + Environment.NewLine)
+                    lsMessage += (String.IsNullOrEmpty(lsMessage) ? "" : Environment.NewLine + Environment.NewLine)
                             + string.Format("Enter a valid email address{0}. ", !this.ContactEmailAddress.Text.Contains(" ") ? "" :  lsCommonMsg)
                             ;
                 if ( !loDnsNameRegex.IsMatch(this.CertificateDomainName.Text) )
-                    lsMessage += (null == lsMessage ? "" : Environment.NewLine + Environment.NewLine)
+                    lsMessage += (String.IsNullOrEmpty(lsMessage) ? "" : Environment.NewLine + Environment.NewLine)
                             + string.Format("Enter a valid domain name{0}. ", !this.CertificateDomainName.Text.Contains(" ") ? "" :  lsCommonMsg)
                             ;
 
                 string  lsSanListMsgs = this.bValidateConfigWizardSanList();
-                        if (null != lsSanListMsgs )
+                        if ( !String.IsNullOrEmpty(lsSanListMsgs) )
                             lsMessage += lsSanListMsgs;
             }
 
-            if ( null != lsMessage )
+            if ( !String.IsNullOrEmpty(lsMessage) )
                 this.ShowWarning(lsMessage, lsCaption);
 
-            return null == lsMessage;
+            return String.IsNullOrEmpty(lsMessage);
         }
 
         private string bValidateConfigWizardSanList()
@@ -1101,16 +1104,16 @@ You can continue this later wherever you left off. "
                     else
                     {
                         loComboBox.Foreground = Brushes.Red;
-                        lsMessage += (null == lsMessage ? "" : Environment.NewLine + Environment.NewLine)
+                        lsMessage += (String.IsNullOrEmpty(lsMessage) ? "" : Environment.NewLine + Environment.NewLine)
                                 + string.Format("Domain name (\"{0}\") is invalid.", loComboBox.Text)
                                 ;
                     }
 
                     string  lsDupMsg = this.bValidateConfigWizardSanList2(ref loComboBox, i, j);
-                            if ( null != lsDupMsg )
+                            if ( !String.IsNullOrEmpty(lsDupMsg) )
                             {
                                 loComboBox.Foreground = Brushes.Red;
-                                lsMessage += (null == lsMessage ? "" : Environment.NewLine + Environment.NewLine) + lsDupMsg;
+                                lsMessage += (String.IsNullOrEmpty(lsMessage) ? "" : Environment.NewLine + Environment.NewLine) + lsDupMsg;
                             }
                 }
             }
@@ -1338,11 +1341,11 @@ If you would prefer to finish this setup at another time, you can exit now and c
         {
             this.bMainProcessRunning = true;
 
-            tvProfile   loMinProfile = DoGetCert.oMinProfile(moProfile);
+            tvProfile   loMinProfile = Env.oMinProfile(moProfile);
             byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
             string      lsHash = HashClass.sHashIt(loMinProfile);
 
-            moDoGetCert.ClearCache();
+            DoGetCert.ClearCache();
             moDoGetCert.bGetClientCertificates(lsHash, lbtArrayMinProfile);
             moDoGetCert.bReplaceSsoThumbprint(lsHash, lbtArrayMinProfile);
             moDoGetCert.bGetCertificate();

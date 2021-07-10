@@ -4,21 +4,21 @@ Overview
 
 **GetCert2** is simple and **FREE** software for automating digital certificate retrieval and installation (screenshots below).
 
-This utility gets a digital certificate from the **FREE** "Let's Encrypt" certificate provider network (see "LetsEncrypt.org"). It installs the certificate in your server's local computer certificate store and binds it to port 443 in IIS.
+This utility gets a digital certificate from the **FREE** "Let's Encrypt" certificate provider network (see 'LetsEncrypt.org'). It installs the certificate in your server's local computer certificate store and binds it to port 443 in IIS.
 
-If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration below), this software does nothing. Otherwise, the retrieval process begins. If "stand-alone" mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see "SafeTrust.org").
+If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration below), this software does nothing. Otherwise, the retrieval process begins. If 'stand-alone' mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see 'SafeTrust.org').
 
-If the software is not running in "stand-alone" mode, it also copies any new cert to a secure file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (eg. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
+If the software is not running in 'stand-alone' mode, it also copies any new cert to a secure file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (eg. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
 
 Also when -UseStandAloneMode is False, this software checks for any previously fetched certificate (by another client running the same software). If found, it is downloaded directly from the SCS (rather than attempting retrieval from the certificate provider network). If not found on the SCS, a certificate is requested from the certificate provider network, uploaded to the SCS (for use by other clients in the same server farm) and installed locally and bound to port 443 in IIS. Finally, calls to the certificate provider network can be overridden by providing this software access to a secure digital certificate file anywhere on the local network.
 
 Give it a try.
 
-The first time you run "GetCert2.exe" it will prompt you to create a "GetCert2" folder on your desktop. It will copy itself and continue running from there.
+The first time you run 'GetCert2.exe' it will prompt you to create a 'GetCert2' folder on your desktop. It will copy itself and continue running from there.
 
-Everything the software needs is written to the "GetCert2" folder. Nothing is written anywhere else (except IIS configuration and your certificates).
+Everything the software needs is written to the 'GetCert2' folder. Nothing is written anywhere else (except IIS configuration and your certificates).
 
-If you like the software, you can leave it on your desktop or you can run "Setup Application Folder.exe" (also in the "GetCert2" folder, be sure to run it as administrator). If you decide not to keep the software, simply delete the "GetCert2" folder from your desktop.
+If you like the software, you can leave it on your desktop or you can run 'Setup Application Folder.exe' (also in the 'GetCert2' folder, be sure to run it as administrator). If you decide not to keep the software, simply delete the 'GetCert2' folder from your desktop.
 
 
 Features
@@ -37,11 +37,11 @@ Features
 -   Software is totally self-contained (EXE is its own setup)
 
 
-**GetCert2** is essentially an automation front-end for "ACME-PS". "ACME-PS" is an excellent tool. That said, you can replace it with any other PowerShell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
+**GetCert2** is essentially an automation front-end for 'ACME-PS'. 'ACME-PS' is an excellent tool. That said, you can replace it with any other PowerShell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
 
-Note: since wildcard (ie. star) certificates are no longer considered "security best-practice" (see [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert), **GetCert2** doesn't include support for them.
+Note: since wildcard (ie. star) certificates are no longer considered 'security best-practice' (see [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert), **GetCert2** doesn't include support for them.
 
-Note: anything from the profile (see "Options and Features" below) can be passed thru any -ScriptStage snippet to PowerShell as a string token of the form: {-KeyName}. Here's an example:
+Note: anything from the profile (see 'Options and Features' below) can be passed thru any -ScriptStage snippet to PowerShell as a string token of the form: {-KeyName}. Here's an example:
 
     New-ACMEAccount $state -EmailAddresses "{-ContactEmailAddress}" -AcceptTOS
 
@@ -75,12 +75,12 @@ Command-Line Usage
 
 
     Open this utility's profile file to see additional options available. It is 
-    usually located in the same folder as "GetCert2.exe" and has the same name 
-    with ".config" added (see "GetCert2.exe.config").
+    usually located in the same folder as 'GetCert2.exe' and has the same name 
+    with '.config' added (see 'GetCert2.exe.config').
 
     Profile file options can be overridden with command-line arguments. The keys 
-    for any "-key=value" pairs passed on the command-line must match those that 
-    appear in the profile (with the exception of the "-ini" key).
+    for any '-key=value' pairs passed on the command-line must match those that 
+    appear in the profile (with the exception of the '-ini' key).
 
     For example, the following invokes the use of an alternative profile file:
     (be sure to copy an existing profile file if you do this):
@@ -106,17 +106,17 @@ Options and Features
 
 -AcmePsModuleUseGallery=False
 
-    Set this switch True and the "PowerShell Gallery" version of "ACME-PS"
+    Set this switch True and the 'PowerShell Gallery' version of 'ACME-PS'
     will be used in lieu of the version embedded in the EXE (see -AcmePsPath
     below).
 
--AcmePsPath="ACME-PS"
+-AcmePsPath='ACME-PS'
 
-    "ACME-PS" is the tool used by this utility to communicate with the
-    "Let's Encrypt" certificate network. By default, this key is set to the "ACME-PS"
+    'ACME-PS' is the tool used by this utility to communicate with the
+    "Let's Encrypt" certificate network. By default, this key is set to the 'ACME-PS'
     folder which, with no absolute path given, will be expected to be found within
-    the folder containing "GetCert2.exe.config". Set -AcmePsModuleUseGallery=True
-    (see above) and the OS will look to find "ACME-PS" in its usual place as a
+    the folder containing 'GetCert2.exe.config'. Set -AcmePsModuleUseGallery=True
+    (see above) and the OS will look to find 'ACME-PS' in its usual place as a
     module from the PowerShell gallery.
 
 -Auto=False
@@ -152,7 +152,7 @@ Options and Features
 -CreateSanSites=True
 
     If a SAN specific website does not yet exist in IIS, it will be created
-    automatically during the first run of the "get certificate" process for
+    automatically during the first run of the 'get certificate' process for
     that SAN value. Set this switch False to have all SAN challenges routed
     through the IIS default website (such challenges will typically fail). If
     they do fail, you will need to create your SAN specific sites manually.
@@ -185,7 +185,7 @@ Options and Features
 
 -KillProcessOrderlyWaitSecs=10
 
-    This is the maximum number of seconds given to a process after a "close"
+    This is the maximum number of seconds given to a process after a 'close'
     command is given before the process is forcibly terminated.
 
 -LoadBalancerReleaseCert
@@ -198,18 +198,18 @@ Options and Features
 
     Note: this switch is ignored when -UseStandAloneMode is True.
 
--LogEntryDateTimeFormatPrefix="yyyy-MM-dd hh:mm:ss:fff tt  "
+-LogEntryDateTimeFormatPrefix='yyyy-MM-dd hh:mm:ss:fff tt  '
 
     This format string is used to prepend a timestamp prefix to each log entry
     in the process log file (see -LogPathFile below).    
 
--LogFileDateFormat="-yyyy-MM-dd"
+-LogFileDateFormat='-yyyy-MM-dd'
 
     This format string is used to form the variable part of each log file output 
     filename (see -LogPathFile below). It is inserted between the filename and 
     the extension.
 
--LogPathFile="Logs\GetCert2.exeLog.txt"
+-LogPathFile='Logs\Log.txt'
 
     This is the output path\file that will contain the process log. The profile
     filename will be prepended to the default filename (see above) and the current
@@ -222,7 +222,7 @@ Options and Features
     clients the opportunity to lock the certificate renewal (ie. only one client
     at a time per domain can communicate with the certificate provider network).
 
--NoIISBindingScript=""
+-NoIISBindingScript=''
 
     This is the PowerShell script that binds a new certificate when IIS is not in
     use or the standard IIS binding procedure does not work for whatever reason.
@@ -257,18 +257,18 @@ Options and Features
 
     This is the path\file location of the Windows PowerShell EXE.
 
--RegexDnsNamePrimary="^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$"
+-RegexDnsNamePrimary='^([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,18}$'
 
     This regular expression is used to validate -CertificateDomainName (see above).
 
--RegexDnsNameSanList="^([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)([a-zA-Z]{2,18}|)$"
+-RegexDnsNameSanList='^([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)([a-zA-Z]{2,18}|)$'
 
     This regular expression is used to validate -SanList names (see below).
 
-    Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are used to validate
+    Note: -RegexDnsNameSanList and -RegexDnsNamePrimary are both used to validate
           SAN list names. A match of either pattern will pass validation.
 
--RegexEmailAddress="^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)[a-zA-Z]{2,18}$"
+-RegexEmailAddress='^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)*([a-zA-Z0-9\-]+\.)[a-zA-Z]{2,18}$'
 
     This regular expression is used to validate -ContactEmailAddress (see above).
 
@@ -295,8 +295,8 @@ Options and Features
 
     This is the SAN list (subject alternative names) to appear on the certificate
     when it is generated. It will consist of -CertificateDomainName by default (see
-    above). This list can be edited here directly or through the "SAN List" button
-    in the GetCert2.exe UI. Click the "SAN List" button to see the proper format here.
+    above). This list can be edited here directly or through the 'SAN List' button
+    in the GetCert2.exe UI. Click the 'SAN List' button to see the proper format here.
 
     Here's a command-line example:
 
@@ -317,7 +317,7 @@ Options and Features
     Set this switch False to leave the profile file untouched after a command line
     has been passed to the EXE and merged with the profile. When true, everything
     but command line keys will be saved. When false, not even status information
-    will be written to the profile file (ie. "GetCert2.exe.config").
+    will be written to the profile file (ie. 'GetCert2.exe.config').
 
 -ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
@@ -330,13 +330,13 @@ Options and Features
     script snippet. The stages are represented in this profile by -ScriptStage1
     thru -ScriptStage7.
 
--ServiceNameLive="LetsEncrypt"
+-ServiceNameLive='LetsEncrypt'
 
     This is the name mapped to the live production certificate network service URL.
 
--ServiceNameStaging="LetsEncrypt-Staging"
+-ServiceNameStaging='LetsEncrypt-Staging'
 
-    This is the name mapped to the non-production (ie. "staging") certificate
+    This is the name mapped to the non-production (ie. 'staging') certificate
     network service URL.
 
 -ServiceReportEverything=True
@@ -346,7 +346,7 @@ Options and Features
     testing. Once testing is complete, set this switch False to report errors
     only.
 
-    Note: "non-interactive mode" means the -Auto switch is set (see above).
+    Note: 'non-interactive mode' means the -Auto switch is set (see above).
           This switch is ignored when -UseStandAloneMode=True.
 
 -ShowProfile=False
@@ -371,7 +371,17 @@ Options and Features
     Set this switch True to disable SSO thumbprint configuration updates (for this
     client only). See -SsoThumbprintFiles below.
 
--SsoThumbprintFiles="C:\inetpub\wwwroot\web.config"
+-SsoProxySleepSecs=60
+
+    An SSO proxy server will wait this many seconds before
+    polling the SSO server again for a certificate change.
+
+-SsoProxyTimeoutMins=30
+
+    An SSO proxy server will wait this many minutes for the SSO server
+    to change its certificates before throwing a timeout exception.
+
+-SsoThumbprintFiles='C:\inetpub\wwwroot\web.config'
 
     This is the path and filename of files that will have their SSO certificate
     thumbprint replaced whenever the related SSO certificate changes. Each file
@@ -394,12 +404,12 @@ Options and Features
     These are the seconds of wait time after the DNS website challenge has been
     submitted to the certificate network as well as after the certificate request
     has been submitted. This is the amount of time during which the request should
-    transition from a "pending" state to anything other than "pending".
+    transition from a 'pending' state to anything other than 'pending'.
 
 -UseStandAloneMode=True
 
     Set this switch False and the software will use the SafeTrust Secure Certificate
-    Service (see "SafeTrust.org") to manage certificates between several servers
+    Service (see 'SafeTrust.org') to manage certificates between several servers
     in a server farm, on SSO servers, SSO integrated application servers and load
     balancers.
 
@@ -407,9 +417,9 @@ Options and Features
 Notes:
 
     There may be various other settings that can be adjusted also (user
-    interface settings, etc). See the profile file ("GetCert2.exe.config")
+    interface settings, etc). See the profile file ('GetCert2.exe.config')
     for all available options.
 
     To see the options related to any particular behavior, you must run that
-    part of the software first. Configuration options are added "on the fly"
-    (in order of execution) to "GetCert2.exe.config" as the software runs.
+    part of the software first. Configuration options are added 'on the fly'
+    (in order of execution) to 'GetCert2.exe.config' as the software runs.

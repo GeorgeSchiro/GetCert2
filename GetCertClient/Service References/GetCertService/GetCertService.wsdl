@@ -161,6 +161,12 @@
   <wsdl:message name="IGetCertService_btArrayClientCertificateList_OutputMessage">
     <wsdl:part name="parameters" element="tns:btArrayClientCertificateListResponse" />
   </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayFailSafeExeUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayFailSafeExeUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayFailSafeExeUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayFailSafeExeUpdateResponse" />
+  </wsdl:message>
   <wsdl:message name="IGetCertService_btArrayGetCertExeUpdate_InputMessage">
     <wsdl:part name="parameters" element="tns:btArrayGetCertExeUpdate" />
   </wsdl:message>
@@ -190,6 +196,18 @@
   </wsdl:message>
   <wsdl:message name="IGetCertService_sDomainProfile_OutputMessage">
     <wsdl:part name="parameters" element="tns:sDomainProfileResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sFailSafeCfgUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sFailSafeCfgUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sFailSafeCfgUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sFailSafeCfgUpdateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sFailSafeIniUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:sFailSafeIniUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sFailSafeIniUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sFailSafeIniUpdateResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_sGpcIniUpdate_InputMessage">
     <wsdl:part name="parameters" element="tns:sGpcIniUpdate" />
@@ -226,6 +244,12 @@
   </wsdl:message>
   <wsdl:message name="IGetCertService_NotifyClientCertificateListFailure_OutputMessage">
     <wsdl:part name="parameters" element="tns:NotifyClientCertificateListFailureResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyFailSafeInternalValidationResults_InputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyFailSafeInternalValidationResults" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_NotifyFailSafeInternalValidationResults_OutputMessage">
+    <wsdl:part name="parameters" element="tns:NotifyFailSafeInternalValidationResultsResponse" />
   </wsdl:message>
   <wsdl:message name="IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage">
     <wsdl:part name="parameters" element="tns:NotifyLoadBalancerCertificateExeFailure" />
@@ -308,6 +332,10 @@
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayClientCertificateList" message="tns:IGetCertService_btArrayClientCertificateList_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayClientCertificateListResponse" message="tns:IGetCertService_btArrayClientCertificateList_OutputMessage" />
     </wsdl:operation>
+    <wsdl:operation name="btArrayFailSafeExeUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdate" message="tns:IGetCertService_btArrayFailSafeExeUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdateResponse" message="tns:IGetCertService_btArrayFailSafeExeUpdate_OutputMessage" />
+    </wsdl:operation>
     <wsdl:operation name="btArrayGetCertExeUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" message="tns:IGetCertService_btArrayGetCertExeUpdate_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse" message="tns:IGetCertService_btArrayGetCertExeUpdate_OutputMessage" />
@@ -327,6 +355,14 @@
     <wsdl:operation name="sDomainProfile">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sDomainProfile" message="tns:IGetCertService_sDomainProfile_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sDomainProfileResponse" message="tns:IGetCertService_sDomainProfile_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sFailSafeCfgUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sFailSafeCfgUpdate" message="tns:IGetCertService_sFailSafeCfgUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sFailSafeCfgUpdateResponse" message="tns:IGetCertService_sFailSafeCfgUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sFailSafeIniUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sFailSafeIniUpdate" message="tns:IGetCertService_sFailSafeIniUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sFailSafeIniUpdateResponse" message="tns:IGetCertService_sFailSafeIniUpdate_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="sGpcIniUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sGpcIniUpdate" message="tns:IGetCertService_sGpcIniUpdate_InputMessage" />
@@ -351,6 +387,10 @@
     <wsdl:operation name="NotifyClientCertificateListFailure">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailure" message="tns:IGetCertService_NotifyClientCertificateListFailure_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailureResponse" message="tns:IGetCertService_NotifyClientCertificateListFailure_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NotifyFailSafeInternalValidationResults">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResults" message="tns:IGetCertService_NotifyFailSafeInternalValidationResults_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResultsResponse" message="tns:IGetCertService_NotifyFailSafeInternalValidationResults_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="NotifyLoadBalancerCertificateExeFailure">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure" message="tns:IGetCertService_NotifyLoadBalancerCertificateExeFailure_InputMessage" />
@@ -460,6 +500,15 @@
         <soap12:body use="literal" />
       </wsdl:output>
     </wsdl:operation>
+    <wsdl:operation name="btArrayFailSafeExeUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
     <wsdl:operation name="btArrayGetCertExeUpdate">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" style="document" />
       <wsdl:input>
@@ -498,6 +547,24 @@
     </wsdl:operation>
     <wsdl:operation name="sDomainProfile">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/sDomainProfile" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sFailSafeCfgUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sFailSafeCfgUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sFailSafeIniUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sFailSafeIniUpdate" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
@@ -552,6 +619,15 @@
     </wsdl:operation>
     <wsdl:operation name="NotifyClientCertificateListFailure">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailure" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="NotifyFailSafeInternalValidationResults">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResults" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>

@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetCert2", "GetCert2.csproj", "{801D9779-B42A-43BD-B9E8-ACD27AA19C06}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcFailSafe", "\\main\GcFailSafe\GcFailSafeApp\GcFailSafe.csproj", "{5E631C80-EFD3-4559-AFF5-B3364A029E7A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,10 @@ Global
 		{801D9779-B42A-43BD-B9E8-ACD27AA19C06}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{801D9779-B42A-43BD-B9E8-ACD27AA19C06}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{801D9779-B42A-43BD-B9E8-ACD27AA19C06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E631C80-EFD3-4559-AFF5-B3364A029E7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E631C80-EFD3-4559-AFF5-B3364A029E7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E631C80-EFD3-4559-AFF5-B3364A029E7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E631C80-EFD3-4559-AFF5-B3364A029E7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

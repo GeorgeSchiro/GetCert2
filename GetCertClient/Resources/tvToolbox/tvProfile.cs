@@ -6,7 +6,6 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -142,7 +141,7 @@ namespace tvToolbox
     /// Author:     George Schiro (GeoCode@Schiro.name)
     /// </p>
     /// <p>
-    /// Version:    2.24
+    /// Version:    2.26
     /// Copyright:  1996 - 2121
     /// </p>
     /// </summary>
@@ -318,14 +317,10 @@ namespace tvToolbox
                         lbShowProfile = this.bValue("-ShowProfile", false);
                     }
 
-            if ( lbShowProfile )
+            if ( lbShowProfile && null != tvProfile.oMsgBoxShow3 && /* DialogResult.Cancel */ 2 == (int)tvProfile.oMsgBoxShow3.Invoke(null
+                        , new object[]{this.sCommandLine(), this.sLoadedPathFile, 1 /* MessageBoxButtons.OKCancel */ }) )
             {
-                if ( DialogResult.Cancel
-                        == MessageBox.Show(this.sCommandLine(), this.sLoadedPathFile, MessageBoxButtons.OKCancel)
-                        )
-                {
-                    this.bExit = true;
-                }
+                this.bExit = true;
             }
         }
 
@@ -417,14 +412,10 @@ namespace tvToolbox
                         lbShowProfile = this.bValue("-ShowProfile", false);
                     }
 
-            if ( lbShowProfile )
+            if ( lbShowProfile && null != tvProfile.oMsgBoxShow3 && /* DialogResult.Cancel */ 2 == (int)tvProfile.oMsgBoxShow3.Invoke(null
+                        , new object[]{this.sCommandLine(), this.sLoadedPathFile, 1 /* MessageBoxButtons.OKCancel */}) )
             {
-                if ( DialogResult.Cancel
-                        == MessageBox.Show(this.sCommandLine(), this.sLoadedPathFile, MessageBoxButtons.OKCancel)
-                        )
-                {
-                    this.bExit = true;
-                }
+                this.bExit = true;
             }
         }
 
@@ -2640,9 +2631,12 @@ namespace tvToolbox
 
                 if ( loProcessesArray.Length > 1 )
                 {
-                    MessageBox.Show(String.Format("\"{0}\" is already running. Please close it and try again."
-                                    , Path.GetFileName(this.sExePathFile))
-                            , lsExeName);
+                    if ( null != tvProfile.oMsgBoxShow2 )
+                        tvProfile.oMsgBoxShow2.Invoke(null
+                                , new object[]{String.Format("\"{0}\" is already running. Please close it and try again."
+                                    , Path.GetFileName(this.sExePathFile)), lsExeName});
+
+                    this.bExit = true;
                     return;
                 }
                 else
@@ -2666,11 +2660,15 @@ namespace tvToolbox
                     // and if there are no arguments passed on the command-line, proceed.
                     if ( !this.bInOwnFolder && !this.bInstalledAlready && !lbHasArgs )
                     {
-                        string lsMessage = String.Format(( Directory.Exists(lsNewPath)
-                                ? "an existing folder ({0}) on your desktop"
-                                : "a new folder ({0}) on your desktop" ), lsFilnameOnly);
+                        bool    lbDoCopy = true;
 
-                        if ( DialogResult.OK == MessageBox.Show(String.Format(@"
+                        if ( null != tvProfile.oMsgBoxShow4 )
+                        {
+                            string  lsMessage = String.Format(( Directory.Exists(lsNewPath)
+                                    ? "an existing folder ({0}) on your desktop"
+                                    : "a new folder ({0}) on your desktop" ), lsFilnameOnly);
+
+                            lbDoCopy = /* DialogResult.OK */ 1 == (int)tvProfile.oMsgBoxShow4.Invoke(null, new object[]{String.Format(@"
 For your convenience, this program will be copied
 to {0}.
 
@@ -2679,7 +2677,9 @@ Depending on your system, this may take several seconds.
 Copy and proceed from there?
 
 "
-                                    , lsMessage), "Copy EXE to Desktop?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) )
+                                    , lsMessage), "Copy EXE to Desktop?", 1 /* MessageBoxButtons.OKCancel */, 32 /* MessageBoxIcon.Question */});
+                        }
+                        if ( lbDoCopy )
                         {
                             if ( !Directory.Exists(lsNewPath) )
                                 Directory.CreateDirectory(lsNewPath);
@@ -3322,7 +3322,8 @@ Copy and proceed from there?
             catch (Exception)
             {
                 // Wait a moment ...
-                System.Windows.Forms.Application.DoEvents();
+                if ( null != tvProfile.oAppDoEvents )
+                    tvProfile.oAppDoEvents.Invoke(null, null);
                 System.Threading.Thread.Sleep(200);
 
                 // Then try again.
@@ -3584,27 +3585,114 @@ Copy and proceed from there?
             }
         }
 
+        private static MethodInfo oAppDoEvents
+        {
+            get
+            {
+                if ( null == moAppDoEvents )
+                {
+                    // Setup DoEvents calls without the need for a compile time reference.
+                    try
+                    {
+                        Assembly    loWinFormAssm = Assembly.Load(mcsWinFormsAssm);
+                        Type        loObjectType = loWinFormAssm.GetType(mcsWinFormsAppType);
+                                    moAppDoEvents = loObjectType.GetMethod("DoEvents");
+                    }
+                    catch {}
+                }
 
-        private const string mcsLoadSaveDefaultExtension = ".txt";
-        private const char   mccArgMark = '-';
-        private const string mcsArgMark = "-";
-        private const char   mccAsnMark = '=';
-        private const string mcsAsnMark = "=";
-        private const string mcsBlockBegMark = "[";
-        private const string mcsBlockEndMark = "]";
-        private const char   mccNulMark = '\u0000';
-        private string       mcsNulMark = '\u0000'.ToString();
-        private const char   mccQteMark1 = '\"';
-        private const string mcsQteMark1 = "\"";
-        private const char   mccQteMark2 = '\'';
-        private const string mcsQteMark2 = "'";
-        private const char   mccSpcMark = ' ';
-        private const string mcsSpcMark = " ";
-        private const char   mccSplitMark = '\u0001';
-        private string       mcsSplitMark = '\u0001'.ToString();
-        private FileStream   moFileStreamProfileFileLock;
-        private tvProfile    moInputCommandLineProfile;
-        private static int   mciIntSizeInBytes = 4;
+                return moAppDoEvents;
+            }
+        }
+        private static MethodInfo moAppDoEvents = null;
+
+        private static MethodInfo oMsgBoxShow2
+        {
+            get
+            {
+                if ( null == moMsgBoxShow2 )
+                {
+                    // Setup MsgBox Show(string, string) calls without the need for a compile time reference.
+                    try
+                    {
+                        Assembly    loWinFormAssm = Assembly.Load(mcsWinFormsAssm);
+                        Type        loObjectType = loWinFormAssm.GetType(mcsWinFormsMsgBoxType);
+                                    moMsgBoxShow2 = loObjectType.GetMethods()[13];
+                    }
+                    catch {}
+                }
+
+                return moMsgBoxShow2;
+            }
+        }
+        private static MethodInfo moMsgBoxShow2 = null;
+
+        private static MethodInfo oMsgBoxShow3
+        {
+            get
+            {
+                if ( null == moMsgBoxShow3 )
+                {
+                    // Setup MsgBox Show(string, string, enum) calls without the need for a compile time reference.
+                    try
+                    {
+                        Assembly    loWinFormAssm = Assembly.Load(mcsWinFormsAssm);
+                        Type        loObjectType = loWinFormAssm.GetType(mcsWinFormsMsgBoxType);
+                                    moMsgBoxShow3 = loObjectType.GetMethods()[12];
+                    }
+                    catch {}
+                }
+
+                return moMsgBoxShow3;
+            }
+        }
+        private static MethodInfo moMsgBoxShow3 = null;
+
+        private static MethodInfo oMsgBoxShow4
+        {
+            get
+            {
+                if ( null == moMsgBoxShow4 )
+                {
+                    // Setup MsgBox Show(string, string, enum, enum) calls without the need for a compile time reference.
+                    try
+                    {
+                        Assembly    loWinFormAssm = Assembly.Load(mcsWinFormsAssm);
+                        Type        loObjectType = loWinFormAssm.GetType(mcsWinFormsMsgBoxType);
+                                    moMsgBoxShow4 = loObjectType.GetMethods()[11];
+                    }
+                    catch {}
+                }
+
+                return moMsgBoxShow4;
+            }
+        }
+        private static MethodInfo moMsgBoxShow4 = null;
+
+
+        private const string        mcsLoadSaveDefaultExtension = ".txt";
+        private const char          mccArgMark = '-';
+        private const string        mcsArgMark = "-";
+        private const char          mccAsnMark = '=';
+        private const string        mcsAsnMark = "=";
+        private const string        mcsBlockBegMark = "[";
+        private const string        mcsBlockEndMark = "]";
+        private const char          mccNulMark = '\u0000';
+        private string              mcsNulMark = '\u0000'.ToString();
+        private const char          mccQteMark1 = '\"';
+        private const string        mcsQteMark1 = "\"";
+        private const char          mccQteMark2 = '\'';
+        private const string        mcsQteMark2 = "'";
+        private const char          mccSpcMark = ' ';
+        private const string        mcsSpcMark = " ";
+        private const char          mccSplitMark = '\u0001';
+        private string              mcsSplitMark = '\u0001'.ToString();
+        private FileStream          moFileStreamProfileFileLock;
+        private tvProfile           moInputCommandLineProfile;
+        private static int          mciIntSizeInBytes = 4;
+        private static string       mcsWinFormsAssm = "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
+        private static string       mcsWinFormsAppType = "System.Windows.Forms.Application";
+        private static string       mcsWinFormsMsgBoxType = "System.Windows.Forms.MessageBox";
 
 
         private class tvProfileKeyComparer : IComparer

@@ -63,6 +63,12 @@ namespace GetCert2.GetCertService {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayClientCertificateList", ReplyAction="http://tempuri.org/IGetCertService/btArrayClientCertificateListResponse")]
         System.Threading.Tasks.Task<byte[]> btArrayClientCertificateListAsync(string asHash, byte[] abtArrayProfile, ulong aiPreviousHash);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdateResponse")]
+        byte[] btArrayFailSafeExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayFailSafeExeUpdateResponse")]
+        System.Threading.Tasks.Task<byte[]> btArrayFailSafeExeUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse")]
         byte[] btArrayGetCertExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
@@ -92,6 +98,18 @@ namespace GetCert2.GetCertService {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sDomainProfile", ReplyAction="http://tempuri.org/IGetCertService/sDomainProfileResponse")]
         System.Threading.Tasks.Task<string> sDomainProfileAsync(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sFailSafeCfgUpdate", ReplyAction="http://tempuri.org/IGetCertService/sFailSafeCfgUpdateResponse")]
+        string sFailSafeCfgUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sFailSafeCfgUpdate", ReplyAction="http://tempuri.org/IGetCertService/sFailSafeCfgUpdateResponse")]
+        System.Threading.Tasks.Task<string> sFailSafeCfgUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sFailSafeIniUpdate", ReplyAction="http://tempuri.org/IGetCertService/sFailSafeIniUpdateResponse")]
+        string sFailSafeIniUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sFailSafeIniUpdate", ReplyAction="http://tempuri.org/IGetCertService/sFailSafeIniUpdateResponse")]
+        System.Threading.Tasks.Task<string> sFailSafeIniUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sGpcIniUpdate", ReplyAction="http://tempuri.org/IGetCertService/sGpcIniUpdateResponse")]
         string sGpcIniUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
@@ -128,6 +146,14 @@ namespace GetCert2.GetCertService {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailure", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListFailureResponse")]
         System.Threading.Tasks.Task NotifyClientCertificateListFailureAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResults", ReplyAction="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResultsRespons" +
+            "e")]
+        void NotifyFailSafeInternalValidationResults(string asHash, byte[] abtArrayProfile, byte[] abtArrayResults);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResults", ReplyAction="http://tempuri.org/IGetCertService/NotifyFailSafeInternalValidationResultsRespons" +
+            "e")]
+        System.Threading.Tasks.Task NotifyFailSafeInternalValidationResultsAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayResults);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailure", ReplyAction="http://tempuri.org/IGetCertService/NotifyLoadBalancerCertificateExeFailureRespons" +
             "e")]
@@ -273,6 +299,14 @@ namespace GetCert2.GetCertService {
             return base.Channel.btArrayClientCertificateListAsync(asHash, abtArrayProfile, aiPreviousHash);
         }
         
+        public byte[] btArrayFailSafeExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.btArrayFailSafeExeUpdate(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public System.Threading.Tasks.Task<byte[]> btArrayFailSafeExeUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.btArrayFailSafeExeUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
         public byte[] btArrayGetCertExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
             return base.Channel.btArrayGetCertExeUpdate(asHash, abtArrayProfile, asInstalledVersion);
         }
@@ -311,6 +345,22 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task<string> sDomainProfileAsync(string asHash, byte[] abtArrayProfile) {
             return base.Channel.sDomainProfileAsync(asHash, abtArrayProfile);
+        }
+        
+        public string sFailSafeCfgUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.sFailSafeCfgUpdate(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public System.Threading.Tasks.Task<string> sFailSafeCfgUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.sFailSafeCfgUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public string sFailSafeIniUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.sFailSafeIniUpdate(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public System.Threading.Tasks.Task<string> sFailSafeIniUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.sFailSafeIniUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
         }
         
         public string sGpcIniUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
@@ -359,6 +409,14 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task NotifyClientCertificateListFailureAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
             return base.Channel.NotifyClientCertificateListFailureAsync(asHash, abtArrayProfile, abtArrayCerts);
+        }
+        
+        public void NotifyFailSafeInternalValidationResults(string asHash, byte[] abtArrayProfile, byte[] abtArrayResults) {
+            base.Channel.NotifyFailSafeInternalValidationResults(asHash, abtArrayProfile, abtArrayResults);
+        }
+        
+        public System.Threading.Tasks.Task NotifyFailSafeInternalValidationResultsAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayResults) {
+            return base.Channel.NotifyFailSafeInternalValidationResultsAsync(asHash, abtArrayProfile, abtArrayResults);
         }
         
         public void NotifyLoadBalancerCertificateExeFailure(string asHash, byte[] abtArrayProfile) {
