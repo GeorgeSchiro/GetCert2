@@ -312,7 +312,7 @@ namespace tvToolbox
             }
 
             bool    lbShowProfile = false;
-                    if ( mbAddStandardDefaults || this.ContainsKey("-ShowProfile") )
+                    if ( this.bAddStandardDefaults || this.ContainsKey("-ShowProfile") )
                     {
                         lbShowProfile = this.bValue("-ShowProfile", false);
                     }
@@ -407,7 +407,7 @@ namespace tvToolbox
             }
 
             bool    lbShowProfile = false;
-                    if ( mbAddStandardDefaults || this.ContainsKey("-ShowProfile") )
+                    if ( this.bAddStandardDefaults || this.ContainsKey("-ShowProfile") )
                     {
                         lbShowProfile = this.bValue("-ShowProfile", false);
                     }
@@ -1102,12 +1102,21 @@ namespace tvToolbox
         /// <summary>
         /// Returns true if the standard "built-in" profile defaults
         /// will be automatically added to the profile. This property
-        /// will generally be true within the main constructors.
+        /// will generally be true within the main constructors,
+        /// unless no default profile file is used.
         /// </summary>
         public  bool  bAddStandardDefaults
         {
             get
             {
+                if ( !mbAddStandardDefaults_init )
+                {
+                    if ( tvProfileDefaultFileActions.NoDefaultFile == this.eDefaultFileAction )
+                        mbAddStandardDefaults = false;
+
+                    mbAddStandardDefaults_init = true;
+                }
+
                 return mbAddStandardDefaults;
             }
             set
@@ -1116,6 +1125,7 @@ namespace tvToolbox
             }
         }
         private bool mbAddStandardDefaults = true;
+        private bool mbAddStandardDefaults_init = false;
 
         /// <summary>
         /// Returns true if the profile was instanced from a file loaded using
@@ -1263,7 +1273,7 @@ namespace tvToolbox
         {
             get
             {
-                if ( mbAddStandardDefaults || this.ContainsKey("-SaveProfile") )
+                if ( this.bAddStandardDefaults || this.ContainsKey("-SaveProfile") )
                 {
                     if ( mbSaveEnabled )
                         mbSaveEnabled = this.bValue("-SaveProfile", mbSaveEnabled);
@@ -1290,7 +1300,7 @@ namespace tvToolbox
         {
             get
             {
-                if ( mbAddStandardDefaults || this.ContainsKey("-SaveSansCmdLine") )
+                if ( this.bAddStandardDefaults || this.ContainsKey("-SaveSansCmdLine") )
                     mbSaveSansCmdLine = this.bValue("-SaveSansCmdLine", mbSaveSansCmdLine);
 
                 if ( mbSaveSansCmdLine && null == moInputCommandLineProfile )
@@ -1318,7 +1328,7 @@ namespace tvToolbox
         {
             get
             {
-                if ( mbAddStandardDefaults || this.ContainsKey("-XML_Profile") )
+                if ( this.bAddStandardDefaults || this.ContainsKey("-XML_Profile") )
                 {
                     mbUseXmlFiles = this.bValue("-XML_Profile", mbUseXmlFiles);
                 }
@@ -1329,7 +1339,7 @@ namespace tvToolbox
             {
                 if ( value != mbUseXmlFiles )
                 {
-                    if ( mbAddStandardDefaults || this.ContainsKey("-XML_Profile") )
+                    if ( this.bAddStandardDefaults || this.ContainsKey("-XML_Profile") )
                     {
                         this["-XML_Profile"] = value;
                     }
@@ -1374,6 +1384,20 @@ namespace tvToolbox
             set
             {
                 msActualPathFile = value;
+
+                if ( !String.IsNullOrEmpty(msActualPathFile) && String.IsNullOrEmpty(Path.GetPathRoot(msActualPathFile)) )
+                {
+                    string  lsCwdBasedPathFile = Path.Combine(Environment.CurrentDirectory, msActualPathFile);
+                    string  lsExeBasedPathFile = this.sRelativeToExePathFile(msActualPathFile);
+                            if ( File.Exists(lsCwdBasedPathFile) )
+                                msActualPathFile = lsCwdBasedPathFile;
+                            else
+                            if ( File.Exists(lsExeBasedPathFile) )
+                                msActualPathFile = lsExeBasedPathFile;
+                            else
+                                msActualPathFile = lsCwdBasedPathFile;
+                }
+
                 this.bSaveEnabled = true;
             }
         }
@@ -1454,7 +1478,7 @@ namespace tvToolbox
         {
             get
             {
-                if ( null == msDefaultFileExt )
+                if ( String.IsNullOrEmpty(msDefaultFileExt) )
                 {
                     if ( !this.bUseXmlFiles )
                     {
@@ -1506,21 +1530,19 @@ namespace tvToolbox
         {
             get
             {
-                if ( null == msExePathFile )
+                if ( String.IsNullOrEmpty(msExePathFile) )
                 {
                     try
                     {
-                        return Assembly.GetEntryAssembly().Location;
+                        msExePathFile = Assembly.GetEntryAssembly().Location;
                     }
                     catch
                     {
-                        return Assembly.GetExecutingAssembly().Location;
+                        msExePathFile = Assembly.GetExecutingAssembly().Location;
                     }
                 }
-                else
-                {
-                    return msExePathFile;
-                }
+
+                return msExePathFile;
             }
             set
             {
@@ -1574,6 +1596,20 @@ namespace tvToolbox
             set
             {
                 msLoadedPathFile = value;
+
+                if ( !String.IsNullOrEmpty(msLoadedPathFile) && String.IsNullOrEmpty(Path.GetPathRoot(msLoadedPathFile)) )
+                {
+                    string  lsCwdBasedPathFile = Path.Combine(Environment.CurrentDirectory, msLoadedPathFile);
+                    string  lsExeBasedPathFile = this.sRelativeToExePathFile(msLoadedPathFile);
+                            if ( File.Exists(lsCwdBasedPathFile) )
+                                msLoadedPathFile = lsCwdBasedPathFile;
+                            else
+                            if ( File.Exists(lsExeBasedPathFile) )
+                                msLoadedPathFile = lsExeBasedPathFile;
+                            else
+                                msLoadedPathFile = lsCwdBasedPathFile;
+                }
+
                 this.sActualPathFile = value;
             }
         }
@@ -2336,7 +2372,7 @@ namespace tvToolbox
         public tvProfile oOneKeyProfile(string asKey, bool abRemoveKeyPrefix)
         {
             string  lsKeyPrefixToRemove = asKey.Replace(".*","").Replace("*","");
-                    if ( asKey == lsKeyPrefixToRemove || "" == lsKeyPrefixToRemove )
+                    if ( asKey == lsKeyPrefixToRemove || String.IsNullOrEmpty(lsKeyPrefixToRemove) )
                     {
                         // If the given key contains no wildcards, it's not really a prefix.
                         abRemoveKeyPrefix = false;
@@ -2525,6 +2561,37 @@ namespace tvToolbox
         }
 
         /// <summary>
+        /// Returns a full path/file string relative to the EXE file
+        /// location, if asPathFile is only a filename. Otherwise, asPathFile is
+        /// returned unchanged. This feature is useful for locating ancillary
+        /// files in the same folder as the EXE file.
+        /// </summary>
+        /// <param name="asPathFile">
+        /// A full path/file string or a filename only.
+        /// </param>
+        /// <returns>
+        /// A full path/file string.
+        /// </returns>
+        public string sRelativeToExePathFile(string asPathFile)
+        {
+            string lsRelativeToExePathFile = null;
+
+            if ( null != asPathFile )
+            {
+                if ( String.IsNullOrEmpty(Path.GetPathRoot(asPathFile)) )
+                {
+                    lsRelativeToExePathFile = Path.Combine(Path.GetDirectoryName(this.sExePathFile), asPathFile);
+                }
+                else
+                {
+                    lsRelativeToExePathFile = asPathFile;
+                }
+            }
+
+            return lsRelativeToExePathFile;
+        }
+
+        /// <summary>
         /// Returns a full path/file string relative to the profile file
         /// location, if asPathFile is only a filename. Otherwise, asPathFile is
         /// returned unchanged. This feature is useful for locating ancillary
@@ -2538,33 +2605,35 @@ namespace tvToolbox
         /// </returns>
         public string sRelativeToProfilePathFile(string asPathFile)
         {
-            if ( null == asPathFile )
+            string lsRelativeToProfilePathFile = null;
+
+            if ( null != asPathFile )
             {
-                return null;
+                if ( String.IsNullOrEmpty(this.sActualPathFile) )
+                {
+                    if ( String.IsNullOrEmpty(Path.GetPathRoot(asPathFile)) )
+                    {
+                        lsRelativeToProfilePathFile = Path.Combine(Path.GetDirectoryName(this.sDefaultPathFile), asPathFile);
+                    }
+                    else
+                    {
+                        lsRelativeToProfilePathFile = asPathFile;
+                    }
+                }
+                else
+                {
+                    if ( String.IsNullOrEmpty(Path.GetPathRoot(asPathFile)) )
+                    {
+                        lsRelativeToProfilePathFile = Path.Combine(Path.GetDirectoryName(this.sActualPathFile), asPathFile);
+                    }
+                    else
+                    {
+                        lsRelativeToProfilePathFile = asPathFile;
+                    }
+                }
             }
 
-            if ( null == this.sActualPathFile )
-            {
-                if ( "" == Path.GetPathRoot(asPathFile) )
-                {
-                    return Path.Combine(Path.GetDirectoryName(this.sDefaultPathFile), asPathFile);
-                }
-                else
-                {
-                    return asPathFile;
-                }
-            }
-            else
-            {
-                if ( "" == Path.GetPathRoot(asPathFile) )
-                {
-                    return Path.Combine(Path.GetDirectoryName(this.sActualPathFile), asPathFile);
-                }
-                else
-                {
-                    return asPathFile;
-                }
-            }
+            return lsRelativeToProfilePathFile;
         }
 
         /// <summary>
@@ -2607,13 +2676,13 @@ namespace tvToolbox
             // Check for the existence of one of several default filenames
             // (starting with asPathFile "as is"). Returned null means none exist.
             string  lsPathFile = this.sFileExistsFromList(asPathFile);
-                    if ( null == lsPathFile )
+                    if ( String.IsNullOrEmpty(lsPathFile) )
                         lsPathFile = this.sFileExistsFromList(this.sRelativeToProfilePathFile(asPathFile));
             string  lsFilnameOnly = Path.GetFileNameWithoutExtension(this.sExePathFile);
 
-            if ( null == lsPathFile )
+            if ( String.IsNullOrEmpty(lsPathFile) )
             {
-                if ( null == asPathFile )
+                if ( String.IsNullOrEmpty(asPathFile) )
                 {
                     lsPathFile = this.sDefaultPathFile;
                 }
@@ -2864,7 +2933,7 @@ Copy and proceed from there?
                 , tvProfileLoadActions aeLoadAction
                 )
         {
-            if ( null == asCommandLine )
+            if ( String.IsNullOrEmpty(asCommandLine) )
                 return;
 
             // Remove any leading spaces or tabs so that mccSplitMark becomes the first char.
@@ -2975,7 +3044,7 @@ Copy and proceed from there?
                     bool lbIsArg;
 
                     if ( !(lbIsArg = lsItem.TrimStart().StartsWith(mcsArgMark))
-                            && (null == lsBlockEnd || !lsItem.Contains(lsBlockEnd)) )
+                            && (String.IsNullOrEmpty(lsBlockEnd) || !lsItem.Contains(lsBlockEnd)) )
                     {
                         if ( null != lsBlockKey )
                         {
@@ -3067,7 +3136,7 @@ Copy and proceed from there?
                             lsBlockEnd = lsBlockKey + mcsAsnMark + mcsBlockEndMark;
                         }
 
-                        if ( null == lsBlockKey )
+                        if ( String.IsNullOrEmpty(lsBlockKey) )
                         {
                             switch ( aeLoadAction )
                             {
@@ -3220,7 +3289,7 @@ Copy and proceed from there?
         /// </summary>
         public void Save()
         {
-            if ( !this.bSaveEnabled || null == this.sActualPathFile )
+            if ( !this.bSaveEnabled || String.IsNullOrEmpty(this.sActualPathFile) )
             {
                 return;
             }
@@ -3402,7 +3471,7 @@ Copy and proceed from there?
                         }
 
                         if ( null != lsFirstArg
-                                && File.Exists(this.sRelativeToProfilePathFile(lsFirstArg)) )
+                                && (File.Exists(lsFirstArg) || File.Exists(this.sRelativeToExePathFile(lsFirstArg))) )
                         {
                             if ( null != lsProfilePathFile )
                             {
@@ -3429,7 +3498,8 @@ Copy and proceed from there?
                             loNewProfile.eFileCreateAction = this.eFileCreateAction;
                             loNewProfile.bUseXmlFiles = this.bUseXmlFiles;
                             loNewProfile.bAddStandardDefaults = this.bAddStandardDefaults;
-                            loNewProfile.Load(lsProfilePathFile, tvProfileLoadActions.Overwrite);
+                            loNewProfile.sActualPathFile = lsProfilePathFile;
+                            loNewProfile.Load(loNewProfile.sActualPathFile, tvProfileLoadActions.Append);
 
                             this.sActualPathFile = loNewProfile.sActualPathFile;
                             this.sLoadedPathFile = loNewProfile.sLoadedPathFile;

@@ -109,8 +109,8 @@
   </wsp:Policy>
   <wsdl:types>
     <xsd:schema targetNamespace="http://tempuri.org/Imports">
-      <xsd:import schemaLocation="https://secure_certificate_service_goes_here/GetCert/Service.svc?xsd=xsd0" namespace="http://tempuri.org/" />
-      <xsd:import schemaLocation="https://secure_certificate_service_goes_here/GetCert/Service.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import schemaLocation="secure_certificate_service_goes_here?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="secure_certificate_service_goes_here?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
     </xsd:schema>
   </wsdl:types>
   <wsdl:message name="IGetCertService_bClientCheckIn_InputMessage">
@@ -710,9 +710,9 @@
   </wsdl:binding>
   <wsdl:service name="GetCertService">
     <wsdl:port name="WSHttpBinding_IGetCertService" binding="tns:WSHttpBinding_IGetCertService">
-      <soap12:address location="https://secure_certificate_service_goes_here/GetCert/Service.svc" />
+      <soap12:address location="secure_certificate_service_goes_here" />
       <wsa10:EndpointReference>
-        <wsa10:Address>https://secure_certificate_service_goes_here/GetCert/Service.svc</wsa10:Address>
+        <wsa10:Address>secure_certificate_service_goes_here</wsa10:Address>
       </wsa10:EndpointReference>
     </wsdl:port>
   </wsdl:service>

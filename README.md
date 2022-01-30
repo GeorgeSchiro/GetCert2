@@ -39,7 +39,7 @@ Features
 
 **GetCert2** is essentially an automation front-end for 'ACME-PS'. 'ACME-PS' is an excellent tool. That said, you can replace it with any other PowerShell capable ACME protocol tool you might prefer instead. Such a change would be made in the profile file like everything else (see -AcmePsPath, -ScriptStage1, etc. below).
 
-Note: since wildcard (ie. star) certificates are no longer considered 'security best-practice' (see [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert), **GetCert2** doesn't include support for them.
+Note: since wildcard (ie. star) certificates are no longer considered 'security best-practice' (see [NSA: Avoid Dangers of Wildcard TLS Certificates](https://www.nsa.gov/Press-Room/News-Highlights/Article/Article/2804293/avoid-dangers-of-wildcard-tls-certificates-the-alpaca-technique/), [What vulnerabilities could be caused by a wildcard SSL cert?](https://security.stackexchange.com/questions/8210/what-vulnerabilities-could-be-caused-by-a-wildcard-ssl-cert)), **GetCert2** doesn't include support for them.
 
 Note: anything from the profile (see 'Options and Features' below) can be passed thru any -ScriptStage snippet to PowerShell as a string token of the form: {-KeyName}. Here's an example:
 
@@ -135,21 +135,12 @@ Options and Features
     to be exportable from the local certificate store to a local disk file. Any
     SA with server access will then have access to the certificate's private key.
 
--CertificateRenewalDateOverride= NO DEFAULT VALUE
-
-    Set this date value to override the date calculation that subtracts
-    -RenewalDaysBeforeExpiration days (see below) from the current certificate
-    expiration date to know when to start fetching a new certificate.
-
-    Note: this parameter will be removed from the profile after a certificate
-          has been successfully retrieved from the certificate provider network.
-
 -ContactEmailAddress= NO DEFAULT VALUE
 
     This is the contact email address the certificate network uses to send
     certificate expiration notices.
 
--CreateSanSites=True
+-CreateSanSitesForCertGet=True
 
     If a SAN specific website does not yet exist in IIS, it will be created
     automatically during the first run of the 'get certificate' process for
@@ -164,6 +155,13 @@ Options and Features
 
           When a new website is created in IIS for a new SAN value, by default
           it is setup to use the same physical path as the primary domain.
+
+-CreateSanSitesForBinding=False
+
+    Set this switch True to have SAN sites created (if they don't already exist)
+    during the certificate binding phase. The primary certificate name on the
+    SAN list (see -CertificateDomainName above) will be bound to the default
+    website as a last resort (if this value is False).
 
 -DoStagingTests=True
 
@@ -195,6 +193,13 @@ Options and Features
 
     This switch would typically never appear in a profile file. It's meant to be
     used on the command-line only (in a script or a shortcut).
+
+    Note: this switch is ignored when -UseStandAloneMode is True.
+
+-LogCertificateStatus=False
+
+    Set this switch True to see in detail how the GetCert2.exe apps's identifying
+    certificate is selected. This may be useful to troubleshoot setup issues.
 
     Note: this switch is ignored when -UseStandAloneMode is True.
 
@@ -279,6 +284,15 @@ Options and Features
 
     Note: this switch is ignored when -UseStandAloneMode is False.
 
+-RenewalDateOverride= NO DEFAULT VALUE
+
+    Set this date value to override the date calculation that subtracts
+    -RenewalDaysBeforeExpiration days (see below) from the current certificate
+    expiration date to know when to start fetching a new certificate.
+
+    Note: this parameter will be removed from the profile after a certificate
+          has been successfully retrieved from the certificate provider network.
+
 -RenewalDaysBeforeExpiration=30
 
     This is the number of days until certificate expiration before automated
@@ -290,6 +304,16 @@ Options and Features
     So the default behavior is to clear the log file after it is uploaded to the SCS
     server (following each test). Setting this switch False will retain all previous
     log sessions on the client during testing.
+
+-RetainNewCertAfterError=False
+
+    Set this switch True to prevent removal of new certificates after errors. A new
+    certificate should typically not persist after a failure. This prevents multiple
+    versions of essentially the "same" cert from piling up.
+
+    Note: this parameter will be removed from the profile after every run
+          (whether used or not). If you need several uses, it might make more
+          sense to pass this parameter as a command-line argument instead.
 
 -SanList= SEE PROFILE FOR DEFAULT VALUE
 
@@ -370,6 +394,11 @@ Options and Features
     attempt to update configuration files with each new SSO certificate thumbprint.
     Set this switch True to disable SSO thumbprint configuration updates (for this
     client only). See -SsoThumbprintFiles below.
+
+-SsoMaxRenewalSleepSecs=60
+
+    This is the maximum seconds an SSO server will wait for another
+    SSO server (in the same farm) to renew the SSO certificates.
 
 -SsoProxySleepSecs=60
 

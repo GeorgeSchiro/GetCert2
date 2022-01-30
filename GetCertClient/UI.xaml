@@ -46,7 +46,10 @@
                     </Button>
                 </Canvas>
                 <Grid Name="TopPanel" DockPanel.Dock="Top" Height="75" Width="500" Margin="10">
-                    <Label Content="SafeTrust Get Certificate" FontSize="36" FontWeight="ExtraBold" />
+                    <StackPanel Name="TitlePanel" Orientation="Vertical">
+                        <Label Content="SafeTrust Get Certificate" FontSize="36" FontWeight="ExtraBold" HorizontalAlignment="Center" />
+                        <Label Name="CertNameTitle" Visibility="Collapsed" Margin="-15" FontSize="24" FontWeight="Normal" HorizontalAlignment="Center"/>
+                    </StackPanel>
                 </Grid>
                 <Grid Name="BottomPanel" DockPanel.Dock="Bottom">
                     <StackPanel Name="MainButtonPanel" Orientation="Horizontal" IsEnabled="False">
@@ -104,7 +107,7 @@
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Label Grid.Row="0" Grid.Column="0">Contact Email Address</Label>   <TextBox  Grid.Row="0" Grid.Column="1" Name="ContactEmailAddress"   Style="{StaticResource ConfigWizardTextSelected}" />
-        <Label Grid.Row="1" Grid.Column="0">Certificate Domain Name</Label> <ComboBox Grid.Row="1" Grid.Column="1" Name="CertificateDomainName" Style="{StaticResource ConfigWizardComboBoxEditable}" SelectionChanged="CertificateDomainName_SelectionChanged" />
+        <Label Grid.Row="1" Grid.Column="0">Certificate Domain Name</Label> <ComboBox Grid.Row="1" Grid.Column="1" Name="CertificateDomainName" Style="{StaticResource ConfigWizardComboBoxEditable}" SelectionChanged="CertificateDomainName_SelectionChanged" LostKeyboardFocus="CertificateDomainName_LostKeyboardFocus" />
         <Label Grid.Row="2" Grid.Column="0">Use "Stand-Alone" Mode?</Label> <CheckBox Grid.Row="2" Grid.Column="1" Name="UseStandAloneMode"     Style="{StaticResource ConfigWizardCheckBox}" Checked="UseStandAloneMode_CheckedChanged" Unchecked="UseStandAloneMode_CheckedChanged" />
         <Label Grid.Row="3" Grid.Column="0">Do Staging Tests?</Label>       <CheckBox Grid.Row="3" Grid.Column="1" Name="DoStagingTests"        Style="{StaticResource ConfigWizardCheckBox}" />
         <Label Grid.Row="4" Grid.Column="0">Remove Replaced Cert?</Label>   <CheckBox Grid.Row="4" Grid.Column="1" Name="RemoveReplacedCert"    Style="{StaticResource ConfigWizardCheckBox}" />

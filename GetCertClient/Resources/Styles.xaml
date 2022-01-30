@@ -9,6 +9,14 @@
         <ResourceDictionary Source="GlassButtonStyle.xaml"/>
         <ResourceDictionary Source="ImageButtonStyle.xaml"/>
     </ResourceDictionary.MergedDictionaries>
+
+    <ItemsPanelTemplate x:Key="MenuItemPanelTemplate">
+        <StackPanel Margin="-20,0,0,0" Background="White" />
+    </ItemsPanelTemplate>
+
+    <Style TargetType="{x:Type ContextMenu}">
+        <Setter Property="ItemsPanel" Value="{StaticResource MenuItemPanelTemplate}"/>
+    </Style>
     
     <Style x:Key="SavedWindow" TargetType="{x:Type local:SavedWindow}">
         <Setter Property="AllowsTransparency" Value="True" />
@@ -98,7 +106,7 @@
         <Setter Property="IsEditable" Value="True" />
         <Setter Property="IsHitTestVisible" Value="True" />
         <Setter Property="Height" Value="27" />
-        <Setter Property="Width" Value="300" />
+        <Setter Property="Width" Value="399" />
     </Style>
 
     <Style x:Key="ConfigWizardComboBoxReadOnlyLabel" TargetType="{x:Type Label}">
@@ -106,7 +114,7 @@
         <Setter Property="FontSize" Value="15" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Height" Value="27" />
-        <Setter Property="Width" Value="300" />
+        <Setter Property="Width" Value="399" />
     </Style>
 
     <Style x:Key="ConfigWizardCheckBoxReadOnly" TargetType="{x:Type CheckBox}">
@@ -175,7 +183,7 @@
         <Setter Property="FontSize" Value="16" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="Width" Value="300" />
+        <Setter Property="Width" Value="399" />
     </Style>
 
     <Style x:Key="ConfigWizardTextReadOnly" BasedOn="{StaticResource ConfigWizardTextSelected}" TargetType="{x:Type TextBox}">

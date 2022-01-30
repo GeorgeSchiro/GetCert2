@@ -127,10 +127,10 @@
     </bindingConfiguration>
   </bindingConfigurations>
   <endpoints>
-    <endpoint name="WSHttpBinding_IGetCertService" contract="GetCertService.IGetCertService" bindingType="wsHttpBinding" address="https://secure_certificate_service_goes_here/GetCert/Service.svc" bindingConfiguration="WSHttpBinding_IGetCertService">
+    <endpoint name="WSHttpBinding_IGetCertService" contract="GetCertService.IGetCertService" bindingType="wsHttpBinding" address="secure_certificate_service_goes_here" bindingConfiguration="WSHttpBinding_IGetCertService">
       <properties>
         <property path="/address" isComplexType="false" isExplicitlyDefined="true" clrType="System.Uri, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-          <serializedValue>https://secure_certificate_service_goes_here/GetCert/Service.svc</serializedValue>
+          <serializedValue>secure_certificate_service_goes_here</serializedValue>
         </property>
         <property path="/behaviorConfiguration" isComplexType="false" isExplicitlyDefined="false" clrType="System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
           <serializedValue />

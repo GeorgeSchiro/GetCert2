@@ -174,7 +174,7 @@ namespace GetCert2
         public static string sHashPw(tvProfile aoProfile)
         {
             StringBuilder   lsbHashPw = new StringBuilder();
-            byte[]          lbtArray = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(aoProfile.ToString().Substring(0, 256)));
+            byte[]          lbtArray = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(aoProfile.ToString()));
                             foreach (byte lbtValue in lbtArray)
                                 lsbHashPw.Append(lbtValue.ToString());
 

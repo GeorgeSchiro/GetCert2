@@ -165,6 +165,8 @@ namespace GetCert2
                     this.HideMiddlePanels();
                     this.MiddlePanelOutputText.Visibility = Visibility.Visible;
                 }
+
+                System.Windows.Forms.Application.DoEvents();
             }
         }
         private bool mbMainProcessRunning;
@@ -213,7 +215,26 @@ namespace GetCert2
         {
             get
             {
-                return mcsTitleText + String.Format(" {0}.{1}"
+                string  lsCertName = null;
+                        if ( null == CertificateDomainName.SelectedValue )
+                            lsCertName = this.CertificateDomainName.Text;
+                        else
+                            lsCertName = CertificateDomainName.SelectedValue.ToString();
+                string  lsTitleText = null;
+                        if ( String.IsNullOrEmpty(lsCertName) )
+                        {
+                            lsTitleText = mcsTitleText;
+                            CertNameTitle.Content = "";
+                            CertNameTitle.Visibility = System.Windows.Visibility.Collapsed;
+                        }
+                        else
+                        {
+                            lsTitleText = String.Format("GetCert ({0})", lsCertName);
+                            CertNameTitle.Content = String.Format("({0})", lsCertName);
+                            CertNameTitle.Visibility = System.Windows.Visibility.Visible;
+                        }
+
+                return String.Format("{0} {1}.{2}", lsTitleText
                         , System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.Major
                         , System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.Minor
                         );
@@ -492,7 +513,7 @@ You can continue this later wherever you left off. "
             {
                 // The first domain name on the list must match the one on the main form.
                 ComboBox    loComboBox = (ComboBox)((Grid)((TabItem)DomainListTabs.Items[0]).Content).Children[0];
-                            loComboBox.Text = CertificateDomainName.Text.Trim();
+                            loComboBox.Text = this.CertificateDomainName.Text.Trim();
             }
 
             btnDomainListSave.IsEnabled = true;
@@ -523,10 +544,10 @@ You can continue this later wherever you left off. "
             {
                 moProfile.Reload();
 
-                if ( null == CertificateDomainName.Text )
-                    CertificateDomainName.Text = "";
+                if ( null == this.CertificateDomainName.Text )
+                    this.CertificateDomainName.Text = "";
 
-                tvProfile loSanList = moProfile.oProfile("-SanList", String.Format("\r\n{0}=\"{1}\"\r\n", mcsSanNameKey, CertificateDomainName.Text.Trim()));
+                tvProfile loSanList = moProfile.oProfile("-SanList", String.Format("\r\n{0}=\"{1}\"\r\n", mcsSanNameKey, this.CertificateDomainName.Text.Trim()));
 
                 for (int i=0; i < miSanListTabs; i++)
                 {
@@ -541,13 +562,14 @@ You can continue this later wherever you left off. "
                     {
                         ComboBox    loComboBox = new ComboBox();
                                     loComboBox.Style = (Style)Resources["ConfigWizardComboBoxEditable"];
+                                    loComboBox.LostKeyboardFocus += CertificateDomainName_LostKeyboardFocus;
                                     loComboBox.SelectionChanged += CertificateDomainName_SelectionChanged;
                                     loComboBox.ItemsSource = moCertNameList;
 
                         if ( 0 == j && 0 == i )
                         {
                             // The first domain name on the list must match the one on the main form.
-                            loComboBox.Text = CertificateDomainName.Text.Trim();
+                            loComboBox.Text = this.CertificateDomainName.Text.Trim();
                         }
                         else
                         {
@@ -594,9 +616,9 @@ You can continue this later wherever you left off. "
                                         if ( 0 == j && 0 == i )
                                         {
                                             if ( "" != loComboBox.Text )
-                                                CertificateDomainName.Text = loComboBox.Text;
+                                                this.CertificateDomainName.Text = loComboBox.Text;
                                             else
-                                                loComboBox.Text = CertificateDomainName.Text.Trim();
+                                                loComboBox.Text = this.CertificateDomainName.Text.Trim();
                                         }
 
                                         if ( "" != loComboBox.Text )
@@ -638,7 +660,7 @@ You can continue this later wherever you left off. "
                     if ( 0 == j && 0 == i )
                     {
                         // The first domain name on the list must match the one on the main form.
-                        loLabel.Content = CertificateDomainName.Text.Trim();
+                        loLabel.Content = this.CertificateDomainName.Text.Trim();
                     }
                     else
                     {
@@ -1161,8 +1183,15 @@ You can continue this later wherever you left off. "
         {
         }
 
+        private void CertificateDomainName_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            this.Title = this.sTitleText;
+            e.Handled = true;
+        }
+
         private void CertificateDomainName_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            this.Title = this.sTitleText;
             e.Handled = true;
         }
 
@@ -1277,9 +1306,6 @@ If you would prefer to finish this setup at another time, you can exit now and c
 
         private void ShowHelp()
         {
-            if ( this.bNoPrompts )
-                return;
-
             // If a help window is already open, close it.
             foreach (ScrollingText loWindow in moOtherWindows)
             {

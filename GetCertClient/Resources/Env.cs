@@ -92,16 +92,7 @@ namespace GetCert2
         /// <param name="aoCertificate"></param>
         public static string sCertName(X509Certificate2 aoCertificate)
         {
-            string lsCertificateName = null;
-
-            if ( null != aoCertificate )
-            {
-                string[] lsSubjectArray = aoCertificate.Subject.Split(',');
-
-                lsCertificateName = lsSubjectArray[0].Replace("CN=", "");
-            }
-
-            return lsCertificateName;
+            return null == aoCertificate ? null : aoCertificate.GetNameInfo(X509NameType.SimpleName, false);
         }
 
         /// <summary>
@@ -139,7 +130,7 @@ namespace GetCert2
             get
             {
                 return Env.sUniqueIntOutputPathFile(
-                            Env.sLogPathFileBase
+                          tvProfile.oGlobal().sRelativeToProfilePathFile(Env.sLogPathFileBase)
                         , tvProfile.oGlobal().sValue("-LogFileDateFormat", "-yyyy-MM-dd")
                         , true
                         );
@@ -182,20 +173,10 @@ namespace GetCert2
         {
             get
             {
-                string lsPath = "Logs";
-                string lsLogFile = "Log.txt";
-                string lsLogPathFileBase = lsLogFile;
-
-                try
-                {
-                    lsLogPathFileBase = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-LogPathFile"
-                            , Path.Combine(lsPath, Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sLoadedPathFile) + lsLogFile)));
-
-                    lsPath = Path.GetDirectoryName(lsLogPathFileBase);
-                    if ( !Directory.Exists(lsPath) )
-                        Directory.CreateDirectory(lsPath);
-                }
-                catch {}
+                string  lsLogPathFileBase = tvProfile.oGlobal().sValue("-LogPathFile"
+                                , Path.Combine("Logs", Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sLoadedPathFile) + "Log.txt"));
+                        lsLogPathFileBase = Path.Combine(Path.GetDirectoryName(lsLogPathFileBase), String.Format("{0}({1}){2}"
+                                , Path.GetFileNameWithoutExtension(lsLogPathFileBase), tvProfile.oGlobal().sValue("-CertificateDomainName" ,""), Path.GetExtension(lsLogPathFileBase)));
 
                 return lsLogPathFileBase;
             }
@@ -283,11 +264,98 @@ namespace GetCert2
             return lbKillProcess;
         }
 
-        public static bool bRunPowerScript(out string asOutput, string asScript)
+        public static bool bReplaceInFiles(ref bool abMainLoopStopped, string asAssemblyName, tvProfile aoReplacementCmdLine)
         {
-            return Env.bRunPowerScript(out asOutput, false, null, asScript, false, false);
+            return Env.bReplaceInFiles(ref abMainLoopStopped, asAssemblyName, aoReplacementCmdLine, false);
         }
-        public static bool bRunPowerScript(out string asOutput, bool abMainLoopStopped, string asSingleSessionScriptPathFile, string asScript, bool abOpenOrCloseSingleSession, bool abSkipLog)
+        public static bool bReplaceInFiles(ref bool abMainLoopStopped, string asAssemblyName, tvProfile aoReplacementCmdLine, bool abSkipLog)
+        {
+            bool lbReplaceInFiles = false;
+
+            string      lsBaseFile = "ReplaceText.exe";
+            string      lsExePathFile = Path.Combine(tvProfile.oGlobal().sRelativeToExePathFile(Path.GetFileNameWithoutExtension(lsBaseFile)), lsBaseFile);
+            Process     loProcess = new Process();
+                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessErrorHandler);
+                        loProcess.OutputDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessOutputHandler);
+                        loProcess.StartInfo.FileName = lsExePathFile;
+                        loProcess.StartInfo.Arguments = aoReplacementCmdLine.sCommandLine();
+                        loProcess.StartInfo.UseShellExecute = false;
+                        loProcess.StartInfo.RedirectStandardError = true;
+                        loProcess.StartInfo.RedirectStandardInput = true;
+                        loProcess.StartInfo.RedirectStandardOutput = true;
+                        loProcess.StartInfo.CreateNoWindow = true;
+
+                        // Fetch ReplaceText.exe.
+                        Directory.CreateDirectory(Path.GetDirectoryName(lsExePathFile));
+                        tvFetchResource.ToDisk(asAssemblyName
+                                , String.Format("{0}{1}", Env.sFetchPrefix, lsBaseFile), lsExePathFile);
+                        tvFetchResource.ToDisk(asAssemblyName
+                                , String.Format("{0}{1}", Env.sFetchPrefix, lsBaseFile + ".txt"), lsExePathFile + ".txt");
+
+            System.Windows.Forms.Application.DoEvents();
+
+            Env.bPowerScriptError = false;
+            Env.sPowerScriptOutput = null;
+
+            loProcess.Start();
+            loProcess.BeginErrorReadLine();
+            loProcess.BeginOutputReadLine();
+
+            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-ReplaceTextTimeoutSecs", 120));
+
+            if ( !abSkipLog )
+                Env.LogIt(loProcess.StartInfo.Arguments);
+
+            // Wait for the process to finish.
+            while ( !abMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
+            {
+                System.Windows.Forms.Application.DoEvents();
+
+                if ( !abMainLoopStopped )
+                    Thread.Sleep(tvProfile.oGlobal().iValue("-ReplaceTextSleepMS", 200));
+            }
+
+            if ( !abMainLoopStopped )
+            {
+                if ( !loProcess.HasExited && !abSkipLog )
+                    Env.LogIt(tvProfile.oGlobal().sValue("-ReplaceTextTimeoutMsg", "*** replacement sub-process timed-out ***\r\n\r\n"));
+
+                int liExitCode = -1;
+                    try { liExitCode = loProcess.ExitCode; } catch {}
+
+                if ( Env.bPowerScriptError || liExitCode != 0 || !loProcess.HasExited )
+                {
+                    if ( !abSkipLog )
+                        Env.LogIt(Env.sExceptionMessage("The replacement sub-process experienced a critical failure."));
+                }
+                else
+                {
+                    lbReplaceInFiles = true;
+
+                    if ( !abSkipLog )
+                        Env.LogSuccess();
+                }
+            }
+
+            loProcess.CancelErrorRead();
+            loProcess.CancelOutputRead();
+
+            Env.bKillProcess(loProcess);
+
+            return lbReplaceInFiles;
+        }
+
+        public static bool bRunPowerScript(ref bool abMainLoopStopped, string asScript)
+        {
+            string lsDiscard = null;
+
+            return Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, asScript);
+        }
+        public static bool bRunPowerScript(ref bool abMainLoopStopped, out string asOutput, string asScript)
+        {
+            return Env.bRunPowerScript(ref abMainLoopStopped, out asOutput, null, asScript, false, false);
+        }
+        public static bool bRunPowerScript(ref bool abMainLoopStopped, out string asOutput, string asSingleSessionScriptPathFile, string asScript, bool abOpenOrCloseSingleSession, bool abSkipLog)
         {
             bool            lbSingleSessionEnabled = tvProfile.oGlobal().bValue("-SingleSessionEnabled", false);
                             if ( !lbSingleSessionEnabled && abOpenOrCloseSingleSession )
@@ -297,9 +365,11 @@ namespace GetCert2
                                 return true;
                             }
             bool            lbRunPowerScript = false;
-            string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToProfilePathFile(tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1"));
+            string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToExePathFile(
+                                    tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1")
+                                    .Replace(".ps1", tvProfile.oGlobal().sValue("-CertificateDomainName" ,"") + ".ps1"));
             string          lsScript = null;
-                            string          lsKludgeHide1 = Guid.NewGuid().ToString();  // Apparently Regex can't handle "++" in the text to process.
+                            string          lsKludgeHide1 = Guid.NewGuid().ToString("N");   // Apparently Regex can't handle "++" in the text to process.
                             StringBuilder   lsbReplaceProfileTokens = new StringBuilder(asScript.Replace("++", lsKludgeHide1));
 
                             // Look for string tokens of the form: {ProfileKey}, where "ProfileKey" is
@@ -326,7 +396,7 @@ namespace GetCert2
                             }
             string  lsProcessPathFile = tvProfile.oGlobal().sValue("-PowerShellExePathFile", @"C:\Windows\System32\WindowsPowerShell\v1.0\PowerShell.exe");
             string  lsProcessArgs = tvProfile.oGlobal().sValue("-PowerShellExeArgs", @"-NoProfile -ExecutionPolicy unrestricted -File ""{0}"" ""{1}""");
-                    if ( null == asSingleSessionScriptPathFile )
+                    if ( String.IsNullOrEmpty(asSingleSessionScriptPathFile) )
                         lsProcessArgs = String.Format(lsProcessArgs, lsScriptPathFile, "");
                     else
                         lsProcessArgs = String.Format(lsProcessArgs, asSingleSessionScriptPathFile, lsScriptPathFile);
@@ -342,6 +412,7 @@ namespace GetCert2
                     loProcess.OutputDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessOutputHandler);
                     loProcess.StartInfo.FileName = lsProcessPathFile;
                     loProcess.StartInfo.Arguments = lsProcessArgs;
+                    loProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(lsScriptPathFile);
                     loProcess.StartInfo.UseShellExecute = false;
                     loProcess.StartInfo.RedirectStandardError = true;
                     loProcess.StartInfo.RedirectStandardInput = true;
@@ -429,7 +500,7 @@ namespace GetCert2
         {
             return Env.oCurrentCertificate(null);
         }
-        private static X509Certificate2 oCurrentCertificate(string asCertName)
+        public static X509Certificate2 oCurrentCertificate(string asCertName)
         {
             string[]        lsSanArray = null;
             ServerManager   loServerManager = null;
@@ -477,6 +548,13 @@ namespace GetCert2
                 )
         {
             X509Certificate2    loCurrentCertificate = null;
+            bool                lbLogCertificateStatus = tvProfile.oGlobal().bValue("-LogCertificateStatus", false);
+                                if ( lbLogCertificateStatus )
+                                {
+                                    Env.LogIt(new String('*', 80));
+                                    Env.LogIt("Env.oCurrentCertificate(asCertName, asSanArray)");
+                                    Env.LogIt(String.Format("Env.oCurrentCertificate(\"{0}\", \"{1}\")", asCertName, null == asSanArray ? "" : String.Join(",", asSanArray)));
+                                }
 
             // ServerManager is the IIS ServerManager. It gives us the website object for binding the cert.
             aoServerManager = new ServerManager();
@@ -488,44 +566,69 @@ namespace GetCert2
                 string  lsCertName = null == asCertName ? null : asCertName.ToLower();
                 Binding loBindingFound = null;
 
+                if ( lbLogCertificateStatus )
+                    Env.LogIt("First, look thru existing IIS websites ...");
+
                 foreach (Site loSite in aoServerManager.Sites)
                 {
-                    // First, look for a binding by matching certificate.
+                    if ( lbLogCertificateStatus )
+                        Env.LogIt(String.Format("Site found (\"{0}\"). Now look for bindings by matching certificate.", loSite.Name));
+
                     foreach (Binding loBinding in loSite.Bindings)
                     {
-                        // Select the first binding with a certificate (and a matching name - if lsCertName is not null).
-                        foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
-                        {
-                            if ( null != loBinding.CertificateHash && loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
-                                && (String.IsNullOrEmpty(lsCertName) || lsCertName == Env.sCertName(loCertificate).ToLower()) )
+                        if ( lbLogCertificateStatus )
+                            Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name - if asCertName is not null)."
+                                    , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
+
+                        if ( null != loBinding.CertificateHash )
+                            foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                             {
-                                // Binding found that matches a certificate and certificate name (or no name).
-                                loCurrentCertificate = loCertificate;
+                                if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
+                                    && (String.IsNullOrEmpty(lsCertName) || lsCertName == Env.sCertName(loCertificate).ToLower()) )
+                                {
+                                    // Binding found that matches a certificate and certificate name (or no name).
+                                    loCurrentCertificate = loCertificate;
+                                    aoSiteFound = loSite;
+                                    loBindingFound = loBinding;
+
+                                    if ( lbLogCertificateStatus )
+                                        Env.LogIt(String.Format("'My' store certificate matches (\"{0}\" - {1}).", loCertificate.Thumbprint
+                                                , lsCertName == Env.sCertName(loCertificate).ToLower() ? "by thumbprint & certificate name" : "by thumbprint only, no name given"));
+                                    break;
+                                }
+                                else
+                                if ( lbLogCertificateStatus )
+                                    Env.LogIt(String.Format("'My' store certificate does NOT match (\"{0}\"=\"{1}\").", Env.sCertName(loCertificate), loCertificate.Thumbprint));
+                            }
+                    }
+
+                    if ( null == loBindingFound && null != goSetupCertificate )
+                    {
+                        if ( lbLogCertificateStatus )
+                            Env.LogIt(String.Format("Same site (\"{0}\"). Next, look for a binding matching setup certificate thumbprint (name match not required).", loSite.Name));
+
+                        foreach (Binding loBinding in loSite.Bindings)
+                        {
+                            if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
+                            {
+                                // Binding found that matches the setup certificate.
+                                // loCurrentCertificate MUST be null in this case to avoid attempted removal of the "old certificate."
+                                loCurrentCertificate = null;
                                 aoSiteFound = loSite;
                                 loBindingFound = loBinding;
+
+                                if ( lbLogCertificateStatus )
+                                    Env.LogIt(String.Format("Binding matches setup certificate (\"{0}\".", goSetupCertificate.Thumbprint));
                                 break;
                             }
-                        }
-
-                        if ( null != loBindingFound )
-                            break;
-                    }
-
-                    // Next, look for a binding by matching certificate (name match not required).
-                    if ( null == loBindingFound && null != goSetupCertificate )
-                    foreach (Binding loBinding in loSite.Bindings)
-                    {
-                        if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
-                        {
-                            // Binding found that matches the setup certificate.
-                            loCurrentCertificate = null;
-                            aoSiteFound = loSite;
-                            loBindingFound = loBinding;
-                            break;
+                            else
+                            if ( lbLogCertificateStatus )
+                                Env.LogIt(String.Format("Binding does NOT match setup certificate (\"{0}\"=\"{1}\").", Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
                         }
                     }
 
-                    // Next, if no binding certificate match exists, look by binding hostname (ie. SNI).
+                    // Next, if no binding certificate match exists, look by binding hostname (ie. SNI)
+                    // (note: this is just to populate aoSiteFound and loBindingFound).
                     if ( null == loBindingFound )
                         foreach (Binding loBinding in loSite.Bindings)
                         {
@@ -543,6 +646,7 @@ namespace GetCert2
                         }
 
                     // Finally, with no binding found, try to match against the site name.
+                    // (note: this is just to populate aoSiteFound).
                     if ( null == loBindingFound && asCertName == loSite.Name )
                         aoSiteFound = loSite;
 
@@ -559,16 +663,32 @@ namespace GetCert2
                     Env.oCurrentCertificate(lsPrimaryCertName, asSanArray, out aoPrimarySiteForDefaults);
                 }
 
-                // As a last resort (so much for finally), use the newest certificate found in the local store (by name).
+                // As a last resort (so much for finally), use the oldest certificate found in the local 'My' store (by name).
                 if ( null == loCurrentCertificate && !String.IsNullOrEmpty(lsCertName) )
+                {
+                    if ( lbLogCertificateStatus )
+                        Env.LogIt("Finally, look for a certificate in the local 'My' store by name ...");
+                
                     foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                     {
                         if ( lsCertName == Env.sCertName(loCertificate).ToLower()
-                                && (null == loCurrentCertificate || loCertificate.NotAfter > loCurrentCertificate.NotAfter) )
+                                && (null == loCurrentCertificate || loCertificate.NotAfter < loCurrentCertificate.NotAfter) )
                         {
                             loCurrentCertificate = loCertificate;
+
+                            if ( lbLogCertificateStatus )
+                                Env.LogIt(String.Format("Certificate (by name) matches (\"{0}\"=\"{1}\" - looking for oldest).", Env.sCertName(loCertificate), loCertificate.Thumbprint));
                         }
                     }
+                }
+
+                if ( lbLogCertificateStatus )
+                {
+                    if ( null == loCurrentCertificate )
+                        Env.LogIt("No current certificate found.");
+
+                    Env.LogIt(new String('*', 80));
+                }
             }
             catch (Exception ex)
             {
@@ -586,6 +706,148 @@ namespace GetCert2
         public static string sExceptionMessage(string asMessage)
         {
             return "ServiceFault: " + asMessage;
+        }
+
+        public static string sHostExePathFile()
+        {
+            Process loDiscardProcess = null;
+            return Env.sHostExePathFile(out loDiscardProcess, false);
+        }
+        public static string sHostExePathFile(out Process aoProcessFound)
+        {
+            return Env.sHostExePathFile(out aoProcessFound, false);
+        }
+        public static string sHostExePathFile(out Process aoProcessFound, bool abQuietMode)
+        {
+            string  lsHostExeFilename = Env.sHostProcess;
+            string  lsHostExePathFile = Env.sProcessExePathFile(lsHostExeFilename, out aoProcessFound);
+
+            if ( String.IsNullOrEmpty(lsHostExePathFile) )
+            {
+                if ( !abQuietMode )
+                    Env.LogIt("Host image can't be located on disk based on the currently running process. Trying typical locations ...");
+
+                lsHostExePathFile = @"C:\ProgramData\GoPcBackup\GoPcBackup.exe";
+                if ( !File.Exists(lsHostExePathFile) )
+                    lsHostExePathFile = @"C:\Program Files\GoPcBackup\GoPcBackup.exe";
+
+                if ( !File.Exists(lsHostExePathFile) )
+                {
+                    Env.LogIt("Host process can't be located on disk. Can't continue.");
+                    throw new Exception("Exiting ...");
+                }
+
+                if ( !abQuietMode )
+                    Env.LogIt("Host process image found on disk. It will be restarted.");
+            }
+
+            return lsHostExePathFile;
+        }
+
+        public static string sHostLogText()
+        {
+            return Env.sHostLogText(false);
+        }
+        public static string sHostLogText(bool abUnfiltered)
+        {
+            string          lsHostLogText = null;
+            string          lsHostLogSpec = tvProfile.oGlobal().sValue("-HostLogSpec", String.Format(@"Logs\{0}Log*", Env.sHostProcess));
+            string          lsHostLogPathFiles = null;
+                            if ( "" == Path.GetPathRoot(lsHostLogSpec) )
+                            {
+                                lsHostLogPathFiles = Path.Combine(Path.GetDirectoryName(Env.sHostExePathFile()), lsHostLogSpec);
+                            }
+                            else
+                            {
+                                lsHostLogPathFiles = lsHostLogSpec;
+                            }
+            string          lsHostLogPath = Path.GetDirectoryName(lsHostLogPathFiles);
+            string          lsHostLogFiles = Path.GetFileName(lsHostLogPathFiles);
+            IOrderedEnumerable<FileSystemInfo> loFileSysInfoList = 
+                    new DirectoryInfo(lsHostLogPath).GetFileSystemInfos(lsHostLogFiles).OrderByDescending(a => a.LastWriteTime);
+            string          lsHostLogPathFile = loFileSysInfoList.First().FullName;
+            string          lsDelimiterBeg = String.Format("{0}  BEGIN   {1}   BEGIN  {0}", new String('*', 26), lsHostLogPathFile);
+            string          lsDelimiterEnd = String.Format("{0}  END     {1}     END  {0}", new String('*', 26), lsHostLogPathFile);
+            
+            if ( abUnfiltered )
+            {
+                lsHostLogText = File.ReadAllText(lsHostLogPathFile);
+            }
+            else
+            {
+                string[]        lsHostLogTextArray = File.ReadAllText(lsHostLogPathFile).Split(Environment.NewLine.ToCharArray());
+                StringBuilder   lsbHostLogTextFiltered = new StringBuilder();
+                                foreach(string lsLine in lsHostLogTextArray)
+                                    if ( lsLine.Contains(tvProfile.oGlobal().sValue("-HostLogFilter", "-CommandEXE=")) )
+                                        lsbHostLogTextFiltered.AppendLine(lsLine);
+
+                lsHostLogText = lsbHostLogTextFiltered.ToString();
+            }
+
+            return String.Format("{0}{1}{0}{2}{3}{0}", Environment.NewLine, lsDelimiterBeg, lsHostLogText, lsDelimiterEnd);
+        }
+
+        public static string sHostProfile()
+        {
+            return Env.sHostProfile(false);
+        }
+        public static string sHostProfile(bool abUnfiltered)
+        {
+            string lsHostProfile = null;
+
+            if ( abUnfiltered )
+            {
+                lsHostProfile = File.ReadAllText(Env.sHostExePathFile() + ".txt.backup.txt");
+            }
+            else
+            {
+                tvProfile   loHostProfile = new tvProfile(Env.sHostExePathFile() + ".txt.backup.txt", false);
+                tvProfile   loHostProfileFiltered = loHostProfile.oOneKeyProfile("-AddTasks");
+                            foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-BackupFiles"))
+                                loHostProfileFiltered.Add(loEntry);
+                            foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-BackupSet"))
+                                loHostProfileFiltered.Add(loEntry);
+                            foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-CleanupFiles"))
+                                loHostProfileFiltered.Add(loEntry);
+                            foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-CleanupSet"))
+                                loHostProfileFiltered.Add(loEntry);
+
+                lsHostProfile = loHostProfileFiltered.ToString();
+            }
+
+            return lsHostProfile;
+        }
+
+        public static string sProcessExePathFile(string asExePathFile)
+        {
+            Process loProcessFound = null;
+
+            return Env.sProcessExePathFile(asExePathFile, out loProcessFound);
+        }
+        public static string sProcessExePathFile(string asExePathFile, out Process aoProcessFound)
+        {
+            string  lsFindProcessExePathFile = null;
+            string  lsProcessName = Path.GetFileNameWithoutExtension(asExePathFile);
+
+            aoProcessFound = null;
+
+            foreach (Process loProcess in Process.GetProcessesByName(lsProcessName))
+            {
+                aoProcessFound = loProcess;
+                lsFindProcessExePathFile = loProcess.MainModule.FileName;
+            }
+
+            return lsFindProcessExePathFile;
+        }
+
+
+        private static string sCertThumbprintFromBindingHash(Binding aoBinding)
+        {
+            StringBuilder   lsbCertThumbprintFromBindingHash = new StringBuilder();
+                            for (int i = 0; i < aoBinding.CertificateHash.Length; i++)
+                                lsbCertThumbprintFromBindingHash.AppendFormat("{0:X2}", aoBinding.CertificateHash[i]);
+
+            return lsbCertThumbprintFromBindingHash.ToString();
         }
 
         /// <summary>
@@ -620,7 +882,7 @@ namespace GetCert2
                 // If we are appending, we're done. Otherwise,
                 // check for existence of the requested dated pathfile.
                 lsOutputPathFile = Path.Combine(lsOutputPath, lsOutputFilename);
-                lbDone = abAppendOutput | !File.Exists(lsOutputPathFile);
+                lbDone = abAppendOutput || !File.Exists(lsOutputPathFile);
 
                 // If the given pathfile already exists, create a variation on the dated
                 // filename by appending an integer (see liUniqueFilenameSuffix above).
@@ -633,11 +895,14 @@ namespace GetCert2
             return lsOutputPathFile;
         }
 
-        public static bool      bPowerScriptError;
-        public static bool      bPowerScriptSkipLog;
-        public static string    sPowerScriptOutput;
+        public static bool      bPowerScriptError = false;
+        public static bool      bPowerScriptSkipLog = false;
+        public static int       iNonErrorBounceSecs = 0;
+        public static string    sPowerScriptOutput = null;
         public static string    sFetchPrefix = "Resources.Fetch.";
-        public static string    sWcfLogFile = "WcfLog.txt";         // Must be changed in the WCF config too.
+        public static string    sHostProcess = "GoPcBackup.exe";
+        public static string    sNewClientSetupPfxName = "GcSetup.pfx";
+        public static string    sWcfLogFile  = "WcfLog.txt";         // Must be changed in the WCF config too.
 
         /// <summary>
         /// Write the given asText to a text file as well as to
@@ -646,32 +911,29 @@ namespace GetCert2
         /// <param name="asText">The text string to log.</param>
         public static void LogIt(string asText)
         {
-            string          lsLogPathFileBase = null;
             StreamWriter    loStreamWriter = null;
+            string          lsLogPathFile = Env.sLogPathFile;
+            string          lsPath = Path.GetDirectoryName(lsLogPathFile);
+                            if ( !Directory.Exists(lsPath) )
+                                Directory.CreateDirectory(lsPath);
+            string          lsFormat = tvProfile.oGlobal().sValueNoTrim(
+                                    "-LogEntryDateTimeFormatPrefix", "yyyy-MM-dd hh:mm:ss:fff tt  ");
 
             try
             {
-                lsLogPathFileBase = Env.sLogPathFileBase;
-
-                // Move down to the base folder if we're running an update.
-                string  lsPathSep = Path.DirectorySeparatorChar.ToString();
-                string  lsPath = Path.GetDirectoryName(tvProfile.oGlobal().sRelativeToProfilePathFile(lsLogPathFileBase)).Replace(
-                                    String.Format("{0}{1}{0}",  lsPathSep, tvProfile.oGlobal().sValue("-UpdateFolder", "Update")), lsPathSep);
-                        Directory.CreateDirectory(lsPath);
-
-                loStreamWriter = new StreamWriter(tvProfile.oGlobal().sRelativeToProfilePathFile(
-                        Env.sUniqueIntOutputPathFile(lsLogPathFileBase
-                        , tvProfile.oGlobal().sValue("-LogFileDateFormat", "-yyyy-MM-dd"), true)), true);
-                loStreamWriter.WriteLine(DateTime.Now.ToString(tvProfile.oGlobal().sValueNoTrim(
-                        "-LogEntryDateTimeFormatPrefix", "yyyy-MM-dd hh:mm:ss:fff tt  "))
-                        + asText);
+                loStreamWriter = new StreamWriter(lsLogPathFile, true);
+                loStreamWriter.WriteLine(DateTime.Now.ToString(lsFormat) + asText);
             }
             catch
             {
                 try
                 {
-                    // Give it one last try ...
-                    File.WriteAllText(lsLogPathFileBase, asText);
+                    // Give it one more try ...
+                    System.Windows.Forms.Application.DoEvents();
+                    Thread.Sleep(200);
+
+                    loStreamWriter = new StreamWriter(lsLogPathFile, true);
+                    loStreamWriter.WriteLine(DateTime.Now.ToString(lsFormat) + asText);
                 }
                 catch { /* Can't log a log failure. */ }
             }
@@ -698,6 +960,91 @@ namespace GetCert2
         public static void LogSuccess()
         {
             Env.LogIt("Success.");
+        }
+
+        public static void ScheduleBounce(ref bool abMainLoopStopped, int aiSecondsUntilBounce, bool abSkipLog)
+        {
+            string lsDiscard = null;
+
+            Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, null
+                    , tvProfile.oGlobal().sValue("-ScriptBounce", "shutdown.exe /r /t {SecondsUntilBounce}").Replace("{SecondsUntilBounce}", aiSecondsUntilBounce.ToString()), false, abSkipLog);
+        }
+
+        public static void ScheduleBounceCancel(ref bool abMainLoopStopped, bool abSkipLog)
+        {
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+                return;
+
+            bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
+                    tvProfile.oGlobal().bSaveEnabled = true;
+                    tvProfile.oGlobal()["-OnErrorBounceCount"] = tvProfile.oGlobal().iValue("-OnErrorBounceCount", 0) - 1;
+                    tvProfile.oGlobal().Save();
+                    tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+            string lsDiscard = null;
+
+            Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, null
+                    , tvProfile.oGlobal().sValue("-ScriptBounceCancel", "shutdown.exe /a"), false, abSkipLog);
+        }
+
+        public static void ScheduleBounceReset()
+        {
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) || DateTime.Now.Date == tvProfile.oGlobal().dtValue("-BounceScheduled", DateTime.MinValue).Date )
+                return;
+
+            // Only reset bounce counts on subsequent days.
+
+            bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
+                    tvProfile.oGlobal().bSaveEnabled = true;
+                    tvProfile.oGlobal().Remove("-NonErrorBounceCount");
+                    tvProfile.oGlobal().Remove("-OnErrorBounceCount");
+                    tvProfile.oGlobal().Save();
+                    tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+        }
+
+        public static void ScheduleNonErrorBounce(ref bool abMainLoopStopped)
+        {
+            Env.ScheduleNonErrorBounce(ref abMainLoopStopped, false);
+        }
+        public static void ScheduleNonErrorBounce(ref bool abMainLoopStopped, bool abSkipLog)
+        {
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+                return;
+
+            int liBounceCount = 1   + tvProfile.oGlobal().iValue("-NonErrorBounceCount", 0);
+                if ( liBounceCount <= tvProfile.oGlobal().iValue("-NonErrorBounceMax",   1) )
+                {
+                    bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
+                            tvProfile.oGlobal().bSaveEnabled = true;
+                            tvProfile.oGlobal()["-NonErrorBounceCount"] = liBounceCount;
+                            tvProfile.oGlobal()["-BounceScheduled"] = DateTime.Now;
+                            tvProfile.oGlobal().Save();
+                            tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+
+                    Env.ScheduleBounce(ref abMainLoopStopped, Env.iNonErrorBounceSecs, abSkipLog);
+                }
+        }
+
+        public static void ScheduleOnErrorBounce(ref bool abMainLoopStopped)
+        {
+            Env.ScheduleOnErrorBounce(ref abMainLoopStopped, false);
+        }
+        public static void ScheduleOnErrorBounce(ref bool abMainLoopStopped, bool abDuringStartup)
+        {
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+                return;
+
+            int liBounceCount = 1   + tvProfile.oGlobal().iValue("-OnErrorBounceCount", 0);
+                if ( liBounceCount <= tvProfile.oGlobal().iValue("-OnErrorBounceMax",   1) )
+                {
+                    bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
+                            tvProfile.oGlobal().bSaveEnabled = true;
+                            tvProfile.oGlobal()["-OnErrorBounceCount"] = liBounceCount;
+                            tvProfile.oGlobal()["-BounceScheduled"] = DateTime.Now;
+                            tvProfile.oGlobal().Save();
+                            tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+
+                    Env.ScheduleBounce(ref abMainLoopStopped, tvProfile.oGlobal().iValue("-OnErrorBounceSecs", 60), abDuringStartup);
+                }
         }
 
         // Reset WCF configuration, from "https://stackoverflow.com/questions/6150644/change-default-app-config-at-runtime".
@@ -735,6 +1082,19 @@ namespace GetCert2
             if ( loProfile.bValue("-UseStandAloneMode", true) || loProfile.bExit )
                 return;
 
+            bool lbLogCertificateStatus = tvProfile.oGlobal().bValue("-LogCertificateStatus", false);
+
+            if ( lbLogCertificateStatus )
+            {
+                Env.LogIt(new String('*', 51));
+
+                if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
+                    Env.LogIt("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
+                else
+                    Env.LogIt(String.Format("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate), goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
+            }
+
             if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate
                     || (loProfile.bValue("-CertificateSetupDone", false) && goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Subject.Contains("*")) )
             {
@@ -745,10 +1105,11 @@ namespace GetCert2
                         if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") )
                             goSetupCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
 
-                        if ( null == goSetupCertificate && !loProfile.bValue("-CertificateSetupDone", false) && !loProfile.bValue("-NoPrompts", false) )
+                        if ( null == goSetupCertificate && !loProfile.bValue("-CertificateSetupDone", false)
+                                && (!loProfile.bValue("-NoPrompts", false) || (!loProfile.bValue("-LicenseAccepted", false) && !loProfile.bValue("-AllConfigWizardStepsCompleted", false))) )
                         {
                             System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
-                                                                loOpenDialog.FileName = gsNewClientSetupCertName + ".pfx";
+                                                                loOpenDialog.FileName = Env.sNewClientSetupPfxName;
                             System.Windows.Forms.DialogResult   leDialogResult = System.Windows.Forms.DialogResult.None;
                                                                 leDialogResult = loOpenDialog.ShowDialog();
 
@@ -769,6 +1130,9 @@ namespace GetCert2
                                     try
                                     {
                                         goSetupCertificate = new X509Certificate2(loOpenDialog.FileName, lsPassword);
+
+                                        if ( null != goSetupCertificate )
+                                            loProfile["-NoPrompts"] = false;
                                     }
                                     catch (Exception ex)
                                     {
@@ -793,8 +1157,33 @@ namespace GetCert2
                 goGetCertServiceFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
             }
 
-            if ( null == goSetupCertificate )
-                goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+            if ( !lbLogCertificateStatus )
+            {
+                if ( null == goSetupCertificate )
+                    goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+            }
+            else
+            {
+                if ( null == goSetupCertificate )
+                {
+                    Env.LogIt("goSetupCertificate=null");
+
+                    goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+
+                    Env.LogIt("goSetupCertificate=goGetCertServiceFactory.Credentials.ClientCertificate.Certificate");
+                }
+
+                Env.LogIt(String.Format("goSetupCertificate=(\"{0}\"=\"{1}\")"
+                        , Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
+
+                if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
+                    Env.LogIt("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
+                else
+                    Env.LogIt(String.Format("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate), goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
+
+                Env.LogIt(new String('*', 51));
+            }
         }
     }
 }

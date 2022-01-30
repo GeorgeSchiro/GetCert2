@@ -14,6 +14,7 @@ ReplaceText.exe
 -CopyResultsToSTDOUT=True
 -SearchOnly=False
 -RecurseSubdirectories=True
+-TrackItemsFoundPerFile=False
 -CaseInsensitiveSearch=True
 -UseRegularExpressions=False
 -UseSpecialCharacters=False
