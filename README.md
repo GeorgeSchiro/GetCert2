@@ -104,6 +104,17 @@ Options and Features
     The main options for this utility are listed below with their default values.
     A brief description of each feature follows.
 
+-AcmeAccountFile='Account.xml'
+
+    This is the name of the ACME account file returned by the certificate
+    provider. If it's deleted, it will be replaced during the next run.
+
+-AcmeAccountKeyFile='AccountKey.xml'
+
+    This is the name of the ACME account key file returned by the
+    certificate provider. If it's deleted, it will be replaced during
+    the next run.
+
 -AcmePsModuleUseGallery=False
 
     Set this switch True and the 'PowerShell Gallery' version of 'ACME-PS'
@@ -118,6 +129,27 @@ Options and Features
     the folder containing 'GetCert2.exe.config'. Set -AcmePsModuleUseGallery=True
     (see above) and the OS will look to find 'ACME-PS' in its usual place as a
     module from the PowerShell gallery.
+
+-AcmePsWorkPath='AcmeState'
+
+    This is where temporary ACME state data is cached. It may be useful
+    while troubleshooting issues. This data is automatically cleaned-up
+    after each run, unless there is an error or unless -CleanupAcmeWork
+    is set False (see below).
+
+-AcmeSystemWide=''
+
+    This is a script snippet that is prepended to every ACME script
+    (see -ScriptStage1 below). This snippet may be useful to resolve
+    certain issues that can arise during ACME script execution.
+
+    Here's an example:
+
+        -AcmeSystemWide='[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12'
+
+        The above forces the use of the TLS 1.2 protocol with every ACME
+        call. This is sometimes necessary when the network enforces rules
+        that are not supported, by default, in older operating systems.
 
 -Auto=False
 
@@ -134,6 +166,17 @@ Options and Features
     Set this switch True (not recommended) to allow certificate private keys
     to be exportable from the local certificate store to a local disk file. Any
     SA with server access will then have access to the certificate's private key.
+
+-CertificateRequestWaitSecs=10
+
+    These are the seconds of wait time before a certificate request
+    is submitted. This allows time for the order to be completed by
+    the certificate provider network before a request can be accepted.
+
+-CleanupAcmeWork=True
+
+    Set this switch False to preserve temporary ACME state data, even after
+    a successful run.
 
 -ContactEmailAddress= NO DEFAULT VALUE
 
@@ -162,6 +205,12 @@ Options and Features
     during the certificate binding phase. The primary certificate name on the
     SAN list (see -CertificateDomainName above) will be bound to the default
     website as a last resort (if this value is False).
+
+-DefaultPhysicalPath='%SystemDrive%\inetpub\wwwroot'
+
+    This is the default physical storage path used during the creation of
+    new IIS websites that can't otherwise be associated with an existing
+    site (see -CreateSanSitesFor* above).
 
 -DoStagingTests=True
 
@@ -198,7 +247,7 @@ Options and Features
 
 -LogCertificateStatus=False
 
-    Set this switch True to see in detail how the GetCert2.exe apps's identifying
+    Set this switch True to see in detail how the GetCert2.exe app's identifying
     certificate is selected. This may be useful to troubleshoot setup issues.
 
     Note: this switch is ignored when -UseStandAloneMode is True.
@@ -227,7 +276,7 @@ Options and Features
     clients the opportunity to lock the certificate renewal (ie. only one client
     at a time per domain can communicate with the certificate provider network).
 
--NoIISBindingScript=''
+-NonIISBindingScript= SEE PROFILE FOR DEFAULT VALUE
 
     This is the PowerShell script that binds a new certificate when IIS is not in
     use or the standard IIS binding procedure does not work for whatever reason.
@@ -305,11 +354,13 @@ Options and Features
     server (following each test). Setting this switch False will retain all previous
     log sessions on the client during testing.
 
+    Note: this switch is ignored when -UseStandAloneMode is True.
+
 -RetainNewCertAfterError=False
 
     Set this switch True to prevent removal of new certificates after errors. A new
     certificate should typically not persist after a failure. This prevents multiple
-    versions of essentially the "same" cert from piling up.
+    versions of essentially the 'same' certificate from piling up.
 
     Note: this parameter will be removed from the profile after every run
           (whether used or not). If you need several uses, it might make more
@@ -338,10 +389,19 @@ Options and Features
 
 -SaveSansCmdLine=True
 
-    Set this switch False to leave the profile file untouched after a command line
-    has been passed to the EXE and merged with the profile. When true, everything
-    but command line keys will be saved. When false, not even status information
-    will be written to the profile file (ie. 'GetCert2.exe.config').
+    Set this switch False to allow merged command-lines to be written to
+    the profile file (ie. 'GetCert2.exe.config'). When True, everything
+    but command-line keys will be saved.
+
+-ScriptBindingDone=''
+
+    This is the PowerShell script snippet that handles any final processing after
+    the successful binding of a new certificate.
+
+-ScriptCertAcquired=''
+
+    This is the PowerShell script snippet that handles any final processing after
+    the successful acquisition of a new certificate from the certificate provider.
 
 -ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
@@ -352,7 +412,7 @@ Options and Features
     There are multiple stages involved with the process of getting a certificate
     from the certificate provider network. Each stage has an associated PowerShell
     script snippet. The stages are represented in this profile by -ScriptStage1
-    thru -ScriptStage7.
+    through -ScriptStage7.
 
 -ServiceNameLive='LetsEncrypt'
 
@@ -363,15 +423,21 @@ Options and Features
     This is the name mapped to the non-production (ie. 'staging') certificate
     network service URL.
 
--ServiceReportEverything=True
+-SetDefaultBinding=True
 
-    By default, all activity logged on the client during non-interactive mode
-    is uploaded to the SCS server. This can be very helpful during automation
-    testing. Once testing is complete, set this switch False to report errors
-    only.
+    Set this switch False to prevent even a default binding from being applied
+    after no binding is found referencing the 'old' certificate.
 
-    Note: 'non-interactive mode' means the -Auto switch is set (see above).
-          This switch is ignored when -UseStandAloneMode=True.
+-Setup=False
+
+    Set this switch True to ignore the usual constraints during the acquisition
+    of new certificates. For example, you can get a new certificate even if the
+    old one is not about to expire, like when the software is run in interactive
+    mode (eg. during initial setup).
+
+    This switch is typically passed as a command-line argument:
+
+        GetCert2.exe -Auto -Setup
 
 -ShowProfile=False
 
@@ -394,6 +460,12 @@ Options and Features
     attempt to update configuration files with each new SSO certificate thumbprint.
     Set this switch True to disable SSO thumbprint configuration updates (for this
     client only). See -SsoThumbprintFiles below.
+
+-SkipUntrustedStore=False
+
+    The 'Untrusted' certificate store is used to house the previously bound 'old'
+    certificate (ie. the one most recently removed from the 'Personal' store).
+    Set this switch False to simply delete old certificates directly.
 
 -SsoMaxRenewalSleepSecs=60
 
@@ -428,12 +500,22 @@ Options and Features
     retry for 7 minutes (-SubmissionRetries times -SubmissionWaitSecs, see below)
     for challenge status updates as well as certificate request status updates.
 
--SubmissionWaitSecs=10
+-SubmissionWaitSecs=5
 
-    These are the seconds of wait time after the DNS website challenge has been
-    submitted to the certificate network as well as after the certificate request
+    These are the seconds of wait time after an ACME challenge request has been
+    submitted to the certificate network as well as after a certificate request
     has been submitted. This is the amount of time during which the request should
     transition from a 'pending' state to anything other than 'pending'.
+
+-UseNonIISBindingAlso=False
+
+    Set this switch True to use the typical IIS binding procedures
+    on this machine as well as the -NonIISBindingScript (see above).
+
+-UseNonIISBindingOnly=False
+
+    Set this switch True to disable the usual IIS binding procedures on
+    this machine and use the -NonIISBindingScript instead (see above).
 
 -UseStandAloneMode=True
 

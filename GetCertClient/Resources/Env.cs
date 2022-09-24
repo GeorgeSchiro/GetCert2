@@ -4,7 +4,10 @@ using System.Collections;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
@@ -18,6 +21,18 @@ namespace GetCert2
     public class Env
     {
         public static event EventHandler<string> AppendOutputTextLine;  
+
+        /// <summary>
+        /// Returns the current "non-error bounce" status.
+        /// </summary>
+        public static bool bCanScheduleNonErrorBounce
+        {
+            get
+            {
+                return !File.Exists(Env.sBounceOnNonErrorLockPathFile);
+            }
+        }
+
 
         /// <summary>
         /// Returns the current certificate collection.
@@ -48,9 +63,18 @@ namespace GetCert2
                 {
                     File.Delete(tvProfile.oGlobal().sRelativeToProfilePathFile(Env.sWcfLogFile));
 
-                    goGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                    try
+                    {
+                        goGetCertServiceFactory = new ChannelFactory<GetCertService.IGetCertServiceChannel>("WSHttpBinding_IGetCertService");
+                    }
+                    catch (Exception ex)
+                    {
+                        Env.LogIt(String.Format("Failure occurred attempting to open the service communication channel.{0}{1}"
+                                                , Environment.NewLine, Env.sExceptionMessage(ex)));
+                    }
 
-                    Env.SetCertificate();
+                    if ( null != goGetCertServiceFactory )
+                        Env.SetCertificate();
                 }
 
                 return goGetCertServiceFactory;
@@ -61,6 +85,30 @@ namespace GetCert2
             }
         }
         private static ChannelFactory<GetCertService.IGetCertServiceChannel> goGetCertServiceFactory;
+
+        public static string sBounceOnErrorLockPathFile
+        {
+            get
+            {
+                if ( null == msBounceOnErrorLockPathFile )
+                    msBounceOnErrorLockPathFile = tvProfile.oGlobal().sRelativeToExePathFile("BounceOnErrorScheduled.lck");
+
+                return msBounceOnErrorLockPathFile;
+            }
+        }
+        private static string msBounceOnErrorLockPathFile = null;
+
+        public static string sBounceOnNonErrorLockPathFile
+        {
+            get
+            {
+                if ( null == msBounceOnNonErrorLockPathFile )
+                    msBounceOnNonErrorLockPathFile = tvProfile.oGlobal().sRelativeToExePathFile("BounceOnNonErrorScheduled.lck");
+
+                return msBounceOnNonErrorLockPathFile;
+            }
+        }
+        private static string msBounceOnNonErrorLockPathFile = null;
 
         public static tvProfile oMinProfile(tvProfile aoProfile)
         {
@@ -137,15 +185,6 @@ namespace GetCert2
             }
         }
 
-        public static string sNewClientSetupCertName
-        {
-            get
-            {
-                return gsNewClientSetupCertName;
-            }
-        }
-        private static string    gsNewClientSetupCertName  = "GetCertClientSetup";
-
 
         private static tvProfile oEnvProfile
         {
@@ -219,6 +258,7 @@ namespace GetCert2
             }
             catch (Exception ex)
             {
+                Environment.ExitCode = 1;
                 lbKillProcess = false;
                 Env.LogIt(String.Format("Orderly bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, Env.sExceptionMessage(ex)));
             }
@@ -243,6 +283,7 @@ namespace GetCert2
                 }
                 catch (Exception ex)
                 {
+                    Environment.ExitCode = 1;
                     lbKillProcess = false;
                     Env.LogIt(String.Format("Forced bKillProcess() Failed on PID={0} (\"{1}\")", liProcessId, Env.sExceptionMessage(ex)));
                 }
@@ -264,11 +305,43 @@ namespace GetCert2
             return lbKillProcess;
         }
 
-        public static bool bReplaceInFiles(ref bool abMainLoopStopped, string asAssemblyName, tvProfile aoReplacementCmdLine)
+        public static bool bPfxToPem(string asAssemblyName, string asPfxPathFile, string asPfxPassword, string asPemPathFile, string asPemPassword)
         {
-            return Env.bReplaceInFiles(ref abMainLoopStopped, asAssemblyName, aoReplacementCmdLine, false);
+            bool lbPfxToPem = false;
+
+            string  lsOpenSslFile = "openssl.zip";
+            string  lsOpenSslPath = Path.GetFileNameWithoutExtension(lsOpenSslFile);
+            string  lsOpenSslPathFile = tvProfile.oGlobal().sRelativeToExePathFile(lsOpenSslFile);
+                    // Fetch OpenSsl module.
+                    tvFetchResource.ToDisk(asAssemblyName
+                            , String.Format("{0}{1}", Env.sFetchPrefix, lsOpenSslFile), lsOpenSslPathFile);
+                    if ( !Directory.Exists(tvProfile.oGlobal().sRelativeToExePathFile(lsOpenSslPath)) )
+                    {
+                        string  lsZipDir = Path.GetDirectoryName(lsOpenSslPathFile);
+                                ZipFile.ExtractToDirectory(lsOpenSslPathFile, String.IsNullOrEmpty(lsZipDir) ? "." : lsZipDir);
+                    }
+            string  lsDiscard = null;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(asPemPathFile));
+
+            lbPfxToPem = Env.bRunPowerScript(out lsDiscard, null, tvProfile.oGlobal().sValue("-ScriptPfxToPem", @"
+cd ""openssl""
+C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword} {PemPassword} 2>$null
+                    ")
+                    .Replace("{PfxPathFile}", asPfxPathFile)
+                    .Replace("{PemPathFile}", asPemPathFile)
+                    .Replace("{PfxPassword}", asPfxPassword)
+                    .Replace("{PemPassword}", asPemPassword)
+                    , false, true, false);
+
+            return lbPfxToPem;
         }
-        public static bool bReplaceInFiles(ref bool abMainLoopStopped, string asAssemblyName, tvProfile aoReplacementCmdLine, bool abSkipLog)
+
+        public static bool bReplaceInFiles(string asAssemblyName, tvProfile aoReplacementCmdLine)
+        {
+            return Env.bReplaceInFiles(asAssemblyName, aoReplacementCmdLine, false);
+        }
+        public static bool bReplaceInFiles(string asAssemblyName, tvProfile aoReplacementCmdLine, bool abSkipLog)
         {
             bool lbReplaceInFiles = false;
 
@@ -294,6 +367,7 @@ namespace GetCert2
 
             System.Windows.Forms.Application.DoEvents();
 
+            Env.bPowerScriptSkipLog = abSkipLog;
             Env.bPowerScriptError = false;
             Env.sPowerScriptOutput = null;
 
@@ -307,15 +381,15 @@ namespace GetCert2
                 Env.LogIt(loProcess.StartInfo.Arguments);
 
             // Wait for the process to finish.
-            while ( !abMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
+            while ( !Env.bMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
             {
                 System.Windows.Forms.Application.DoEvents();
 
-                if ( !abMainLoopStopped )
+                if ( !Env.bMainLoopStopped )
                     Thread.Sleep(tvProfile.oGlobal().iValue("-ReplaceTextSleepMS", 200));
             }
 
-            if ( !abMainLoopStopped )
+            if ( !Env.bMainLoopStopped )
             {
                 if ( !loProcess.HasExited && !abSkipLog )
                     Env.LogIt(tvProfile.oGlobal().sValue("-ReplaceTextTimeoutMsg", "*** replacement sub-process timed-out ***\r\n\r\n"));
@@ -345,17 +419,24 @@ namespace GetCert2
             return lbReplaceInFiles;
         }
 
-        public static bool bRunPowerScript(ref bool abMainLoopStopped, string asScript)
+        public static bool bRunPowerScript(string asScript)
         {
             string lsDiscard = null;
 
-            return Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, asScript);
+            return Env.bRunPowerScript(out lsDiscard, asScript);
         }
-        public static bool bRunPowerScript(ref bool abMainLoopStopped, out string asOutput, string asScript)
+        public static bool bRunPowerScript(out string asOutput, string asScript)
         {
-            return Env.bRunPowerScript(ref abMainLoopStopped, out asOutput, null, asScript, false, false);
+            return Env.bRunPowerScript(out asOutput, null, asScript, false, false, false);
         }
-        public static bool bRunPowerScript(ref bool abMainLoopStopped, out string asOutput, string asSingleSessionScriptPathFile, string asScript, bool abOpenOrCloseSingleSession, bool abSkipLog)
+        public static bool bRunPowerScript(
+                  out string asOutput
+                , string asSingleSessionScriptPathFile
+                , string asScript
+                , bool abOpenOrCloseSingleSession
+                , bool abSkipLog
+                , bool abRetryOutput
+                )
         {
             bool            lbSingleSessionEnabled = tvProfile.oGlobal().bValue("-SingleSessionEnabled", false);
                             if ( !lbSingleSessionEnabled && abOpenOrCloseSingleSession )
@@ -374,13 +455,16 @@ namespace GetCert2
 
                             // Look for string tokens of the form: {ProfileKey}, where "ProfileKey" is
                             // only expected to be found in the profile if it is prefixed by a hyphen.
+                            bool    lbUseLiteralsOnly = tvProfile.oGlobal().bUseLiteralsOnly;
                             Regex   loRegex = new Regex("{(.*?)}");
+                                    tvProfile.oGlobal().bUseLiteralsOnly = true;
                                     foreach (Match loMatch in loRegex.Matches(lsbReplaceProfileTokens.ToString()))
                                     {
                                         string  lsKey = loMatch.Groups[1].ToString();
-                                                if ( tvProfile.oGlobal().ContainsKey(lsKey) )
+                                                if ( lsKey.StartsWith("-") && tvProfile.oGlobal().ContainsKey(lsKey) )
                                                     lsbReplaceProfileTokens.Replace(loMatch.Groups[0].ToString(), tvProfile.oGlobal()[lsKey].ToString());
                                     }
+                                    tvProfile.oGlobal().bUseLiteralsOnly = lbUseLiteralsOnly;
 
                             lsScript = lsbReplaceProfileTokens.ToString().Replace(lsKludgeHide1, "++");
 
@@ -406,70 +490,83 @@ namespace GetCert2
                 Env.LogIt(lsLogScript);
 
             Env.bPowerScriptSkipLog = abSkipLog;
-
-            Process loProcess = new Process();
-                    loProcess.ErrorDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessErrorHandler);
-                    loProcess.OutputDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessOutputHandler);
-                    loProcess.StartInfo.FileName = lsProcessPathFile;
-                    loProcess.StartInfo.Arguments = lsProcessArgs;
-                    loProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(lsScriptPathFile);
-                    loProcess.StartInfo.UseShellExecute = false;
-                    loProcess.StartInfo.RedirectStandardError = true;
-                    loProcess.StartInfo.RedirectStandardInput = true;
-                    loProcess.StartInfo.RedirectStandardOutput = true;
-                    loProcess.StartInfo.CreateNoWindow = true;
-
-            System.Windows.Forms.Application.DoEvents();
-
-            Env.bPowerScriptError = false;
             Env.sPowerScriptOutput = null;
 
-            loProcess.Start();
-            loProcess.BeginErrorReadLine();
-            loProcess.BeginOutputReadLine();
-
-            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-PowerScriptTimeoutSecs", 300));
-
-            // Wait for the process to finish.
-            while ( !abMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
+            for (int i=0; i < tvProfile.oGlobal().iValue("-PowerScriptOutputRetries", 3); i++)
             {
+                Process loProcess = new Process();
+                        loProcess.ErrorDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessErrorHandler);
+                        loProcess.OutputDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessOutputHandler);
+                        loProcess.StartInfo.FileName = lsProcessPathFile;
+                        loProcess.StartInfo.Arguments = lsProcessArgs;
+                        loProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(lsScriptPathFile);
+                        loProcess.StartInfo.UseShellExecute = false;
+                        loProcess.StartInfo.RedirectStandardError = true;
+                        loProcess.StartInfo.RedirectStandardInput = true;
+                        loProcess.StartInfo.RedirectStandardOutput = true;
+                        loProcess.StartInfo.CreateNoWindow = true;
+
                 System.Windows.Forms.Application.DoEvents();
 
-                if ( !abMainLoopStopped )
-                    Thread.Sleep(tvProfile.oGlobal().iValue("-PowerScriptSleepMS", 200));
-            }
+                Env.bPowerScriptError = false;
 
-            if ( !abMainLoopStopped )
-            {
-                if ( !loProcess.HasExited )
-                    Env.LogIt(tvProfile.oGlobal().sValue("-PowerScriptTimeoutMsg", "*** sub-process timed-out ***\r\n\r\n"));
+                loProcess.Start();
+                loProcess.BeginErrorReadLine();
+                loProcess.BeginOutputReadLine();
 
-                int liExitCode = -1;
-                    try { liExitCode = loProcess.ExitCode; } catch {}
+                DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-PowerScriptTimeoutSecs", 300));
 
-                if ( Env.bPowerScriptError || liExitCode != 0 || !loProcess.HasExited )
+                // Wait for the process to finish.
+                while ( !Env.bMainLoopStopped && !loProcess.HasExited && DateTime.Now < ltdProcessTimeout )
                 {
-                    Env.LogIt(Env.sExceptionMessage("The sub-process experienced a critical failure."));
+                    System.Windows.Forms.Application.DoEvents();
+
+                    if ( !Env.bMainLoopStopped )
+                        Thread.Sleep(tvProfile.oGlobal().iValue("-PowerScriptSleepMS", 200));
+                }
+
+                if ( !Env.bMainLoopStopped )
+                {
+                    if ( !loProcess.HasExited )
+                        Env.LogIt(tvProfile.oGlobal().sValue("-PowerScriptTimeoutMsg", "*** sub-process timed-out ***\r\n\r\n"));
+
+                    int liExitCode = -1;
+                        try { liExitCode = loProcess.ExitCode; } catch {}
+
+                    if ( Env.bPowerScriptError || liExitCode != 0 || !loProcess.HasExited )
+                    {
+                        if ( !abSkipLog )
+                            Env.LogIt(Env.sExceptionMessage("The sub-process experienced a critical failure."));
+                    }
+                    else
+                    {
+                        lbRunPowerScript = true;
+
+                        if ( !String.IsNullOrEmpty(lsScriptPathFile) )
+                            File.Delete(lsScriptPathFile);
+
+                        if ( !abSkipLog && (!lbSingleSessionEnabled || !abOpenOrCloseSingleSession) )
+                            Env.LogSuccess();
+                    }
+                }
+
+                loProcess.CancelErrorRead();
+                loProcess.CancelOutputRead();
+
+                Env.bKillProcess(loProcess);
+
+                if ( !abRetryOutput || !String.IsNullOrEmpty(Env.sPowerScriptOutput) )
+                {
+                    break;
                 }
                 else
                 {
-                    lbRunPowerScript = true;
-
-                    if ( !String.IsNullOrEmpty(lsScriptPathFile) )
-                        File.Delete(lsScriptPathFile);
-
-                    if ( !abSkipLog && (!lbSingleSessionEnabled || !abOpenOrCloseSingleSession) )
-                        Env.LogSuccess();
+                    System.Windows.Forms.Application.DoEvents();
+                    Thread.Sleep(tvProfile.oGlobal().iValue("-PowerScriptOutputRetryMS", 1000));
                 }
             }
 
-            loProcess.CancelErrorRead();
-            loProcess.CancelOutputRead();
-
-            Env.bKillProcess(loProcess);
-
             asOutput = Env.sPowerScriptOutput;
-            Env.bPowerScriptSkipLog = false;
 
             return lbRunPowerScript;
         }
@@ -493,6 +590,12 @@ namespace GetCert2
             }
         }
 
+        public static void ProcessExitWait()
+        {
+            System.Windows.Forms.Application.DoEvents();
+            Thread.Sleep(tvProfile.oGlobal().iValue("-ProcessExitWaitMS", 1000));
+        }
+
         /// <summary>
         /// Returns the current IIS port 443 bound certificate (if any), otherwise whatever's in the local store (by name).
         /// </summary>
@@ -503,19 +606,19 @@ namespace GetCert2
         public static X509Certificate2 oCurrentCertificate(string asCertName)
         {
             string[]        lsSanArray = null;
-            ServerManager   loServerManager = null;
-            Site            loSite = null;
-            Site            loPrimarySiteForDefaults = null;
+            ServerManager   loDiscard1 = null;
+            Site            loDiscard2 = null;
+            Site            loDiscard3 = null;
 
-            return Env.oCurrentCertificate(asCertName, lsSanArray, out loServerManager, out loSite, out loPrimarySiteForDefaults);
+            return Env.oCurrentCertificate(asCertName, lsSanArray, out loDiscard1, out loDiscard2, out loDiscard3);
           }
         public static X509Certificate2 oCurrentCertificate(string asCertName, out ServerManager aoServerManager)
         {
             string[]        lsSanArray = null;
-            Site            loSite = null;
-            Site            loPrimarySiteForDefaults = null;
+            Site            loDiscard1 = null;
+            Site            loDiscard2 = null;
 
-            return Env.oCurrentCertificate(asCertName, lsSanArray, out aoServerManager, out loSite, out loPrimarySiteForDefaults);
+            return Env.oCurrentCertificate(asCertName, lsSanArray, out aoServerManager, out loDiscard1, out loDiscard2);
         }
         private static X509Certificate2 oCurrentCertificate(
                   string asCertName
@@ -523,24 +626,24 @@ namespace GetCert2
                 , out Site aoSiteFound
                 )
         {
-            ServerManager   loServerManager = null;
-            Site            loPrimarySiteForDefaults = null;
+            ServerManager   loDiscard1 = null;
+            Site            loDiscard2 = null;
 
-            return Env.oCurrentCertificate(asCertName, asSanArray, out loServerManager, out aoSiteFound, out loPrimarySiteForDefaults);
+            return Env.oCurrentCertificate(asCertName, asSanArray, out loDiscard1, out aoSiteFound, out loDiscard2);
         }
         public static X509Certificate2 oCurrentCertificate(
-                  string asCertName
+                  string asCertNameOrSanItem
                 , string[] asSanArray
                 , out ServerManager aoServerManager
                 , out Site aoSiteFound
                 )
         {
-            Site            loPrimarySiteForDefaults = null;
+            Site loDiscard = null;
 
-            return Env.oCurrentCertificate(asCertName, asSanArray, out aoServerManager, out aoSiteFound, out loPrimarySiteForDefaults);
+            return Env.oCurrentCertificate(asCertNameOrSanItem, asSanArray, out aoServerManager, out aoSiteFound, out loDiscard);
         }
         public static X509Certificate2 oCurrentCertificate(
-                  string asCertName
+                  string asCertNameOrSanItem
                 , string[] asSanArray
                 , out ServerManager aoServerManager
                 , out Site aoSiteFound
@@ -552,132 +655,210 @@ namespace GetCert2
                                 if ( lbLogCertificateStatus )
                                 {
                                     Env.LogIt(new String('*', 80));
-                                    Env.LogIt("Env.oCurrentCertificate(asCertName, asSanArray)");
-                                    Env.LogIt(String.Format("Env.oCurrentCertificate(\"{0}\", \"{1}\")", asCertName, null == asSanArray ? "" : String.Join(",", asSanArray)));
+                                    Env.LogIt("Env.oCurrentCertificate(asCertNameOrSanItem, asSanArray)");
+                                    Env.LogIt(String.Format("Env.oCurrentCertificate(\"{0}\", \"{1}\")", asCertNameOrSanItem, null == asSanArray ? "" : String.Join(",", asSanArray)));
                                 }
 
             // ServerManager is the IIS ServerManager. It gives us the website object for binding the cert.
-            aoServerManager = new ServerManager();
+            aoServerManager = null;
             aoSiteFound = null;
             aoPrimarySiteForDefaults = null;
 
             try
             {
-                string  lsCertName = null == asCertName ? null : asCertName.ToLower();
-                Binding loBindingFound = null;
-
-                if ( lbLogCertificateStatus )
-                    Env.LogIt("First, look thru existing IIS websites ...");
-
-                foreach (Site loSite in aoServerManager.Sites)
+                if (       null != goGetCertServiceFactory
+                        && null != goGetCertServiceFactory.Credentials.ClientCertificate.Certificate
+                        && asCertNameOrSanItem == Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate)
+                        && tvProfile.oGlobal().bValue("-CertificateSetupDone", false)
+                        && null == asSanArray   // Given a non-null SAN array means do a full search and return the various objects found.
+                        )
                 {
+                    loCurrentCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+
                     if ( lbLogCertificateStatus )
-                        Env.LogIt(String.Format("Site found (\"{0}\"). Now look for bindings by matching certificate.", loSite.Name));
+                        Env.LogIt(String.Format("Using certificate already found for the communications channel (\"{0}\"=\"{1}\").", Env.sCertName(loCurrentCertificate), loCurrentCertificate.Thumbprint));
 
-                    foreach (Binding loBinding in loSite.Bindings)
+                    if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
+                        aoServerManager = new ServerManager();
+                }
+                else
+                {
+                    string lsCertNameOrSanItem = null == asCertNameOrSanItem ? null : asCertNameOrSanItem.ToLower();
+
+                    if ( lbLogCertificateStatus )
+                        Env.LogIt("First, look thru existing IIS websites ...");
+
+                    if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
                     {
-                        if ( lbLogCertificateStatus )
-                            Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name - if asCertName is not null)."
-                                    , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
+                        Binding loBindingFound = null;
 
-                        if ( null != loBinding.CertificateHash )
-                            foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
+                        aoServerManager = new ServerManager();
+
+                        foreach (Site loSite in aoServerManager.Sites)
+                        {
+                            if ( loSite.Name == lsCertNameOrSanItem )
                             {
-                                if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
-                                    && (String.IsNullOrEmpty(lsCertName) || lsCertName == Env.sCertName(loCertificate).ToLower()) )
+                                if ( lbLogCertificateStatus )
+                                    Env.LogIt(String.Format("Site name found by matching certificate name (\"{0}\"). Now look for bindings by matching certificate thumbprint.", loSite.Name));
+
+                                foreach (Binding loBinding in loSite.Bindings)
                                 {
-                                    // Binding found that matches a certificate and certificate name (or no name).
-                                    loCurrentCertificate = loCertificate;
+                                    if ( lbLogCertificateStatus )
+                                        Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name) ..."
+                                                , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
+
+                                    if ( null != loBinding.CertificateHash )
+                                    foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
+                                    {
+                                        if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) && lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower() )
+                                        {
+                                            // Binding found that matches certificate thumbprint and name.
+                                            loCurrentCertificate = loCertificate;
+                                            aoSiteFound = loSite;
+                                            loBindingFound = loBinding;
+
+                                            if ( lbLogCertificateStatus )
+                                                Env.LogIt(String.Format("'My' store certificate matches (\"{0}\" - by thumbprint & certificate name).", loCertificate.Thumbprint));
+                                            break;
+                                        }
+                                        else
+                                        if ( lbLogCertificateStatus )
+                                            Env.LogIt(String.Format("'My' store certificate does NOT match (\"{0}\"=\"{1}\").", Env.sCertName(loCertificate), loCertificate.Thumbprint));
+                                    }
+
+                                    if ( null != loBindingFound )
+                                        break;
+                                }
+
+                                if ( null == loBindingFound && lbLogCertificateStatus )
+                                    Env.LogIt("No match found. No binding selected.");
+                            }
+
+                            if ( null != aoSiteFound )
+                                break;
+                        }
+
+                        if ( null == aoSiteFound )
+                        foreach (Site loSite in aoServerManager.Sites)
+                        {
+                            if ( lbLogCertificateStatus )
+                                Env.LogIt(String.Format("Site found (\"{0}\"). Now look for bindings by matching certificate thumbprint.", loSite.Name));
+
+                            foreach (Binding loBinding in loSite.Bindings)
+                            {
+                                if ( lbLogCertificateStatus )
+                                    Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name - if asCertNameOrSanItem is not null) ..."
+                                            , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
+
+                                if ( null != loBinding.CertificateHash )
+                                foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
+                                {
+                                    if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
+                                        && (String.IsNullOrEmpty(lsCertNameOrSanItem) || lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower()) )
+                                    {
+                                        // Binding found that matches certificate thumbprint and name (or no name).
+                                        loCurrentCertificate = loCertificate;
+                                        aoSiteFound = loSite;
+                                        loBindingFound = loBinding;
+
+                                        if ( lbLogCertificateStatus )
+                                            Env.LogIt(String.Format("'My' store certificate matches (\"{0}\" - {1}).", loCertificate.Thumbprint
+                                                    , lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower() ? "by thumbprint & certificate name" : "by thumbprint only, no name given"));
+                                        break;
+                                    }
+                                    else
+                                    if ( lbLogCertificateStatus )
+                                        Env.LogIt(String.Format("'My' store certificate does NOT match (\"{0}\"=\"{1}\").", Env.sCertName(loCertificate), loCertificate.Thumbprint));
+                                }
+
+                                if ( null != loBindingFound )
+                                    break;
+                            }
+
+                            if ( null == loBindingFound && lbLogCertificateStatus )
+                                Env.LogIt("No match found. No binding selected.");
+
+                            if ( null == loBindingFound && null != goSetupCertificate )
+                            {
+                                if ( lbLogCertificateStatus )
+                                    Env.LogIt(String.Format("Same site (\"{0}\"). Next, look for a binding matching setup certificate thumbprint (name match not required).", loSite.Name));
+
+                                foreach (Binding loBinding in loSite.Bindings)
+                                {
+                                    if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
+                                    {
+                                        // Binding found that matches the setup certificate.
+                                        // loCurrentCertificate MUST be null in this case to avoid attempted removal of the "old certificate."
+                                        loCurrentCertificate = null;
+                                        aoSiteFound = loSite;
+                                        loBindingFound = loBinding;
+
+                                        if ( lbLogCertificateStatus )
+                                            Env.LogIt(String.Format("Binding matches setup certificate thumbprint (\"{0}\".", goSetupCertificate.Thumbprint));
+                                        break;
+                                    }
+                                    else
+                                    if ( lbLogCertificateStatus )
+                                        Env.LogIt(String.Format("Binding does NOT match setup certificate thumbprint (\"{0}\"=\"{1}\").", Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
+                                }
+                            }
+
+                            // Next, if no binding certificate match exists, look by binding hostname (ie. SNI)
+                            // (note: this is just to populate aoSiteFound and loBindingFound).
+                            if ( null == loBindingFound )
+                            foreach (Binding loBinding in loSite.Bindings)
+                            {
+                                if ( null == loBinding.CertificateHash && !String.IsNullOrEmpty(lsCertNameOrSanItem)
+                                        && lsCertNameOrSanItem == loBinding.Host.ToLower() && "https" == loBinding.Protocol )
+                                {
+                                    // Site found with a binding hostname that matches lsCertNameOrSanItem.
                                     aoSiteFound = loSite;
                                     loBindingFound = loBinding;
-
-                                    if ( lbLogCertificateStatus )
-                                        Env.LogIt(String.Format("'My' store certificate matches (\"{0}\" - {1}).", loCertificate.Thumbprint
-                                                , lsCertName == Env.sCertName(loCertificate).ToLower() ? "by thumbprint & certificate name" : "by thumbprint only, no name given"));
                                     break;
                                 }
-                                else
-                                if ( lbLogCertificateStatus )
-                                    Env.LogIt(String.Format("'My' store certificate does NOT match (\"{0}\"=\"{1}\").", Env.sCertName(loCertificate), loCertificate.Thumbprint));
+
+                                if ( null != loBindingFound )
+                                    break;
                             }
+
+                            // Finally, with no binding found, try to match against the site name.
+                            // (note: this is just to populate aoSiteFound).
+                            if ( null == loBindingFound && loSite.Name.ToLower() == lsCertNameOrSanItem )
+                                aoSiteFound = loSite;
+
+                            if ( null != aoSiteFound )
+                                break;
+                        }
+
+                        // Finally, finally (no really), with no site found, find a related primary site to use for defaults.
+                        string lsPrimaryCertName = null == asSanArray || 0 == asSanArray.Length ? null : asSanArray[0].ToLower();
+
+                        if ( null == aoSiteFound && !String.IsNullOrEmpty(lsPrimaryCertName) && lsCertNameOrSanItem != lsPrimaryCertName )
+                        {
+                            // Use the primary site in the SAN array as defaults for any new site (to be created).
+                            Env.oCurrentCertificate(lsPrimaryCertName, asSanArray, out aoPrimarySiteForDefaults);
+                        }
                     }
 
-                    if ( null == loBindingFound && null != goSetupCertificate )
+                    if ( lbLogCertificateStatus && null == aoServerManager )
+                        Env.LogIt("    IIS is not used by this instance.");
+
+                    // As a last resort (so much for finally), use the oldest certificate found in the local 'My' store (by name).
+                    if ( null == loCurrentCertificate && !String.IsNullOrEmpty(lsCertNameOrSanItem) )
                     {
                         if ( lbLogCertificateStatus )
-                            Env.LogIt(String.Format("Same site (\"{0}\"). Next, look for a binding matching setup certificate thumbprint (name match not required).", loSite.Name));
-
-                        foreach (Binding loBinding in loSite.Bindings)
+                            Env.LogIt("Finally, look for a certificate in the local 'My' store by name ...");
+                
+                        foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                         {
-                            if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
+                            if ( lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower()
+                                    && (null == loCurrentCertificate || loCertificate.NotAfter < loCurrentCertificate.NotAfter) )
                             {
-                                // Binding found that matches the setup certificate.
-                                // loCurrentCertificate MUST be null in this case to avoid attempted removal of the "old certificate."
-                                loCurrentCertificate = null;
-                                aoSiteFound = loSite;
-                                loBindingFound = loBinding;
+                                loCurrentCertificate = loCertificate;
 
                                 if ( lbLogCertificateStatus )
-                                    Env.LogIt(String.Format("Binding matches setup certificate (\"{0}\".", goSetupCertificate.Thumbprint));
-                                break;
+                                    Env.LogIt(String.Format("Certificate (by name) matches (\"{0}\"=\"{1}\" - looking for oldest).", Env.sCertName(loCertificate), loCertificate.Thumbprint));
                             }
-                            else
-                            if ( lbLogCertificateStatus )
-                                Env.LogIt(String.Format("Binding does NOT match setup certificate (\"{0}\"=\"{1}\").", Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
-                        }
-                    }
-
-                    // Next, if no binding certificate match exists, look by binding hostname (ie. SNI)
-                    // (note: this is just to populate aoSiteFound and loBindingFound).
-                    if ( null == loBindingFound )
-                        foreach (Binding loBinding in loSite.Bindings)
-                        {
-                            if ( null == loBinding.CertificateHash && !String.IsNullOrEmpty(lsCertName)
-                                    && lsCertName == loBinding.Host.ToLower() && "https" == loBinding.Protocol )
-                            {
-                                // Site found with a binding hostname that matches lsCertName.
-                                aoSiteFound = loSite;
-                                loBindingFound = loBinding;
-                                break;
-                            }
-
-                            if ( null != loBindingFound )
-                                break;
-                        }
-
-                    // Finally, with no binding found, try to match against the site name.
-                    // (note: this is just to populate aoSiteFound).
-                    if ( null == loBindingFound && asCertName == loSite.Name )
-                        aoSiteFound = loSite;
-
-                    if ( null != aoSiteFound )
-                        break;
-                }
-
-                // Finally, finally (no really), with no site found, find a related primary site to use for defaults.
-                string lsPrimaryCertName = null == asSanArray || 0 == asSanArray.Length ? null : asSanArray[0].ToLower();
-
-                if ( null == aoSiteFound && !String.IsNullOrEmpty(lsPrimaryCertName) && lsCertName != lsPrimaryCertName )
-                {
-                    // Use the primary site in the SAN array as defaults for any new site (to be created).
-                    Env.oCurrentCertificate(lsPrimaryCertName, asSanArray, out aoPrimarySiteForDefaults);
-                }
-
-                // As a last resort (so much for finally), use the oldest certificate found in the local 'My' store (by name).
-                if ( null == loCurrentCertificate && !String.IsNullOrEmpty(lsCertName) )
-                {
-                    if ( lbLogCertificateStatus )
-                        Env.LogIt("Finally, look for a certificate in the local 'My' store by name ...");
-                
-                    foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
-                    {
-                        if ( lsCertName == Env.sCertName(loCertificate).ToLower()
-                                && (null == loCurrentCertificate || loCertificate.NotAfter < loCurrentCertificate.NotAfter) )
-                        {
-                            loCurrentCertificate = loCertificate;
-
-                            if ( lbLogCertificateStatus )
-                                Env.LogIt(String.Format("Certificate (by name) matches (\"{0}\"=\"{1}\" - looking for oldest).", Env.sCertName(loCertificate), loCertificate.Thumbprint));
                         }
                     }
                 }
@@ -692,8 +873,9 @@ namespace GetCert2
             }
             catch (Exception ex)
             {
+                Environment.ExitCode = 1;
                 Env.LogIt(ex.Message);
-                Env.LogIt("IIS may not be fully configured. This will prevent certificate-to-site binding in IIS.");
+                Env.LogIt("IIS may not be installed or fully configured. This will prevent certificate-to-site binding in IIS.");
             }
 
             return loCurrentCertificate;
@@ -701,7 +883,7 @@ namespace GetCert2
 
         public static string sExceptionMessage(Exception ex)
         {
-            return String.Format("ServiceFault: {0}{1}{2}{3}", ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message), Environment.NewLine, ex.StackTrace);
+            return String.Format("ServiceFault({0}): {1}{2}{3}{4}", ex.GetType().FullName, ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message), Environment.NewLine, ex.StackTrace);
         }
         public static string sExceptionMessage(string asMessage)
         {
@@ -750,7 +932,11 @@ namespace GetCert2
         }
         public static string sHostLogText(bool abUnfiltered)
         {
-            string          lsHostLogText = null;
+            if ( tvProfile.oGlobal().sLoadedPathFile != tvProfile.oGlobal().sDefaultPathFile )
+                return null;
+
+            string          lsHostLogText1 = null;
+            string          lsHostLogText2 = null;
             string          lsHostLogSpec = tvProfile.oGlobal().sValue("-HostLogSpec", String.Format(@"Logs\{0}Log*", Env.sHostProcess));
             string          lsHostLogPathFiles = null;
                             if ( "" == Path.GetPathRoot(lsHostLogSpec) )
@@ -763,28 +949,64 @@ namespace GetCert2
                             }
             string          lsHostLogPath = Path.GetDirectoryName(lsHostLogPathFiles);
             string          lsHostLogFiles = Path.GetFileName(lsHostLogPathFiles);
-            IOrderedEnumerable<FileSystemInfo> loFileSysInfoList = 
-                    new DirectoryInfo(lsHostLogPath).GetFileSystemInfos(lsHostLogFiles).OrderByDescending(a => a.LastWriteTime);
-            string          lsHostLogPathFile = loFileSysInfoList.First().FullName;
-            string          lsDelimiterBeg = String.Format("{0}  BEGIN   {1}   BEGIN  {0}", new String('*', 26), lsHostLogPathFile);
-            string          lsDelimiterEnd = String.Format("{0}  END     {1}     END  {0}", new String('*', 26), lsHostLogPathFile);
-            
+            IOrderedEnumerable<FileSystemInfo> loFileSysInfoList = null;
+                            if ( Directory.Exists(lsHostLogPath) )
+                                loFileSysInfoList = new DirectoryInfo(lsHostLogPath).GetFileSystemInfos(lsHostLogFiles).OrderByDescending(a => a.LastWriteTime);
+            string          lsHostLogPathFile1 = null;
+                            if ( null != loFileSysInfoList && loFileSysInfoList.Count() > 0 ) 
+                                lsHostLogPathFile1 = loFileSysInfoList.First().FullName;
+                            else
+                                lsHostLogPathFile1 = String.Format("Error locating today's \"{0}\" file.", lsHostLogPathFiles);
+            string          lsHostLogPathFile2 = null;
+                            if ( null != loFileSysInfoList && loFileSysInfoList.Count() > 1 ) 
+                                lsHostLogPathFile2 = loFileSysInfoList.Skip(1).First().FullName;
+                            else
+                                lsHostLogPathFile2 = String.Format("Error locating yesterday's \"{0}\" file.", lsHostLogPathFiles);
+            string          lsDelimiterBeg = String.Format("{0}  BEGIN   {{0}}   BEGIN  {0}", new String('*', 26));
+            string          lsDelimiterEnd = String.Format("{0}  END     {{0}}     END  {0}", new String('*', 26));
+            string          lsFinalFormat = "{0}{1}{0}{2}{3}{0}";
+
             if ( abUnfiltered )
             {
-                lsHostLogText = File.ReadAllText(lsHostLogPathFile);
+                if ( File.Exists(lsHostLogPathFile1) )
+                    lsHostLogText1 = File.ReadAllText(lsHostLogPathFile1);
+
+                if ( File.Exists(lsHostLogPathFile2) )
+                    lsHostLogText2 = File.ReadAllText(lsHostLogPathFile2);
             }
             else
             {
-                string[]        lsHostLogTextArray = File.ReadAllText(lsHostLogPathFile).Split(Environment.NewLine.ToCharArray());
-                StringBuilder   lsbHostLogTextFiltered = new StringBuilder();
-                                foreach(string lsLine in lsHostLogTextArray)
-                                    if ( lsLine.Contains(tvProfile.oGlobal().sValue("-HostLogFilter", "-CommandEXE=")) )
-                                        lsbHostLogTextFiltered.AppendLine(lsLine);
+                string[]        lsHostLogTextArray = null;
+                StringBuilder   lsbHostLogTextFiltered = null;
 
-                lsHostLogText = lsbHostLogTextFiltered.ToString();
+                if ( File.Exists(lsHostLogPathFile1) )
+                {
+                    lsHostLogTextArray = File.ReadAllText(lsHostLogPathFile1).Split(Environment.NewLine.ToCharArray());
+                    lsbHostLogTextFiltered = new StringBuilder();
+
+                    foreach(string lsLine in lsHostLogTextArray)
+                        if ( lsLine.Contains(tvProfile.oGlobal().sValue("-HostLogFilter", "-CommandEXE=")) )
+                            lsbHostLogTextFiltered.AppendLine(lsLine);
+
+                    lsHostLogText1 = lsbHostLogTextFiltered.ToString();
+                }
+
+                if ( File.Exists(lsHostLogPathFile2) )
+                {
+                    lsHostLogTextArray = File.ReadAllText(lsHostLogPathFile2).Split(Environment.NewLine.ToCharArray());
+                    lsbHostLogTextFiltered = new StringBuilder();
+
+                    foreach(string lsLine in lsHostLogTextArray)
+                        if ( lsLine.Contains(tvProfile.oGlobal().sValue("-HostLogFilter", "-CommandEXE=")) )
+                            lsbHostLogTextFiltered.AppendLine(lsLine);
+
+                    lsHostLogText2 = lsbHostLogTextFiltered.ToString();
+                }
             }
+        
 
-            return String.Format("{0}{1}{0}{2}{3}{0}", Environment.NewLine, lsDelimiterBeg, lsHostLogText, lsDelimiterEnd);
+            return    String.Format(lsFinalFormat, Environment.NewLine, String.Format(lsDelimiterBeg, lsHostLogPathFile1), lsHostLogText1, String.Format(lsDelimiterEnd, lsHostLogPathFile1))
+                    + String.Format(lsFinalFormat, Environment.NewLine, String.Format(lsDelimiterBeg, lsHostLogPathFile2), lsHostLogText2, String.Format(lsDelimiterEnd, lsHostLogPathFile2));
         }
 
         public static string sHostProfile()
@@ -802,6 +1024,7 @@ namespace GetCert2
             else
             {
                 tvProfile   loHostProfile = new tvProfile(Env.sHostExePathFile() + ".txt.backup.txt", false);
+                            loHostProfile.bEnableFileLock = false;
                 tvProfile   loHostProfileFiltered = loHostProfile.oOneKeyProfile("-AddTasks");
                             foreach(DictionaryEntry loEntry in loHostProfile.oOneKeyProfile("-BackupFiles"))
                                 loHostProfileFiltered.Add(loEntry);
@@ -895,6 +1118,7 @@ namespace GetCert2
             return lsOutputPathFile;
         }
 
+        public static bool      bMainLoopStopped = false;
         public static bool      bPowerScriptError = false;
         public static bool      bPowerScriptSkipLog = false;
         public static int       iNonErrorBounceSecs = 0;
@@ -902,6 +1126,7 @@ namespace GetCert2
         public static string    sFetchPrefix = "Resources.Fetch.";
         public static string    sHostProcess = "GoPcBackup.exe";
         public static string    sNewClientSetupPfxName = "GcSetup.pfx";
+        public static string    sNewClientSetupCertName = "GetCertClientSetup";
         public static string    sWcfLogFile  = "WcfLog.txt";         // Must be changed in the WCF config too.
 
         /// <summary>
@@ -962,89 +1187,84 @@ namespace GetCert2
             Env.LogIt("Success.");
         }
 
-        public static void ScheduleBounce(ref bool abMainLoopStopped, int aiSecondsUntilBounce, bool abSkipLog)
+        public static void ScheduleBounce(tvProfile aoDomainProfile, int aiSecondsUntilBounce, bool abSkipLog)
         {
-            string lsDiscard = null;
-
-            Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, null
-                    , tvProfile.oGlobal().sValue("-ScriptBounce", "shutdown.exe /r /t {SecondsUntilBounce}").Replace("{SecondsUntilBounce}", aiSecondsUntilBounce.ToString()), false, abSkipLog);
-        }
-
-        public static void ScheduleBounceCancel(ref bool abMainLoopStopped, bool abSkipLog)
-        {
-            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+            if (       !aoDomainProfile.bValue("-EnableRetryBounce", false)
+                    || DateTime.Now < aoDomainProfile.dtValue("-MaintenanceWindowBeginTime", DateTime.MaxValue)
+                    || DateTime.Now > aoDomainProfile.dtValue("-MaintenanceWindowEndTime", DateTime.MinValue)
+                            .AddMinutes(tvProfile.oGlobal().iValue("-AddMinsToMaintenanceWindow", 0))
+                            .AddSeconds(-aiSecondsUntilBounce)  // Subtract the seconds until bounce.
+                    )
                 return;
 
-            bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
-                    tvProfile.oGlobal().bSaveEnabled = true;
-                    tvProfile.oGlobal()["-OnErrorBounceCount"] = tvProfile.oGlobal().iValue("-OnErrorBounceCount", 0) - 1;
-                    tvProfile.oGlobal().Save();
-                    tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
             string lsDiscard = null;
 
-            Env.bRunPowerScript(ref abMainLoopStopped, out lsDiscard, null
-                    , tvProfile.oGlobal().sValue("-ScriptBounceCancel", "shutdown.exe /a"), false, abSkipLog);
+            Env.bRunPowerScript(out lsDiscard, null
+                    , tvProfile.oGlobal().sValue("-ScriptBounce", "shutdown.exe /r /t {SecondsUntilBounce} /c \"{ExeName} initiated bounce for '{CertificateDomainName}' domain\"")
+                            .Replace("{SecondsUntilBounce}", aiSecondsUntilBounce.ToString())
+                            .Replace("{ExeName}", Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sExePathFile))
+                            .Replace("{CertificateDomainName}", tvProfile.oGlobal().sValue("-CertificateDomainName" ,""))
+                    , false, abSkipLog, false);
+        }
+
+        public static void ScheduleBounceOnErrorCancel(bool abSkipLog)
+        {
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false) )
+                return;
+
+            File.Delete(Env.sBounceOnErrorLockPathFile);
+
+            string  lsDiscard = null;
+                    Env.bRunPowerScript(out lsDiscard, null
+                            , tvProfile.oGlobal().sValue("-ScriptBounceCancel", "shutdown.exe /a"), false, abSkipLog, false);
         }
 
         public static void ScheduleBounceReset()
         {
-            if ( !tvProfile.oGlobal().bValue("-Auto", false) || DateTime.Now.Date == tvProfile.oGlobal().dtValue("-BounceScheduled", DateTime.MinValue).Date )
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false) )
                 return;
 
-            // Only reset bounce counts on subsequent days.
+            // Bounce locks can only be reset on subsequent days.
 
-            bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
-                    tvProfile.oGlobal().bSaveEnabled = true;
-                    tvProfile.oGlobal().Remove("-NonErrorBounceCount");
-                    tvProfile.oGlobal().Remove("-OnErrorBounceCount");
-                    tvProfile.oGlobal().Save();
-                    tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+            if ( DateTime.Now.Date != new FileInfo(Env.sBounceOnErrorLockPathFile).LastWriteTime.Date )
+                File.Delete(Env.sBounceOnErrorLockPathFile);
+
+            if ( DateTime.Now.Date != new FileInfo(Env.sBounceOnNonErrorLockPathFile).LastWriteTime.Date )
+                File.Delete(Env.sBounceOnNonErrorLockPathFile);
         }
 
-        public static void ScheduleNonErrorBounce(ref bool abMainLoopStopped)
+        public static void ScheduleNonErrorBounce(tvProfile aoDomainProfile)
         {
-            Env.ScheduleNonErrorBounce(ref abMainLoopStopped, false);
+            Env.ScheduleNonErrorBounce(aoDomainProfile, false);
         }
-        public static void ScheduleNonErrorBounce(ref bool abMainLoopStopped, bool abSkipLog)
+        public static void ScheduleNonErrorBounce(tvProfile aoDomainProfile, bool abSkipLog)
         {
-            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false) || !tvProfile.oGlobal().bValue("-EnableRetryBounce", true) )
                 return;
 
-            int liBounceCount = 1   + tvProfile.oGlobal().iValue("-NonErrorBounceCount", 0);
-                if ( liBounceCount <= tvProfile.oGlobal().iValue("-NonErrorBounceMax",   1) )
-                {
-                    bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
-                            tvProfile.oGlobal().bSaveEnabled = true;
-                            tvProfile.oGlobal()["-NonErrorBounceCount"] = liBounceCount;
-                            tvProfile.oGlobal()["-BounceScheduled"] = DateTime.Now;
-                            tvProfile.oGlobal().Save();
-                            tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+            if ( !File.Exists(Env.sBounceOnNonErrorLockPathFile) )
+            {
+                File.WriteAllText(Env.sBounceOnNonErrorLockPathFile, tvProfile.oGlobal().sValue("-CertificateDomainName" ,""));
 
-                    Env.ScheduleBounce(ref abMainLoopStopped, Env.iNonErrorBounceSecs, abSkipLog);
-                }
+                Env.ScheduleBounce(aoDomainProfile, Env.iNonErrorBounceSecs, abSkipLog);
+            }
         }
 
-        public static void ScheduleOnErrorBounce(ref bool abMainLoopStopped)
+        public static void ScheduleOnErrorBounce(tvProfile aoDomainProfile)
         {
-            Env.ScheduleOnErrorBounce(ref abMainLoopStopped, false);
+            Env.ScheduleOnErrorBounce(aoDomainProfile, false);
         }
-        public static void ScheduleOnErrorBounce(ref bool abMainLoopStopped, bool abDuringStartup)
+        public static void ScheduleOnErrorBounce(tvProfile aoDomainProfile, bool abDuringStartup)
         {
-            if ( !tvProfile.oGlobal().bValue("-Auto", false) )
+            if ( !tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false) || !tvProfile.oGlobal().bValue("-EnableRetryBounce", true) )
                 return;
 
-            int liBounceCount = 1   + tvProfile.oGlobal().iValue("-OnErrorBounceCount", 0);
-                if ( liBounceCount <= tvProfile.oGlobal().iValue("-OnErrorBounceMax",   1) )
-                {
-                    bool    lbBackupSaveEnabled = tvProfile.oGlobal().bSaveEnabled;
-                            tvProfile.oGlobal().bSaveEnabled = true;
-                            tvProfile.oGlobal()["-OnErrorBounceCount"] = liBounceCount;
-                            tvProfile.oGlobal()["-BounceScheduled"] = DateTime.Now;
-                            tvProfile.oGlobal().Save();
-                            tvProfile.oGlobal().bSaveEnabled = lbBackupSaveEnabled;
+            if ( !File.Exists(Env.sBounceOnErrorLockPathFile) )
+            {
+                File.WriteAllText(Env.sBounceOnErrorLockPathFile, tvProfile.oGlobal().sValue("-CertificateDomainName" ,""));
 
-                    Env.ScheduleBounce(ref abMainLoopStopped, tvProfile.oGlobal().iValue("-OnErrorBounceSecs", 60), abDuringStartup);
-                }
+                Env.ScheduleBounce(aoDomainProfile, tvProfile.oGlobal().iValue("-OnErrorBounceSecs", 600), abDuringStartup);
+            }
         }
 
         // Reset WCF configuration, from "https://stackoverflow.com/questions/6150644/change-default-app-config-at-runtime".
@@ -1096,7 +1316,11 @@ namespace GetCert2
             }
 
             if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate
-                    || (loProfile.bValue("-CertificateSetupDone", false) && goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Subject.Contains("*")) )
+                    || ( loProfile.bValue("-CertificateSetupDone", false)
+                        && (   Env.sNewClientSetupCertName == Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate)
+                            || goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Subject.Contains("*") )
+                            )
+                        )
             {
                 if ( null == goSetupCertificate )
                 {
@@ -1106,6 +1330,7 @@ namespace GetCert2
                             goSetupCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
 
                         if ( null == goSetupCertificate && !loProfile.bValue("-CertificateSetupDone", false)
+                                && (!tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false))
                                 && (!loProfile.bValue("-NoPrompts", false) || (!loProfile.bValue("-LicenseAccepted", false) && !loProfile.bValue("-AllConfigWizardStepsCompleted", false))) )
                         {
                             System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
@@ -1136,6 +1361,7 @@ namespace GetCert2
                                     }
                                     catch (Exception ex)
                                     {
+                                        Environment.ExitCode = 1;
                                         loProfile.bExit = true;
 
                                         Env.LogIt(Env.sExceptionMessage(ex));
@@ -1146,6 +1372,7 @@ namespace GetCert2
                     }
                     catch (Exception ex)
                     {
+                        Environment.ExitCode = 1;
                         loProfile.bExit = true;
 
                         Env.LogIt(Env.sExceptionMessage(ex));
@@ -1154,7 +1381,8 @@ namespace GetCert2
                     }
                 }
 
-                goGetCertServiceFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
+                if ( null != goSetupCertificate )
+                    goGetCertServiceFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
             }
 
             if ( !lbLogCertificateStatus )
@@ -1168,13 +1396,19 @@ namespace GetCert2
                 {
                     Env.LogIt("goSetupCertificate=null");
 
+                    if ( !loProfile.bValue("-CertificateSetupDone", false) )
+                        Env.LogIt("    Note: -CertificateSetupDone=False (set this value True if you know the current domain certificate already supersedes the setup certificate.");
+
                     goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
 
                     Env.LogIt("goSetupCertificate=goGetCertServiceFactory.Credentials.ClientCertificate.Certificate");
                 }
 
-                Env.LogIt(String.Format("goSetupCertificate=(\"{0}\"=\"{1}\")"
-                        , Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
+                if ( null == goSetupCertificate )
+                    Env.LogIt("goSetupCertificate=null");
+                else
+                    Env.LogIt(String.Format("goSetupCertificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
 
                 if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
                     Env.LogIt("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");

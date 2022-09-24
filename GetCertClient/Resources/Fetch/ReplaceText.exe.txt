@@ -1,22 +1,25 @@
 ReplaceText.exe
 
--XML_Profile=False
--SaveProfile=True
--ShowProfile=False
--SaveSansCmdLine=True
--SubToken=
--OldSubValue=
--NewSubValue=
+-SaveProfile=False
 -NoPrompts=True
 -DisplayResults=False
--DisplayResultsModule=Notepad.exe
--IgnoreNoFilesFound=False
 -CopyResultsToSTDOUT=True
 -SearchOnly=False
 -RecurseSubdirectories=True
--TrackItemsFoundPerFile=False
--CaseInsensitiveSearch=True
--UseRegularExpressions=False
--UseSpecialCharacters=False
--FetchSource=False
--Help=
+-UseRegularExpressions=True
+-RegexOptions=2
+-IgnoreNoFilesFound=True
+-SubToken={ST1}
+-SubToken={ST2}
+-NewSubValue=
+-NewSubValue=
+-OldText=(\s*)<add\s+thumbprint=".{40}"(.*)\/>\s*<add\s+thumbprint="{ST1}"(.*)\/>
+-NewText="$1<add thumbprint="{New SSO Thumbprint}"$2/>$1<add thumbprint="{Old SSO Thumbprint}"$3/>"
+-OldText=(\s*)<add\s+thumbprint="{ST1}"(.*)\/>\s*<add\s+thumbprint=".{40}"(.*)\/>
+-NewText="$1<add thumbprint="{New SSO Thumbprint}"$2/>$1<add thumbprint="{Old SSO Thumbprint}"$3/>"
+-OldText=(\s*)<add\s+thumbprint="{ST1}"(.*)\/>
+-NewText="$1<add thumbprint="{New SSO Thumbprint}"$2/>$1<add thumbprint="{Old SSO Thumbprint}"$2/>"
+-OldText="{Old SSO Thumbprint}"
+-NewText={ST1}
+-OldText="{New SSO Thumbprint}"
+-NewText={ST2}

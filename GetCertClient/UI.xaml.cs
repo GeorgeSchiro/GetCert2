@@ -1375,6 +1375,7 @@ If you would prefer to finish this setup at another time, you can exit now and c
             moDoGetCert.bGetClientCertificates(lsHash, lbtArrayMinProfile);
             moDoGetCert.bReplaceSsoThumbprint(lsHash, lbtArrayMinProfile);
             moDoGetCert.bGetCertificate();
+            this.ShowMe();
 
             this.bMainProcessRunning = false;
         }
