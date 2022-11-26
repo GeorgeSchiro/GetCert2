@@ -2,13 +2,14 @@ ReplaceText.exe
 
 -SaveProfile=False
 -NoPrompts=True
--DisplayResults=False
+-CaseInsensitiveSearch=True
 -CopyResultsToSTDOUT=True
--SearchOnly=False
+-DisplayResults=False
+-IgnoreNoFilesFound=True
 -RecurseSubdirectories=True
 -UseRegularExpressions=True
 -RegexOptions=2
--IgnoreNoFilesFound=True
+-SearchOnly=False
 -SubToken={ST1}
 -SubToken={ST2}
 -NewSubValue=

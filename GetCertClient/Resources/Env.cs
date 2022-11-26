@@ -121,18 +121,18 @@ namespace GetCert2
             return loProfile;
         }
 
-        public static X509Certificate2 oSetupCertificate
+        public static X509Certificate2 oChannelCertificate
         {
             get
             {
-                return goSetupCertificate;
+                return goChannelCertificate;
             }
             set
             {
-                goSetupCertificate = value;
+                goChannelCertificate = value;
             }
         }
-        private static X509Certificate2 goSetupCertificate = null;
+        private static X509Certificate2 goChannelCertificate = null;
 
         /// <summary>
         /// Returns the certificate name from a certificate.
@@ -219,6 +219,11 @@ namespace GetCert2
 
                 return lsLogPathFileBase;
             }
+        }
+
+        public static bool bIsSetupCert(X509Certificate2 aoCertificate)
+        {
+            return Env.sNewClientSetupCertName == Env.sCertName(aoCertificate) || aoCertificate.Subject.Contains("*");
         }
 
         // This kludge is necessary since neither "Process.CloseMainWindow()" nor "Process.Kill()" work reliably.
@@ -375,7 +380,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             loProcess.BeginErrorReadLine();
             loProcess.BeginOutputReadLine();
 
-            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-ReplaceTextTimeoutSecs", 120));
+            DateTime ltdProcessTimeout = DateTime.Now.AddSeconds(tvProfile.oGlobal().dValue("-ReplaceTextTimeoutSecs", 600));
 
             if ( !abSkipLog )
                 Env.LogIt(loProcess.StartInfo.Arguments);
@@ -656,7 +661,10 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                 {
                                     Env.LogIt(new String('*', 80));
                                     Env.LogIt("Env.oCurrentCertificate(asCertNameOrSanItem, asSanArray)");
-                                    Env.LogIt(String.Format("Env.oCurrentCertificate(\"{0}\", \"{1}\")", asCertNameOrSanItem, null == asSanArray ? "" : String.Join(",", asSanArray)));
+                                    Env.LogIt(String.Format("Env.oCurrentCertificate({0}, {1})"
+                                                , null == asCertNameOrSanItem ? "null" : String.Format("\"{0}\"", asCertNameOrSanItem)
+                                                , null == asSanArray ? "null" : String.Format("\"{0}\"", String.Join(",", asSanArray))
+                                                ));
                                 }
 
             // ServerManager is the IIS ServerManager. It gives us the website object for binding the cert.
@@ -666,14 +674,14 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
             try
             {
-                if (       null != goGetCertServiceFactory
-                        && null != goGetCertServiceFactory.Credentials.ClientCertificate.Certificate
-                        && asCertNameOrSanItem == Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate)
+                if (       null != Env.oGetCertServiceFactory
+                        && null != Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate
+                        && asCertNameOrSanItem == Env.sCertName(Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate)
                         && tvProfile.oGlobal().bValue("-CertificateSetupDone", false)
                         && null == asSanArray   // Given a non-null SAN array means do a full search and return the various objects found.
                         )
                 {
-                    loCurrentCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+                    loCurrentCertificate = Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
 
                     if ( lbLogCertificateStatus )
                         Env.LogIt(String.Format("Using certificate already found for the communications channel (\"{0}\"=\"{1}\").", Env.sCertName(loCurrentCertificate), loCurrentCertificate.Thumbprint));
@@ -699,12 +707,12 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                             if ( loSite.Name == lsCertNameOrSanItem )
                             {
                                 if ( lbLogCertificateStatus )
-                                    Env.LogIt(String.Format("Site name found by matching certificate name (\"{0}\"). Now look for bindings by matching certificate thumbprint.", loSite.Name));
+                                    Env.LogIt(String.Format("Site found by matching certificate name or SAN item name (\"{0}\"). Now looking for bindings by matching certificate thumbprint ...", loSite.Name));
 
                                 foreach (Binding loBinding in loSite.Bindings)
                                 {
                                     if ( lbLogCertificateStatus )
-                                        Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name) ..."
+                                        Env.LogIt(String.Format("Binding found (\"{0}\"). Now looking for a matching certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name) ..."
                                                 , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
 
                                     if ( null != loBinding.CertificateHash )
@@ -742,12 +750,12 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                         foreach (Site loSite in aoServerManager.Sites)
                         {
                             if ( lbLogCertificateStatus )
-                                Env.LogIt(String.Format("Site found (\"{0}\"). Now look for bindings by matching certificate thumbprint.", loSite.Name));
+                                Env.LogIt(String.Format("Site found (\"{0}\") in sequence - not by matching name. Now looking for bindings by matching certificate thumbprint ...", loSite.Name));
 
                             foreach (Binding loBinding in loSite.Bindings)
                             {
                                 if ( lbLogCertificateStatus )
-                                    Env.LogIt(String.Format("Binding found (\"{0}\"). Select first binding with a certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name - if asCertNameOrSanItem is not null) ..."
+                                    Env.LogIt(String.Format("Binding found (\"{0}\"). Now looking for a matching certificate - ie. a non-null \"Binding.CertificateHash={1}\" - (and a matching name - if asCertNameOrSanItem is not null) ..."
                                             , loBinding.BindingInformation, null == loBinding.CertificateHash ? "null" : Env.sCertThumbprintFromBindingHash(loBinding)));
 
                                 if ( null != loBinding.CertificateHash )
@@ -778,14 +786,14 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                             if ( null == loBindingFound && lbLogCertificateStatus )
                                 Env.LogIt("No match found. No binding selected.");
 
-                            if ( null == loBindingFound && null != goSetupCertificate )
+                            if ( null == loBindingFound && null != Env.oChannelCertificate && Env.bIsSetupCert(Env.oChannelCertificate) )
                             {
                                 if ( lbLogCertificateStatus )
-                                    Env.LogIt(String.Format("Same site (\"{0}\"). Next, look for a binding matching setup certificate thumbprint (name match not required).", loSite.Name));
+                                    Env.LogIt(String.Format("Same site (\"{0}\"). Next, looking for a binding matching the setup certificate thumbprint (name match not required) ...", loSite.Name));
 
                                 foreach (Binding loBinding in loSite.Bindings)
                                 {
-                                    if ( null != loBinding.CertificateHash && goSetupCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
+                                    if ( null != loBinding.CertificateHash && Env.oChannelCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash) )
                                     {
                                         // Binding found that matches the setup certificate.
                                         // loCurrentCertificate MUST be null in this case to avoid attempted removal of the "old certificate."
@@ -794,13 +802,18 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                         loBindingFound = loBinding;
 
                                         if ( lbLogCertificateStatus )
-                                            Env.LogIt(String.Format("Binding matches setup certificate thumbprint (\"{0}\".", goSetupCertificate.Thumbprint));
+                                            Env.LogIt(String.Format("Binding (\"{0}\") matches setup certificate thumbprint (\"{1}\")."
+                                                                    , loBinding.BindingInformation, Env.oChannelCertificate.Thumbprint));
                                         break;
                                     }
                                     else
                                     if ( lbLogCertificateStatus )
-                                        Env.LogIt(String.Format("Binding does NOT match setup certificate thumbprint (\"{0}\"=\"{1}\").", Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
+                                        Env.LogIt(String.Format("Binding (\"{0}\") does NOT match setup certificate thumbprint (\"{1}\")."
+                                                                , loBinding.BindingInformation, Env.oChannelCertificate.Thumbprint));
                                 }
+
+                                if ( null == loBindingFound && lbLogCertificateStatus )
+                                    Env.LogIt("No match found. No binding selected.");
                             }
 
                             // Next, if no binding certificate match exists, look by binding hostname (ie. SNI)
@@ -844,10 +857,10 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                         Env.LogIt("    IIS is not used by this instance.");
 
                     // As a last resort (so much for finally), use the oldest certificate found in the local 'My' store (by name).
-                    if ( null == loCurrentCertificate && !String.IsNullOrEmpty(lsCertNameOrSanItem) )
+                    if ( null == asSanArray && null == loCurrentCertificate && !String.IsNullOrEmpty(lsCertNameOrSanItem) )
                     {
                         if ( lbLogCertificateStatus )
-                            Env.LogIt("Finally, look for a certificate in the local 'My' store by name ...");
+                            Env.LogIt("Finally, looking for a certificate in the local 'My' store by name ...");
                 
                         foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                         {
@@ -865,7 +878,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
                 if ( lbLogCertificateStatus )
                 {
-                    if ( null == loCurrentCertificate )
+                    if ( null == asSanArray && null == loCurrentCertificate )
                         Env.LogIt("No current certificate found.");
 
                     Env.LogIt(new String('*', 80));
@@ -1136,8 +1149,19 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
         /// <param name="asText">The text string to log.</param>
         public static void LogIt(string asText)
         {
+            Env.LogIt(asText, false);
+        }
+        public static void LogIt(string asText, bool abBaseIsParentFolder)
+        {
             StreamWriter    loStreamWriter = null;
             string          lsLogPathFile = Env.sLogPathFile;
+                            if ( abBaseIsParentFolder )
+                            {
+                                string  lsParentPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(lsLogPathFile)));
+                                string  lsLogBasePath = Path.GetDirectoryName(lsLogPathFile).Replace(Path.GetDirectoryName(Path.GetDirectoryName(lsLogPathFile)), "");
+
+                                lsLogPathFile = Path.Combine(lsParentPath + lsLogBasePath, Path.GetFileName(lsLogPathFile));
+                            }
             string          lsPath = Path.GetDirectoryName(lsLogPathFile);
                             if ( !Directory.Exists(lsPath) )
                                 Directory.CreateDirectory(lsPath);
@@ -1308,28 +1332,24 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             {
                 Env.LogIt(new String('*', 51));
 
-                if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
-                    Env.LogIt("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
+                if ( null == Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
+                    Env.LogIt("Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
                 else
-                    Env.LogIt(String.Format("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
-                            , Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate), goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
+                    Env.LogIt(String.Format("Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate), Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
             }
 
-            if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate
-                    || ( loProfile.bValue("-CertificateSetupDone", false)
-                        && (   Env.sNewClientSetupCertName == Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate)
-                            || goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Subject.Contains("*") )
-                            )
-                        )
+            if ( null == Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate
+                    || (loProfile.bValue("-CertificateSetupDone", false) && Env.bIsSetupCert(Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate)) )
             {
-                if ( null == goSetupCertificate )
+                if ( null == Env.oChannelCertificate )
                 {
                     try
                     {
                         if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") )
-                            goSetupCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
+                            Env.oChannelCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
 
-                        if ( null == goSetupCertificate && !loProfile.bValue("-CertificateSetupDone", false)
+                        if ( null == Env.oChannelCertificate && !loProfile.bValue("-CertificateSetupDone", false)
                                 && (!tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false))
                                 && (!loProfile.bValue("-NoPrompts", false) || (!loProfile.bValue("-LicenseAccepted", false) && !loProfile.bValue("-AllConfigWizardStepsCompleted", false))) )
                         {
@@ -1354,9 +1374,9 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                 {
                                     try
                                     {
-                                        goSetupCertificate = new X509Certificate2(loOpenDialog.FileName, lsPassword);
+                                        Env.oChannelCertificate = new X509Certificate2(loOpenDialog.FileName, lsPassword);
 
-                                        if ( null != goSetupCertificate )
+                                        if ( null != Env.oChannelCertificate )
                                             loProfile["-NoPrompts"] = false;
                                     }
                                     catch (Exception ex)
@@ -1381,40 +1401,40 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                     }
                 }
 
-                if ( null != goSetupCertificate )
-                    goGetCertServiceFactory.Credentials.ClientCertificate.Certificate = goSetupCertificate;
+                if ( null != Env.oChannelCertificate )
+                    Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate = Env.oChannelCertificate;
             }
 
             if ( !lbLogCertificateStatus )
             {
-                if ( null == goSetupCertificate )
-                    goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+                if ( null == Env.oChannelCertificate )
+                    Env.oChannelCertificate = Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
             }
             else
             {
-                if ( null == goSetupCertificate )
+                if ( null == Env.oChannelCertificate )
                 {
-                    Env.LogIt("goSetupCertificate=null");
+                    Env.LogIt("Env.oChannelCertificate=null");
 
                     if ( !loProfile.bValue("-CertificateSetupDone", false) )
                         Env.LogIt("    Note: -CertificateSetupDone=False (set this value True if you know the current domain certificate already supersedes the setup certificate.");
 
-                    goSetupCertificate = goGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
+                    Env.oChannelCertificate = Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
 
-                    Env.LogIt("goSetupCertificate=goGetCertServiceFactory.Credentials.ClientCertificate.Certificate");
+                    Env.LogIt("Env.oChannelCertificate=Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate");
                 }
 
-                if ( null == goSetupCertificate )
-                    Env.LogIt("goSetupCertificate=null");
+                if ( null == Env.oChannelCertificate )
+                    Env.LogIt("Env.oChannelCertificate=null");
                 else
-                    Env.LogIt(String.Format("goSetupCertificate=(\"{0}\"=\"{1}\")"
-                            , Env.sCertName(goSetupCertificate), goSetupCertificate.Thumbprint));
+                    Env.LogIt(String.Format("Env.oChannelCertificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(Env.oChannelCertificate), Env.oChannelCertificate.Thumbprint));
 
-                if ( null == goGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
-                    Env.LogIt("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
+                if ( null == Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate )
+                    Env.LogIt("Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate=null");
                 else
-                    Env.LogIt(String.Format("goGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
-                            , Env.sCertName(goGetCertServiceFactory.Credentials.ClientCertificate.Certificate), goGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
+                    Env.LogIt(String.Format("Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate=(\"{0}\"=\"{1}\")"
+                            , Env.sCertName(Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate), Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate.Thumbprint));
 
                 Env.LogIt(new String('*', 51));
             }
