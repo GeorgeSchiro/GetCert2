@@ -448,6 +448,12 @@ Options and Features
 
     Set this switch True to run all PowerShell scripts in a single global session.
 
+-SkipPreviousStore=False
+
+    The 'GetCertPrevious' certificate store is used to house the previously bound
+    'old' certificate (ie. one most recently removed from the 'Personal' store).
+    Set this switch False to simply delete old certificates directly.
+
 -SkipSsoServer=False
 
     When a client is on an SSO domain (ie. it's a member of an SSO server farm),
@@ -460,12 +466,6 @@ Options and Features
     attempt to update configuration files with each new SSO certificate thumbprint.
     Set this switch True to disable SSO thumbprint configuration updates (for this
     client only). See -SsoThumbprintFiles below.
-
--SkipUntrustedStore=False
-
-    The 'Untrusted' certificate store is used to house the previously bound 'old'
-    certificate (ie. the one most recently removed from the 'Personal' store).
-    Set this switch False to simply delete old certificates directly.
 
 -SsoMaxRenewalSleepSecs=60
 
@@ -492,6 +492,12 @@ Options and Features
 
     Note: This key may appear any number of times in the profile and wildcards
           can be used in the filename.
+
+-SsoThumbprintReplacementArgs=''
+
+    Whatever is provided here will be passed to the SSO thumbprint replacement
+    sub-process during each run. This makes it easier to adjust the SSO thumbprint
+    replacement sub-process without having to edit its configuration separately.
 
 -SubmissionRetries=42
 
