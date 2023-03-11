@@ -280,10 +280,8 @@ namespace GetCert2
 
             if ( moProfile.bValue("-AllConfigWizardStepsCompleted", false) )
             {
-                // -LoadBalancerReleaseCert is meant to be a command-line switch only. So if it's not already there, don't add it.
-                if ( moProfile.ContainsKey("-LoadBalancerReleaseCert") && moProfile.bValue("-LoadBalancerReleaseCert", false) )
+                if ( moDoGetCert.bDoInAndOut() )
                 {
-                    moDoGetCert.LoadBalancerReleaseCert();
                     this.Close();
                 }
                 else

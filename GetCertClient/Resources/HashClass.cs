@@ -148,9 +148,12 @@ namespace GetCert2
 
         public static string sEncryptedBase64(X509Certificate2 aoCertificate, string asClearText)
         {
-            RSACryptoServiceProvider loRSACSP = (RSACryptoServiceProvider)aoCertificate.PublicKey.Key;
+            if ( null == aoCertificate )
+                throw new InvalidOperationException("The given certificate does not exist!");
 
-            return Convert.ToBase64String(loRSACSP.Encrypt(ASCIIEncoding.UTF8.GetBytes(asClearText), true));
+            RSA loRSA = aoCertificate.GetRSAPublicKey();
+
+            return Convert.ToBase64String(loRSA.Encrypt(ASCIIEncoding.UTF8.GetBytes(asClearText), RSAEncryptionPadding.OaepSHA512));
         }
 
         public static string sDecrypted(X509Certificate2 aoCertificate, string asEncryptedBase64)
@@ -158,12 +161,12 @@ namespace GetCert2
             if ( null == aoCertificate )
                 throw new InvalidOperationException("The given certificate does not exist!");
             
-            RSACryptoServiceProvider loRSACSP = (RSACryptoServiceProvider)aoCertificate.PrivateKey;
+            RSA loRSA = aoCertificate.GetRSAPrivateKey();
 
-            if ( null == loRSACSP )
+            if ( null == loRSA )
                 throw new InvalidOperationException("The given certificate has no private key!");
 
-            return ASCIIEncoding.UTF8.GetString(loRSACSP.Decrypt(Convert.FromBase64String(asEncryptedBase64), true));
+            return ASCIIEncoding.UTF8.GetString(loRSA.Decrypt(Convert.FromBase64String(asEncryptedBase64), RSAEncryptionPadding.OaepSHA512));
         }
 
         public static string sHashIt(tvProfile aoProfile)

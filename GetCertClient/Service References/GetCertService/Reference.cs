@@ -87,6 +87,18 @@ namespace GetCert2.GetCertService {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayNewCertificate", ReplyAction="http://tempuri.org/IGetCertService/btArrayNewCertificateResponse")]
         System.Threading.Tasks.Task<byte[]> btArrayNewCertificateAsync(string asHash, byte[] abtArrayProfile);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArraySetupCertificate", ReplyAction="http://tempuri.org/IGetCertService/btArraySetupCertificateResponse")]
+        byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumprint);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArraySetupCertificate", ReplyAction="http://tempuri.org/IGetCertService/btArraySetupCertificateResponse")]
+        System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumprint);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sCallAnyMethod", ReplyAction="http://tempuri.org/IGetCertService/sCallAnyMethodResponse")]
+        string sCallAnyMethod(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sCallAnyMethod", ReplyAction="http://tempuri.org/IGetCertService/sCallAnyMethodResponse")]
+        System.Threading.Tasks.Task<string> sCallAnyMethodAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sCfgUpdate", ReplyAction="http://tempuri.org/IGetCertService/sCfgUpdateResponse")]
         string sCfgUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
@@ -329,6 +341,22 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task<byte[]> btArrayNewCertificateAsync(string asHash, byte[] abtArrayProfile) {
             return base.Channel.btArrayNewCertificateAsync(asHash, abtArrayProfile);
+        }
+        
+        public byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumprint) {
+            return base.Channel.btArraySetupCertificate(asHash, abtArrayProfile, asCurrentThumprint);
+        }
+        
+        public System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumprint) {
+            return base.Channel.btArraySetupCertificateAsync(asHash, abtArrayProfile, asCurrentThumprint);
+        }
+        
+        public string sCallAnyMethod(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile) {
+            return base.Channel.sCallAnyMethod(asHash, abtArrayProfile, abtArrayMethodProfile);
+        }
+        
+        public System.Threading.Tasks.Task<string> sCallAnyMethodAsync(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile) {
+            return base.Channel.sCallAnyMethodAsync(asHash, abtArrayProfile, abtArrayMethodProfile);
         }
         
         public string sCfgUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {

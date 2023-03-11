@@ -187,6 +187,38 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="btArraySetupCertificate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asCurrentThumprint" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="btArraySetupCertificateResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="btArraySetupCertificateResult" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sCallAnyMethod">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="abtArrayMethodProfile" nillable="true" type="xs:base64Binary" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sCallAnyMethodResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="sCallAnyMethodResult" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="sCfgUpdate">
     <xs:complexType>
       <xs:sequence>

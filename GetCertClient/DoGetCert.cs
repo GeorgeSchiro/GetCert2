@@ -193,6 +193,11 @@ A brief description of each feature follows.
         call. This is sometimes necessary when the network enforces rules
         that are not supported, by default, in older operating systems.
 
+-AllowSsoThumbprintUpdatesAnytime=True
+
+    Set this switch False to limit SSO thumbprint replacements to occur only
+    during the domain defined maintenance window.
+
 -Auto=False
 
     Set this switch True to run this utility one time (with no interactive UI)
@@ -381,8 +386,9 @@ A brief description of each feature follows.
     -RenewalDaysBeforeExpiration days (see below) from the current certificate
     expiration date to know when to start fetching a new certificate.
 
-    Note: this parameter will be removed from the profile after a certificate
-          has been successfully retrieved from the certificate provider network.
+    Note: this parameter is ignored when -UseStandAloneMode is False. It will
+          be removed from the profile after a certificate has been successfully
+          retrieved from the certificate provider network.
 
 -RenewalDaysBeforeExpiration=30
 
@@ -490,6 +496,12 @@ A brief description of each feature follows.
 
     Set this switch True to run all PowerShell scripts in a single global session.
 
+-SkipPreviousStore=False
+
+    The 'GetCertPrevious' certificate store is used to house the previously bound
+    'old' certificate (ie. one most recently removed from the 'Personal' store).
+    Set this switch False to simply delete old certificates directly.
+
 -SkipSsoServer=False
 
     When a client is on an SSO domain (ie. it's a member of an SSO server farm),
@@ -502,12 +514,6 @@ A brief description of each feature follows.
     attempt to update configuration files with each new SSO certificate thumbprint.
     Set this switch True to disable SSO thumbprint configuration updates (for this
     client only). See {SsoKey} below.
-
--SkipPreviousStore=False
-
-    The 'GetCertPrevious' certificate store is used to house the previously bound
-    'old' certificate (ie. one most recently removed from the 'Personal' store).
-    Set this switch False to simply delete old certificates directly.
 
 -SsoMaxRenewalSleepSecs=60
 
@@ -586,7 +592,7 @@ Notes:
 "
                             .Replace("{EXE}", Path.GetFileName(ResourceAssembly.Location))
                             .Replace("{INI}", Path.GetFileName(loProfile.sActualPathFile))
-                            .Replace("{SsoKey}", gsSsoThumbprintFilestKey)
+                            .Replace("{SsoKey}", gsSsoThumbprintFilesKey)
                             .Replace("{{", "{")
                             .Replace("}}", "}")
                             );
@@ -732,19 +738,21 @@ Notes:
         }
 
 
-        private static tvMessageBox goStartupWaitMsg    = null;
-        private static string gsAcmeAccountFileKey      = "-AcmeAccountFile";
-        private static string gsAcmeAccountKeyFileKey   = "-AcmeAccountKeyFile";
-        private static string gsBindingFailedKey        = "-BindingFailed";
-        private static string gsCertificateKeyPrefix    = "-Cert_";
-        private static string gsCertificateHashKey      = "-Hash";
-        private static string gsCertStorePreviousName   = "GetCertPrevious";
-        private static string gsContentKey              = "-Content";
-        private static string gsMaintWindBegKey         = "-MaintenanceWindowBeginTime";
-        private static string gsMaintWindEndKey         = "-MaintenanceWindowEndTime";
-        private static string gsSsoThumbprintFilestKey  = "-SsoThumbprintFiles";
-        private static string gsUpdateProfileServerKey  = "-ServerUpdate";
-        private static string gsUpdateProfileServerFmt  = "{0}={1}";
+        private static tvMessageBox goStartupWaitMsg        = null;
+        private static string gsAcmeAccountFileKey          = "-AcmeAccountFile";
+        private static string gsAcmeAccountKeyFileKey       = "-AcmeAccountKeyFile";
+        private static string gsBindingFailedKey            = "-BindingFailed";
+        private static string gsCertificateKeyPrefix        = "-Cert_";
+        private static string gsCertificateHashKey          = "-Hash";
+        private static string gsCertStorePreviousName       = "GetCertPrevious";
+        private static string gsContentKey                  = "-Content";
+        private static string gsInAndOut1LbReleaseCertKey   = "-LoadBalancerReleaseCert";
+        private static string gsInAndOut2ServiceCallKey     = "-SCS";
+        private static string gsMaintWindBegKey             = "-MaintenanceWindowBeginTime";
+        private static string gsMaintWindEndKey             = "-MaintenanceWindowEndTime";
+        private static string gsSsoThumbprintFilesKey       = "-SsoThumbprintFiles";
+        private static string gsUpdateProfileServerKey      = "-ServerUpdate";
+        private static string gsUpdateProfileServerFmt      = "{0}={1}";
 
 
         /// <summary>
@@ -812,6 +820,46 @@ Notes:
             }
         }
         private static tvProfile goDomainProfile;
+
+        /// <summary>
+        /// This is the profile preserved keys (keys retained after a configuration reset).
+        /// </summary>
+        public static tvProfile oPreservedKeys
+        {
+            get
+            {
+                if ( null == goPreservedKeys )
+                {
+                    goPreservedKeys = new tvProfile(tvProfile.oGlobal().sValue("-KeysAfterReset", @"
+        -AcmeSystemWide
+        -AllConfigWizardStepsCompleted
+        -CertificateDomainName
+        -CertificateSetupDone
+        -CfgVersion
+        -ContactEmailAddress
+        -HostsEntryVersion
+        -HostIniVersion
+        -KeysAfterReset
+        -LicenseAccepted
+        -NonIISBindingScript
+        -SanList
+        -ScriptBindingDone
+        -ScriptCertAcquired
+        -ScriptSSO
+        -SkipSsoServer
+        -SkipSsoThumbprintUpdates
+        -SsoThumbprintFiles
+        -SsoThumbprintReplacementArgs
+        -UseNonIISBindingAlso
+        -UseNonIISBindingOnly
+        -XML_Profile
+        "));
+                }
+
+                return goPreservedKeys;
+            }
+        }
+        private static tvProfile goPreservedKeys;
 
         /// <summary>
         /// This is the main application user interface (UI) object.
@@ -977,6 +1025,19 @@ Notes:
             Env.LogIt("");
             Env.LogIt(String.Format("Checking for SSO thumbprint change (\"{0}\") ...", lsSsoDnsName));
             
+            if ( !moProfile.bValue("-AllowSsoThumbprintUpdatesAnytime", true) && moProfile.bValue("-Auto", false) && !moProfile.bValue("-Setup", false) )
+            {
+                DateTime    ldtMaintenanceWindowBeginTime = DoGetCert.oDomainProfile.dtValue(gsMaintWindBegKey, DateTime.MinValue);
+                DateTime    ldtMaintenanceWindowEndTime   = DoGetCert.oDomainProfile.dtValue(gsMaintWindEndKey, DateTime.MaxValue);
+                            if ( DateTime.Now < ldtMaintenanceWindowBeginTime || DateTime.Now >= ldtMaintenanceWindowEndTime )
+                            {
+                                Env.LogIt(String.Format("    Can't continue. The \"{0}\" maintenance window is \"{1}\" to \"{2}\"."
+                                                        , moProfile.sValue("-CertificateDomainName" ,""), ldtMaintenanceWindowBeginTime, ldtMaintenanceWindowEndTime));
+
+                                return true;
+                            }
+            }
+
             // At this point it is an error if no SSO thumbprint exists for the current domain.
             string      lsSsoThumbprint = DoGetCert.oDomainProfile.sValue("-SsoThumbprint", "");
                         if ( "" == lsSsoThumbprint )
@@ -985,19 +1046,19 @@ Notes:
                             throw new Exception(String.Format("The SSO certificate thumbprint for the \"{0}\" domain has not yet been set!", lsSsoDnsName));
                         }
             string      lsSsoPreviousThumbprint = moProfile.sValue("-SsoThumbprint", "");
-                        if ( !moProfile.ContainsKey(gsSsoThumbprintFilestKey) )
+                        if ( !moProfile.ContainsKey(gsSsoThumbprintFilesKey) )
                         {
                             string  lsDefaultPhysicalPathFiles = Path.Combine(moProfile.sValue("-DefaultPhysicalPath", @"%SystemDrive%\inetpub\wwwroot"), "web.config");
                             Site[]  loSetupCertBoundSiteArray = DoGetCert.oSetupCertBoundSiteArray(new ServerManager());
-                                    moProfile.Remove(gsSsoThumbprintFilestKey + "Note");
+                                    moProfile.Remove(gsSsoThumbprintFilesKey + "Note");
                                     if ( null == loSetupCertBoundSiteArray || 0 == loSetupCertBoundSiteArray.Length )
                                     {
-                                        Env.LogIt(String.Format("{0} will be set to the IIS default since no sites could be found bound to the current certificate.", gsSsoThumbprintFilestKey));
+                                        Env.LogIt(String.Format("{0} will be set to the IIS default since no sites could be found bound to the current certificate.", gsSsoThumbprintFilesKey));
 
                                         if ( null != loSetupCertBoundSiteArray )
                                         {
-                                            moProfile.Add(gsSsoThumbprintFilestKey, Environment.ExpandEnvironmentVariables(lsDefaultPhysicalPathFiles));
-                                            moProfile.Add(gsSsoThumbprintFilestKey + "Note", "No IIS websites could be found bound to the current certificate.");
+                                            moProfile.Add(gsSsoThumbprintFilesKey, Environment.ExpandEnvironmentVariables(lsDefaultPhysicalPathFiles));
+                                            moProfile.Add(gsSsoThumbprintFilesKey + "Note", "No IIS websites could be found bound to the current certificate.");
                                         }
                                         else
                                         {
@@ -1008,7 +1069,7 @@ Notes:
                                     else
                                     {
                                         foreach (Site loSite in loSetupCertBoundSiteArray)
-                                            moProfile.Add(gsSsoThumbprintFilestKey
+                                            moProfile.Add(gsSsoThumbprintFilesKey
                                                     , Path.Combine(Environment.ExpandEnvironmentVariables(loSite.Applications["/"].VirtualDirectories["/"].PhysicalPath)
                                                     , Path.GetFileName(lsDefaultPhysicalPathFiles)));
                                     }
@@ -1051,9 +1112,9 @@ Notes:
                 tvProfile   loArgs = new tvProfile();
                             loArgs.Add("-OldSubValue", lsSsoPreviousThumbprint);
                             loArgs.Add("-OldSubValue", lsSsoThumbprint);
-                            foreach (DictionaryEntry loEntry in moProfile.oOneKeyProfile(gsSsoThumbprintFilestKey))
+                            foreach (DictionaryEntry loEntry in moProfile.oOneKeyProfile(gsSsoThumbprintFilesKey))
                             {
-                                // Change gsSsoThumbprintFilestKey to "-Files".
+                                // Change gsSsoThumbprintFilesKey to "-Files".
                                 loArgs.Add("-Files", loEntry.Value);
                             }
                             loArgs.LoadFromCommandLine(moProfile.sValue("-SsoThumbprintReplacementArgs", ""), tvProfileLoadActions.Merge);
@@ -1299,10 +1360,38 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
             goDomainProfile = null;
         }
 
-        public void LoadBalancerReleaseCert()
+        public bool bDoInAndOut()
         {
+            if ( this.bLoadBalancerReleaseCert() )
+                return true;
+            else
+            if ( this.bCallAnySCS() )
+                return true;
+            else
+                return false;
+        }
+
+        public static bool bDoInAndOutContainsKey()
+        {
+            if ( tvProfile.oGlobal().ContainsKey(gsInAndOut1LbReleaseCertKey)
+                    && tvProfile.oGlobal().bValue(gsInAndOut1LbReleaseCertKey, false) )
+                return true;
+            else
+            if ( tvProfile.oGlobal().ContainsKey(gsInAndOut2ServiceCallKey)
+                    && "" != tvProfile.oGlobal().sValue(gsInAndOut2ServiceCallKey, "") )
+                return true;
+            else
+                return false;
+        }
+
+        public bool bLoadBalancerReleaseCert()
+        {
+            // This is a command-line only switch. If it's not already there, don't add it.
+            if ( !moProfile.ContainsKey(gsInAndOut1LbReleaseCertKey) || !moProfile.bValue(gsInAndOut1LbReleaseCertKey, false) )
+                return false;
+
             if ( moProfile.bValue("-UseStandAloneMode", true) )
-                return;
+                return true;
 
             bool        lbNoPromptsBackup = moProfile.bValue("-NoPrompts", false);
             tvProfile   loCmdLineProfile = new tvProfile();
@@ -1317,7 +1406,7 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
                             , lsCaption, tvMessageBoxButtons.OK, tvMessageBoxIcons.Alert, "LoadBalancerCertReleasedAlready");
 
                 moProfile["-NoPrompts"] = lbNoPromptsBackup;
-                return;
+                return true;
             }
 
             Env.LogIt("");
@@ -1375,6 +1464,108 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
             }
 
             moProfile["-NoPrompts"] = lbNoPromptsBackup;
+            moProfile.Remove(gsInAndOut1LbReleaseCertKey);
+            moProfile.Save();
+
+            return true;
+        }
+
+        public bool bCallAnySCS()
+        {
+            // This is a command-line only parameter. If it's not already there, don't add it.
+            if ( !moProfile.ContainsKey(gsInAndOut2ServiceCallKey) )
+                return false;
+
+
+            tvProfile   loReturnProfile = null;
+            tvProfile   loMethodProfile = new tvProfile(moProfile.sValue(gsInAndOut2ServiceCallKey, ""));
+            string      lsMethodKey     = "-Method";
+            string      lsMethodName    = loMethodProfile.sValue(lsMethodKey, "");
+            string      lsSuccessKey    = "-Success";
+
+            if ( String.IsNullOrEmpty(lsMethodName) )
+            {
+                Env.LogIt("");
+                Env.LogIt("SCS calls must include -Method (at least). Can't continue.");
+            }
+            else
+            {
+                Env.LogIt("");
+                Env.LogIt(String.Format("Calling method \"{0}\" on the SCS ...", loMethodProfile.sValue(lsMethodKey, "")));
+
+                tvProfile   loMinProfile = Env.oMinProfile(moProfile);
+                byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                string      lsHash = HashClass.sHashIt(loMinProfile);
+
+                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                {
+                    loReturnProfile = new tvProfile(loGetCertServiceClient.sCallAnyMethod(lsHash, lbtArrayMinProfile, loMethodProfile.btArrayZipped()));
+                    if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                        loGetCertServiceClient.Abort();
+                    else
+                        loGetCertServiceClient.Close();
+                }
+
+                if ( !loReturnProfile.bValue(lsSuccessKey, false) )
+                {
+                    Env.LogIt(String.Format("    Method \"{0}\" failed.", loMethodProfile.sValue(lsMethodKey, "")));
+                }
+                else
+                {
+                    string lsOutputFile = loMethodProfile.sValue("-OutputFile", "");
+
+                    if ( !String.IsNullOrEmpty(lsOutputFile) )
+                    {
+                        loReturnProfile.bUseXmlFiles = loMethodProfile.bValue("-UseXmlOutput", true);
+                        loReturnProfile.Save(lsOutputFile);
+                    }
+
+                    if ( "resetconfig" != lsMethodName.ToLower() )
+                    {
+                        moProfile.Remove(gsInAndOut2ServiceCallKey);
+                        moProfile.Save();
+                    }
+                    else
+                    {
+                        tvProfile loNewProfile = new tvProfile();
+
+                        foreach (DictionaryEntry loEntry in moProfile)
+                            if ( DoGetCert.oPreservedKeys.ContainsKey(loEntry.Key.ToString()) )
+                                loNewProfile.Add(loEntry);
+
+                        string lsBackupPathFile = moProfile.sLoadedPathFile + ".backup.txt";
+
+                        Env.LogIt(String.Format("    Backing up \"{0}\" to \"{1}\" ...", Path.GetFileName(moProfile.sLoadedPathFile), Path.GetFileName(lsBackupPathFile)));
+
+                        File.Delete(lsBackupPathFile);
+                        File.Copy(moProfile.sLoadedPathFile, lsBackupPathFile);
+
+                        Env.LogIt(String.Format("    Writing profile reset to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
+                        Env.LogIt(              "    Done.");
+
+                        loNewProfile.Save(moProfile.sLoadedPathFile);
+                    }
+                }
+
+                if ( !loMethodProfile.bValue("-ShowIt", true) )
+                {
+                    Env.LogIt(loReturnProfile.sCommandLine());
+                }
+                else
+                {
+                    bool    lbNoPromptsBackup = moProfile.bValue("-NoPrompts", false);
+                            moProfile["-NoPrompts"] = false;
+                    string  lsCaption = "SCS Result";
+                            if ( loReturnProfile.bValue(lsSuccessKey, false) )
+                                this.Show(loReturnProfile.sCommandBlock(), lsCaption);
+                            else
+                                this.ShowError(loReturnProfile.sCommandBlock(), lsCaption);
+
+                    moProfile["-NoPrompts"] = lbNoPromptsBackup;
+                }
+            }
+
+            return true;
         }
 
         public void LogStage(string asStageId)
@@ -1480,6 +1671,19 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
                     && Env.iNonErrorBounceSecs > 0
                     )
                 Env.ScheduleNonErrorBounce(DoGetCert.oDomainProfile);
+        }
+
+        public void Show(string asMessageText, string asMessageCaption)
+        {
+            Env.LogIt(String.Format("{1}; {0}", asMessageText, asMessageCaption));
+
+            if ( null != this.oUI && !this.bNoPrompts )
+            this.oUI.Dispatcher.BeginInvoke((Action)(() =>
+            {
+                tvMessageBox.Show(this.oUI, asMessageText, asMessageCaption);
+            }
+            ));
+            System.Windows.Forms.Application.DoEvents();
         }
 
         public void ShowError(string asMessageText, string asMessageCaption)
@@ -1925,18 +2129,21 @@ certutil -repairstore my {NewCertificateThumbprint}
             return lbDoCheckOut;
         }
 
-        private void RemoveCertificate(X509Certificate2 aoCertificate, X509Store aoStore)
+        private static void RemoveCertificate(X509Certificate2 aoCertificate, X509Store aoStore)
         {
-            this.RemoveCertificate(aoCertificate, aoStore, true);
+            DoGetCert.RemoveCertificate(aoCertificate, aoStore, true);
         }
-        private void RemoveCertificate(X509Certificate2 aoCertificate, X509Store aoStore, bool abDoCleanup)
+        private static void RemoveCertificate(X509Certificate2 aoCertificate, X509Store aoStore, bool abDoCleanup)
         {
+            if ( null == aoCertificate )
+                return;
+
             aoStore.Remove(aoCertificate);
 
-            if ( moProfile.bValue("-SkipPreviousStore", false) )
+            if ( tvProfile.oGlobal().bValue("-SkipPreviousStore", false) )
             {
                 // Get cert's private key file - and remove it (sadly, the OS typically let's these things accumulate forever).
-                string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, aoCertificate);
+                string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(tvProfile.oGlobal(), aoCertificate);
                         if ( !String.IsNullOrEmpty(lsMachineKeyPathFile) )
                             File.Delete(lsMachineKeyPathFile);
                 return;
@@ -1972,7 +2179,7 @@ certutil -repairstore my {NewCertificateThumbprint}
                             loStore.Remove(loCertificate);
 
                             // Get cert's private key file - and remove it (sadly, the OS typically let's these things accumulate forever).
-                            string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(moProfile, loCertificate);
+                            string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(tvProfile.oGlobal(), loCertificate);
                                     if ( !String.IsNullOrEmpty(lsMachineKeyPathFile) )
                                         File.Delete(lsMachineKeyPathFile);
                         }
@@ -2020,7 +2227,7 @@ certutil -repairstore my {NewCertificateThumbprint}
                     File.Delete(asNewCertPfxPathFile);
 
                     // Remove the new cert from the store.
-                    this.RemoveCertificate(aoNewCertificate, aoStore, false);
+                    DoGetCert.RemoveCertificate(aoNewCertificate, aoStore, false);
 
                     Env.LogIt(String.Format("The new certificate (\"{0}\") has been removed.", aoNewCertificate.Thumbprint));
                 }
@@ -2439,21 +2646,26 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                 else
                                 if ( 1 == DoGetCert.oDomainProfile.iValue("-CertCount", 0) )
                                 {
-                                    if ( 0 != DoGetCert.oDomainProfile.iValue("-DomainGroupsId", 0) && !DoGetCert.oDomainProfile.bValue("-Renewed", false) )
-                                    {
-                                        ldtBeforeExpirationDate = DoGetCert.oDomainProfile.dtValue("-RenewalDateOverride", DateTime.MaxValue.Date);
-                                    }
-                                    else
-                                    {
-                                        int liRenewalDaysBeforeExpiration = DoGetCert.oDomainProfile.iValue("-RenewalDaysBeforeExpiration", 30);
-                                            if ( moProfile.iValue("-RenewalDaysBeforeExpiration", 30) != liRenewalDaysBeforeExpiration )
-                                            {
-                                                moProfile["-RenewalDaysBeforeExpiration"] = liRenewalDaysBeforeExpiration;
-                                                moProfile.Save();
-                                            }
+                                    int liRenewalDaysBeforeExpiration = DoGetCert.oDomainProfile.iValue("-RenewalDaysBeforeExpiration", 30);
+                                        if ( moProfile.iValue("-RenewalDaysBeforeExpiration", 30) != liRenewalDaysBeforeExpiration )
+                                        {
+                                            moProfile["-RenewalDaysBeforeExpiration"] = liRenewalDaysBeforeExpiration;
+                                            moProfile.Save();
+                                        }
 
-                                        ldtBeforeExpirationDate = ldtExpiration.AddDays(-liRenewalDaysBeforeExpiration).Date;
-                                    }
+                                    ldtBeforeExpirationDate = ldtExpiration.AddDays(-liRenewalDaysBeforeExpiration).Date;
+
+                                    DateTime    ldtRenewalDate = DoGetCert.oDomainProfile.dtValue("-RenewalDate", DateTime.MaxValue.Date);
+                                                if ( ldtBeforeExpirationDate != ldtRenewalDate && ldtRenewalDate != DateTime.MaxValue.Date )
+                                                {
+                                                    Env.LogIt(String.Format("The calculated renewal date (\"{0}\") has been overridden. The certificate {1} renewed on {2} instead."
+                                                                                , ldtBeforeExpirationDate.ToShortDateString()
+                                                                                , ldtRenewalDate < DateTime.Now ? "was" : "will be"
+                                                                                , ldtRenewalDate.ToShortDateString()
+                                                                                ));
+
+                                                    ldtBeforeExpirationDate = ldtRenewalDate;
+                                                }
                                 }
 
                     if ( DateTime.Now < ldtBeforeExpirationDate || (!moProfile.bValue("-UseStandAloneMode", true) && !lbClientDownloadsEnabled) )
@@ -2543,7 +2755,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                     }
                 }
 
-                if ( loProfile.bExit )
+                if ( loProfile.bExit || DoGetCert.bDoInAndOutContainsKey() )
                     return loProfile;
 
                 DoGetCert.VerifyDependenciesInit();
@@ -2734,6 +2946,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
 
                     DoGetCert.HandleCfgUpdate(UpdatedEXEs.Client, loProfile, lsHash, lbtArrayMinProfile);
                     DoGetCert.HandleHostUpdates(loProfile, lsHash, lbtArrayMinProfile);
+                    DoGetCert.HandleSetupCertUpdate(loProfile, loMinProfile, lsHash, lbtArrayMinProfile);
 
                     DoGetCert.HandleExeUpdate(UpdatedEXEs.GcFailSafe, loProfile, lsHash, lbtArrayMinProfile, null, null, null, null);
                     DoGetCert.oHandleIniUpdate(UpdatedEXEs.GcFailSafe, loProfile, lsHash, lbtArrayMinProfile, null);
@@ -3432,6 +3645,79 @@ Checklist for {EXE} setup:
             }
         }
 
+        private static void HandleSetupCertUpdate(tvProfile aoProfile, tvProfile aoMinProfile, string asHash, byte[] abtArrayMinProfile)
+        {
+            X509Certificate2    loOldSetupCertificate = null;
+            X509Store           loStore = null;
+                                try
+                                {
+                                    loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                                    loStore.Open(OpenFlags.ReadOnly);
+
+                                    X509Certificate2Collection  loCertCollection = loStore.Certificates.Find(X509FindType.FindBySubjectName, Env.sNewClientSetupCertName, false);
+                                                                if ( null != loCertCollection && 0 != loCertCollection.Count )
+                                                                    loOldSetupCertificate = loCertCollection[0];
+                                }
+                                finally
+                                {
+                                    if ( null != loStore )
+                                        loStore.Close();
+                                }
+            byte[]              lbtArraySetupCertUpdate = null;
+                                // Look for setup certificate update.
+                                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                                {
+                                    lbtArraySetupCertUpdate = loGetCertServiceClient.btArraySetupCertificate(asHash, abtArrayMinProfile
+                                                                                            , null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint);
+                                    if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                        loGetCertServiceClient.Abort();
+                                    else
+                                        loGetCertServiceClient.Close();
+                                }
+
+            if ( null != lbtArraySetupCertUpdate )
+            {
+                string              lsCertPfxPathFile = aoProfile.sRelativeToProfilePathFile(Guid.NewGuid().ToString("N"));
+                string              lsCertificatePassword = HashClass.sHashPw(aoMinProfile);
+                                    File.WriteAllBytes(lsCertPfxPathFile, lbtArraySetupCertUpdate);
+
+                X509Certificate2 loNewSetupCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
+
+                Env.LogIt(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Update found ..."
+                            , null == loOldSetupCertificate ? Env.sNewClientSetupCertName : loOldSetupCertificate.Subject, null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint));
+
+                File.Delete(lsCertPfxPathFile);
+
+                try
+                {
+                    loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                    loStore.Open(OpenFlags.ReadWrite);
+                    loStore.Add(loNewSetupCertificate);
+
+                    DoGetCert.RemoveCertificate(loOldSetupCertificate, loStore);
+
+                    string  lsWcfSetupCertNode = "<clientCertificate findValue=\"GetCertClientSetup\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />";
+                    string  lsWcfConfiguration = File.ReadAllText(aoProfile.sLoadedPathFile);
+                            if ( !lsWcfConfiguration.Contains(lsWcfSetupCertNode) )
+                            {
+                                Regex   loRegex = new Regex("(\\s*)<\\/serviceCertificate>(.*?)(\\s*)<\\/clientCredentials>", RegexOptions.Singleline);
+                                        if ( !loRegex.IsMatch(lsWcfConfiguration) )
+                                            throw new Exception(String.Format("Failed attempting to locate WCF configuration for the \"{0}\"=\"{1}\" certificate.", Env.sNewClientSetupCertName, loNewSetupCertificate.Thumbprint));
+
+                                File.WriteAllText(aoProfile.sLoadedPathFile, loRegex.Replace(lsWcfConfiguration, "$1</serviceCertificate>$1lsWcfSetupCertNode$3</clientCredentials>".Replace("lsWcfSetupCertNode", lsWcfSetupCertNode)));
+                                Env.ResetConfigMechanism(aoProfile);
+
+                                Env.LogIt(String.Format("Setup certificate \"{0}\" update successfully completed. Version \"{1}\" is now in use.", Env.sNewClientSetupCertName, loNewSetupCertificate.Thumbprint));
+                            }
+                }
+                finally
+                {
+                    if ( null != loStore )
+                        loStore.Close();
+                }
+            }
+        }
+
         private static void HandleSvcUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
         {
             string lsEndpointVersion = aoProfile.sValue("-EndpointVersion", "1");
@@ -3602,7 +3888,7 @@ Checklist for {EXE} setup:
             bool                lbGetCertificate = true;
             bool                lbCertOverrideApplies = false;
             byte[]              lbtArrayMinProfile = null;
-            tvProfile           loMinProfile = null;
+            tvProfile           loMinProfile = DoGetCert.oPreservedKeys;             // Populates a list of preseved keys for future use (ie. after a configuration reset).
             X509Certificate2    loOldCertificate = null;
             X509Certificate2    loNewCertificate = null;
             X509Store           loStore = null;
@@ -4638,7 +4924,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                     {
                         lbGetCertificate = this.bApplyNewCertToSSO(loOldCertificate, loNewCertificate, lsHash, lbtArrayMinProfile);
 
-                        if ( lbGetCertificate && !this.bMainLoopStopped && 0 != Env.iNonErrorBounceSecs )
+                        if ( !lbGetCertificate || (lbGetCertificate && !this.bMainLoopStopped && 0 != Env.iNonErrorBounceSecs) )
                         {
                             this.RemoveNewCertificate(loStore, loOldCertificate, loNewCertificate, lsCertPfxPathFile);
 
@@ -4855,7 +5141,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                     if ( null != loOldCertificate )
                                     {
                                         // Remove the old cert.
-                                        this.RemoveCertificate(loOldCertificate, loStore);
+                                        DoGetCert.RemoveCertificate(loOldCertificate, loStore);
 
                                         Env.LogIt(String.Format("Old certificate (\"{0}\") removed from the local store.", loOldCertificate.Thumbprint));
                                     }

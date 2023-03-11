@@ -185,6 +185,18 @@
   <wsdl:message name="IGetCertService_btArrayNewCertificate_OutputMessage">
     <wsdl:part name="parameters" element="tns:btArrayNewCertificateResponse" />
   </wsdl:message>
+  <wsdl:message name="IGetCertService_btArraySetupCertificate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArraySetupCertificate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArraySetupCertificate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArraySetupCertificateResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sCallAnyMethod_InputMessage">
+    <wsdl:part name="parameters" element="tns:sCallAnyMethod" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_sCallAnyMethod_OutputMessage">
+    <wsdl:part name="parameters" element="tns:sCallAnyMethodResponse" />
+  </wsdl:message>
   <wsdl:message name="IGetCertService_sCfgUpdate_InputMessage">
     <wsdl:part name="parameters" element="tns:sCfgUpdate" />
   </wsdl:message>
@@ -347,6 +359,14 @@
     <wsdl:operation name="btArrayNewCertificate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayNewCertificate" message="tns:IGetCertService_btArrayNewCertificate_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayNewCertificateResponse" message="tns:IGetCertService_btArrayNewCertificate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArraySetupCertificate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArraySetupCertificate" message="tns:IGetCertService_btArraySetupCertificate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArraySetupCertificateResponse" message="tns:IGetCertService_btArraySetupCertificate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="sCallAnyMethod">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sCallAnyMethod" message="tns:IGetCertService_sCallAnyMethod_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/sCallAnyMethodResponse" message="tns:IGetCertService_sCallAnyMethod_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="sCfgUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/sCfgUpdate" message="tns:IGetCertService_sCfgUpdate_InputMessage" />
@@ -529,6 +549,24 @@
     </wsdl:operation>
     <wsdl:operation name="btArrayNewCertificate">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayNewCertificate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArraySetupCertificate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArraySetupCertificate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sCallAnyMethod">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/sCallAnyMethod" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>
