@@ -151,6 +151,11 @@ Options and Features
         call. This is sometimes necessary when the network enforces rules
         that are not supported, by default, in older operating systems.
 
+-AllowSsoThumbprintUpdatesAnytime=True
+
+    Set this switch False to limit SSO thumbprint replacements to occur only
+    during the domain defined maintenance window.
+
 -Auto=False
 
     Set this switch True to run this utility one time (with no interactive UI)
@@ -339,8 +344,9 @@ Options and Features
     -RenewalDaysBeforeExpiration days (see below) from the current certificate
     expiration date to know when to start fetching a new certificate.
 
-    Note: this parameter will be removed from the profile after a certificate
-          has been successfully retrieved from the certificate provider network.
+    Note: this parameter is ignored when -UseStandAloneMode is False. It will
+          be removed from the profile after a certificate has been successfully
+          retrieved from the certificate provider network.
 
 -RenewalDaysBeforeExpiration=30
 
