@@ -173,6 +173,18 @@
   <wsdl:message name="IGetCertService_btArrayGetCertExeUpdate_OutputMessage">
     <wsdl:part name="parameters" element="tns:btArrayGetCertExeUpdateResponse" />
   </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayDashboardData_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayDashboardData" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayDashboardData_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayDashboardDataResponse" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayDashboardZipUpdate_InputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayDashboardZipUpdate" />
+  </wsdl:message>
+  <wsdl:message name="IGetCertService_btArrayDashboardZipUpdate_OutputMessage">
+    <wsdl:part name="parameters" element="tns:btArrayDashboardZipUpdateResponse" />
+  </wsdl:message>
   <wsdl:message name="IGetCertService_btArrayGoPcBackupExeUpdate_InputMessage">
     <wsdl:part name="parameters" element="tns:btArrayGoPcBackupExeUpdate" />
   </wsdl:message>
@@ -351,6 +363,14 @@
     <wsdl:operation name="btArrayGetCertExeUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" message="tns:IGetCertService_btArrayGetCertExeUpdate_InputMessage" />
       <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse" message="tns:IGetCertService_btArrayGetCertExeUpdate_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArrayDashboardData">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayDashboardData" message="tns:IGetCertService_btArrayDashboardData_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayDashboardDataResponse" message="tns:IGetCertService_btArrayDashboardData_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="btArrayDashboardZipUpdate">
+      <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdate" message="tns:IGetCertService_btArrayDashboardZipUpdate_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdateResponse" message="tns:IGetCertService_btArrayDashboardZipUpdate_OutputMessage" />
     </wsdl:operation>
     <wsdl:operation name="btArrayGoPcBackupExeUpdate">
       <wsdl:input wsaw:Action="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdate" message="tns:IGetCertService_btArrayGoPcBackupExeUpdate_InputMessage" />
@@ -531,6 +551,24 @@
     </wsdl:operation>
     <wsdl:operation name="btArrayGetCertExeUpdate">
       <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArrayDashboardData">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayDashboardData" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="btArrayDashboardZipUpdate">
+      <soap12:operation soapAction="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdate" style="document" />
       <wsdl:input>
         <soap12:body use="literal" />
       </wsdl:input>

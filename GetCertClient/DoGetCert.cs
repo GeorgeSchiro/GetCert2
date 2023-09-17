@@ -376,7 +376,7 @@ A brief description of each feature follows.
 -RemoveReplacedCert=False
 
     Set this switch True and the old (ie. previously bound) certificate will be
-    removed whenever a new retrieved certificate is bound to replace it.
+    removed whenever a newly retrieved certificate is bound to replace it.
 
     Note: this switch is ignored when -UseStandAloneMode is False.
 
@@ -695,7 +695,7 @@ Notes:
 
                 try
                 {
-                    string      lsLogFileTextReported = null;
+                    string  lsLogFileTextReported = null;
 
                     DoGetCert.ReportErrors(ex, out lsLogFileTextReported);
                 }
@@ -746,6 +746,10 @@ Notes:
         private static string gsCertificateHashKey          = "-Hash";
         private static string gsCertStorePreviousName       = "GetCertPrevious";
         private static string gsContentKey                  = "-Content";
+        private static string gsDashboardDataFile           = "Data.txt";
+        private static string gsDashboardVersionFile        = "Version.txt";
+        private static string gsDashboardVersionKey         = "-DashboardVersion";
+        private static string gsDashboardZipFile            = "ggc.zip";
         private static string gsInAndOut1LbReleaseCertKey   = "-LoadBalancerReleaseCert";
         private static string gsInAndOut2ServiceCallKey     = "-SCS";
         private static string gsMaintWindBegKey             = "-MaintenanceWindowBeginTime";
@@ -2095,7 +2099,7 @@ certutil -repairstore my {NewCertificateThumbprint}
             return lbDoCheckIn;
         }
 
-        private static bool bDoCheckOut()
+        private static bool bDoCheckOut(bool abPendingResult)
         {
             bool lbDoCheckOut = false;
 
@@ -2125,6 +2129,9 @@ certutil -repairstore my {NewCertificateThumbprint}
                     Env.LogIt("Client successfully checked-out.");
                 }
             }
+
+            if ( !abPendingResult )
+                lbDoCheckOut = abPendingResult;
 
             return lbDoCheckOut;
         }
@@ -2658,9 +2665,8 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                     DateTime    ldtRenewalDate = DoGetCert.oDomainProfile.dtValue("-RenewalDate", DateTime.MaxValue.Date);
                                                 if ( ldtBeforeExpirationDate != ldtRenewalDate && ldtRenewalDate != DateTime.MaxValue.Date )
                                                 {
-                                                    Env.LogIt(String.Format("The calculated renewal date (\"{0}\") has been overridden. The certificate {1} renewed on {2} instead."
+                                                    Env.LogIt(String.Format("The calculated renewal date (\"{0}\") has been overridden. The certificate renewal date override is \"{1}\"."
                                                                                 , ldtBeforeExpirationDate.ToShortDateString()
-                                                                                , ldtRenewalDate < DateTime.Now ? "was" : "will be"
                                                                                 , ldtRenewalDate.ToShortDateString()
                                                                                 ));
 
@@ -2919,10 +2925,17 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                 Directory.Delete(Path.GetDirectoryName(lsUpdateDeletePathFile), true);
                                 break;
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                System.Windows.Forms.Application.DoEvents();
-                                Thread.Sleep(loProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(loProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                                if ( i == loProfile.iValue("-UpdateFileWriteMaxRetries", 42) - 1 )
+                                {
+                                    throw ex;
+                                }
+                                else
+                                {
+                                    System.Windows.Forms.Application.DoEvents();
+                                    Thread.Sleep(loProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(loProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                                }    
                             }
                         }
 
@@ -2951,6 +2964,8 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                     DoGetCert.HandleExeUpdate(UpdatedEXEs.GcFailSafe, loProfile, lsHash, lbtArrayMinProfile, null, null, null, null);
                     DoGetCert.oHandleIniUpdate(UpdatedEXEs.GcFailSafe, loProfile, lsHash, lbtArrayMinProfile, null);
                     DoGetCert.HandleCfgUpdate(UpdatedEXEs.GcFailSafe, loProfile, lsHash, lbtArrayMinProfile);
+
+                    DoGetCert.HandleDashboardUpdate(loProfile, lsHash, lbtArrayMinProfile);
                 }
             }
             catch (Exception ex)
@@ -3143,6 +3158,7 @@ Checklist for {EXE} setup:
                         }
             string      lsNewVersion = null;
             tvProfile   loIniUpdateProfile = new tvProfile();
+
                         // Look for profile update.
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                         {
@@ -3177,6 +3193,7 @@ Checklist for {EXE} setup:
                             else
                                 loGetCertServiceClient.Close();
                         }
+
             float       lfDiscard = 0;
                         if ( !float.TryParse(lsVersion, out lfDiscard) )
                         {
@@ -3244,6 +3261,7 @@ Checklist for {EXE} setup:
                                 break;
                         }
             string      lsCfgUpdate = null;
+
                         // Look for WCF configuration update.
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                         {
@@ -3284,6 +3302,154 @@ Checklist for {EXE} setup:
             }
         }
 
+        private static void HandleDashboardUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
+        {
+            string lsDashboardBasePath = DoGetCert.oDomainProfile.sValue("-DashboardBasePath", "");
+
+            if ( "" != lsDashboardBasePath )
+            {
+                bool        lbUpdateSuccess = false;
+                string      lsDashboardPath = Path.Combine(lsDashboardBasePath, Path.GetFileNameWithoutExtension(gsDashboardZipFile));
+                tvProfile   loVersionProfile = new tvProfile(Path.Combine(lsDashboardPath, gsDashboardVersionFile), false);
+                            loVersionProfile.bEnableFileLock = false;   // This is necessary to allow the profile file's deletion below. 
+                string      lsVersion = loVersionProfile.sValue(gsDashboardVersionKey, "0");
+                byte[]      lbtArrayDashboardUpdate = null;
+
+                            // Look for dashboard update.
+                            using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                            {
+                                lbtArrayDashboardUpdate = loGetCertServiceClient.btArrayDashboardZipUpdate(asHash, abtArrayMinProfile, lsVersion);
+                                if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                    loGetCertServiceClient.Abort();
+                                else
+                                    loGetCertServiceClient.Close();
+                            }
+
+                if ( null == lbtArrayDashboardUpdate )
+                {
+                    Env.LogIt(String.Format("Dashboard version {0} is in use. No update.", lsVersion));
+
+                    lbUpdateSuccess = true;
+                }
+                else
+                {
+                    Env.LogIt("");
+                    Env.LogIt(String.Format("Dashboard version {0} is in use. Update found ...", lsVersion));
+
+                    string          lsDashboardBasePathToLower = lsDashboardBasePath.ToLower().Trim();
+                    List<Site>      loBaseSiteList  = new List<Site>();
+                    ServerManager   loServerManager = new ServerManager();
+                                    foreach (Site loSite in loServerManager.Sites)
+                                        foreach (Application loApp in loSite.Applications)
+                                            if ( lsDashboardBasePathToLower == Environment.ExpandEnvironmentVariables(loApp.VirtualDirectories["/"].PhysicalPath).ToLower().Trim() )
+                                                loBaseSiteList.Add(loSite);
+
+                    if ( 0 == loBaseSiteList.Count )
+                    {
+                        Env.LogIt(String.Format("No website could be found matching the given location for the dashboard application (ie. \"{0}\").", lsDashboardBasePath));
+                    }
+                    else
+                    {
+                        foreach(Site loSite in loBaseSiteList)
+                        {
+                            loSite.Stop();
+
+                            foreach (Application loApp in loSite.Applications)
+                                if ( lsDashboardBasePathToLower == Environment.ExpandEnvironmentVariables(loApp.VirtualDirectories["/"].PhysicalPath).ToLower().Trim() )
+                                    loServerManager.ApplicationPools[loApp.ApplicationPoolName].Recycle();
+                        }
+
+                        Thread.Sleep(aoProfile.iValue("-AfterSitesStoppedSleepMS", 1000));
+
+                        try
+                        {
+                            try
+                            {
+                                // The deletion may fail on the app root directory.
+                                // The goal is to cleanup everything else.
+                                Directory.Delete(lsDashboardPath, true);
+                            }
+                            catch {}
+
+                            string  lsZipPathFile = aoProfile.sRelativeToExePathFile(gsDashboardZipFile);
+                                    File.WriteAllBytes(lsZipPathFile, lbtArrayDashboardUpdate);
+                                    ZipFile.ExtractToDirectory(lsZipPathFile, lsDashboardBasePath);
+
+                            lsVersion = (new tvProfile(Path.Combine(lsDashboardPath, gsDashboardVersionFile), false)).sValue(gsDashboardVersionKey, "0");
+
+                            /*
+                                We are intentionally not adding the application here.
+                                That will be up to the dashboard admin to handle manually.
+                            */
+
+                            // Add support for "default.aspx".
+                            foreach(Site loSite in loBaseSiteList)
+                            {
+                                try
+                                {
+                                    Microsoft.Web.Administration.Configuration                  loConfiguration = loServerManager.GetWebConfiguration(loSite.Name);
+                                    Microsoft.Web.Administration.ConfigurationSection           loDefaultDocumentSection = loConfiguration.GetSection("system.webServer/defaultDocument");
+                                    Microsoft.Web.Administration.ConfigurationElementCollection loFilesCollection = loDefaultDocumentSection.GetCollection("files");
+                                    Microsoft.Web.Administration.ConfigurationElement           loNewFileElement = loFilesCollection.CreateElement("add");
+                                                                                                loNewFileElement.Attributes["value"].Value = "default.aspx";
+                                                                                                loFilesCollection.Add(loNewFileElement);
+                                    loServerManager.CommitChanges();
+                                }
+                                catch
+                                {
+                                    loServerManager = new ServerManager();
+                                }
+                            }
+
+                            lbUpdateSuccess = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            throw ex;
+                        }
+                        finally
+                        {
+                            foreach(Site loSite in loBaseSiteList)
+                                loSite.Start();
+                        }
+                    }
+
+                    if ( lbUpdateSuccess )
+                        Env.LogIt(String.Format("Dashboard update successfully completed. Version {0} is now in use.", lsVersion));
+                }
+
+                string  lsDashboardDataPathFile = Path.Combine(lsDashboardPath, gsDashboardDataFile);
+
+                if ( lbUpdateSuccess )
+                {
+                    byte[]  lbtArrayDashboardData = null;
+
+                            // Look for dashboard data.
+                            using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                            {
+                                lbtArrayDashboardData = loGetCertServiceClient.btArrayDashboardData(asHash, abtArrayMinProfile);
+                                if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                    loGetCertServiceClient.Abort();
+                                else
+                                    loGetCertServiceClient.Close();
+                            }
+
+                    if ( null == lbtArrayDashboardData )
+                    {
+                        Env.LogIt("");
+                        Env.LogIt("Dashboard data retrieved but is empty. This is an error.");
+                    }
+                    else
+                    {
+                        tvProfile   loDashboardDataProfile = tvProfile.oProfile(lbtArrayDashboardData);
+                                    loDashboardDataProfile.Save(lsDashboardDataPathFile);
+
+                        Env.LogIt("Dashboard data received successfully.");
+                    }
+                }
+            }
+        }
+
         private static void HandleExeUpdate(
                   UpdatedEXEs aeExeName
                 , tvProfile aoProfile
@@ -3314,6 +3480,7 @@ Checklist for {EXE} setup:
                     }
             string  lsCurrentVersion = !File.Exists(lsExePathFile) ? "0" : FileVersionInfo.GetVersionInfo(lsExePathFile).FileVersion;
             byte[]  lbtArrayExeUpdate = null;
+
                     // Look for an updated EXE (unless it was just updated).
                     if ( !File.Exists(lsExePathFile) || DateTime.Now > new FileInfo(lsExePathFile).LastWriteTime.AddMinutes(DoGetCert.oDomainProfile.iValue("-MinExeUpdateAgeMins", 0)) )
                     using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
@@ -3332,6 +3499,7 @@ Checklist for {EXE} setup:
                         else
                             loGetCertServiceClient.Close();
                     }
+
             bool    lbUpdatedAlready = File.Exists(lsExePathFile) && lsCurrentVersion != FileVersionInfo.GetVersionInfo(lsExePathFile).FileVersion;
                     if ( lbUpdatedAlready )
                         lsCurrentVersion = FileVersionInfo.GetVersionInfo(lsExePathFile).FileVersion;
@@ -3343,7 +3511,7 @@ Checklist for {EXE} setup:
                 if ( lbUpdatedAlready && UpdatedEXEs.Client == aeExeName )
                 {
                     Env.LogIt("Update completed by another instance. Will try again next cycle.");
-                    DoGetCert.bDoCheckOut();
+                    DoGetCert.bDoCheckOut(true);
                     aoProfile.bExit = true;
                 }
             }
@@ -3368,7 +3536,7 @@ Checklist for {EXE} setup:
 
                     if ( UpdatedEXEs.Client == aeExeName )
                     {
-                        DoGetCert.bDoCheckOut();
+                        DoGetCert.bDoCheckOut(true);
                         aoProfile.bExit = true;
                     }
                 }
@@ -3441,6 +3609,7 @@ Checklist for {EXE} setup:
             string      lsHostExePathFile= Env.sHostExePathFile(out loHostProcess);
             string      lsHostExeVersion = FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion;
             byte[]      lbtArrayGpcExeUpdate = null;
+
                         // Look for an updated host EXE (unless it was just updated).
                         if ( DateTime.Now > new FileInfo(lsHostExePathFile).LastWriteTime.AddMinutes(DoGetCert.oDomainProfile.iValue("-MinExeUpdateAgeMins", 0)) )
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
@@ -3456,6 +3625,7 @@ Checklist for {EXE} setup:
 
             string      lsHostIniVersion = aoProfile.sValue("-HostIniVersion", "1");
             string      lsHostIniUpdate  = null;
+
                         // Look for an updated host INI.
                         using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                         {
@@ -3664,6 +3834,7 @@ Checklist for {EXE} setup:
                                         loStore.Close();
                                 }
             byte[]              lbtArraySetupCertUpdate = null;
+
                                 // Look for setup certificate update.
                                 using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                                 {
@@ -3956,6 +4127,7 @@ Checklist for {EXE} setup:
                 bool                lbLoadBalancerCertPending = DoGetCert.oDomainProfile.bValue("-LoadBalancerPfxPending", false);
                 bool                lbLoadBalancerCertReady = DoGetCert.oDomainProfile.bValue("-LoadBalancerPfxReady", false);
                 bool                lbProceedAnyway = DoGetCert.oDomainProfile.bValue("-Renewing", false) && !DoGetCert.oDomainProfile.bValue("-Renewed", false);
+                bool                lbRenewASAP = DoGetCert.oDomainProfile.bValue("-RenewASAP", false);
                 bool                lbRepositoryCertsOnly = DoGetCert.oDomainProfile.bValue("-RepositoryCertsOnly", false);
                 bool                lbSingleSessionEnabled = moProfile.bValue("-SingleSessionEnabled", false);
                 byte[]              lbtArrayNewCertificate = null;
@@ -3966,7 +4138,7 @@ Checklist for {EXE} setup:
                                     {
                                         // The certificate is not ready to expire soon. There is nothing to do.
                                         
-                                        return DoGetCert.bDoCheckOut();
+                                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                                     }
                 DateTime            ldtMaintenanceWindowBeginTime = DoGetCert.oDomainProfile.dtValue(gsMaintWindBegKey, DateTime.MinValue);
                 DateTime            ldtMaintenanceWindowEndTime   = DoGetCert.oDomainProfile.dtValue(gsMaintWindEndKey, DateTime.MaxValue);
@@ -3988,7 +4160,7 @@ Checklist for {EXE} setup:
                                         ));
 
                                 if ( !lbProceedAnyway )
-                                    return DoGetCert.bDoCheckOut();
+                                    return DoGetCert.bDoCheckOut(lbGetCertificate);
                             }
                         }
                         else
@@ -4017,7 +4189,7 @@ Checklist for {EXE} setup:
                                         Env.LogIt("Will try again next cycle.");
                                         Env.LogIt("");
 
-                                        return DoGetCert.bDoCheckOut();
+                                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                                     }
                                     else
                                     {
@@ -4028,7 +4200,7 @@ Checklist for {EXE} setup:
                                             Env.LogIt("Will try again in several minutes.");
 
                                             Env.iNonErrorBounceSecs = moProfile.iValue("-LoadBalancerBounceSecs", 900);
-                                            return DoGetCert.bDoCheckOut();
+                                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                                         }
                                         else
                                         {
@@ -4061,7 +4233,7 @@ Checklist for {EXE} setup:
                                         moProfile["-LoadBalancerPendingErrorCount"] = liErrorCount;
                                         moProfile.Save();
 
-                                        return DoGetCert.bDoCheckOut();
+                                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                                     }
                             }
                         }
@@ -4081,25 +4253,28 @@ Checklist for {EXE} setup:
                                 ));
 
                         if ( !lbProceedAnyway )
-                            return DoGetCert.bDoCheckOut();
+                            return DoGetCert.bDoCheckOut(lbGetCertificate);
                     }
 
                     if ( lbGetCertificate && !this.bMainLoopStopped )
                     {
                         if (       lbAuto && !lbSetup
                                 && (DateTime.Now < ldtMaintenanceWindowBeginTime || DateTime.Now >= ldtMaintenanceWindowEndTime)
-                                && Env.sComputerName != DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", "")
+                                && (lbLoadBalancerCertReady || Env.sComputerName != DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", ""))
                                 && null != loOldCertificate
                                 )
                         {
-                            Env.LogIt(String.Format("{0}The \"{1}\" maintenance window is \"{2}\" to \"{3}\".{4}", lbProceedAnyway ? "" : "Can't continue. "
+                            bool lbProceedAnywayRenewASAP = !lbRepositoryCertsOnly && lbRenewASAP;
+
+                            Env.LogIt(String.Format("{0}The \"{1}\" maintenance window is \"{2}\" to \"{3}\".{4}", lbProceedAnyway || lbProceedAnywayRenewASAP ? "" : "Can't continue. "
                                                     , lsCertName, ldtMaintenanceWindowBeginTime, ldtMaintenanceWindowEndTime
-                                                    , !lbProceedAnyway ? "" : " Proceeding anyway since renewal has already commenced elsewhere."
+                                                    , lbProceedAnyway ? " Proceeding anyway since renewal has already commenced elsewhere."
+                                                            : !lbProceedAnywayRenewASAP ? "" : " Proceeding anyway since the domain's 'RenewASAP' flag has been set."
                                                     ));
                             Env.LogIt("");
 
-                            if ( !lbProceedAnyway )
-                                return DoGetCert.bDoCheckOut();
+                            if ( !lbProceedAnyway && !lbProceedAnywayRenewASAP )
+                                return DoGetCert.bDoCheckOut(lbGetCertificate);
                         }
 
                         using (GetCertService.IGetCertServiceChannel moGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
@@ -4139,7 +4314,7 @@ Checklist for {EXE} setup:
                                     {
                                         Env.LogIt("");
 
-                                        return DoGetCert.bDoCheckOut();
+                                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                                     }
                                 }
                             }
@@ -4166,7 +4341,7 @@ Checklist for {EXE} setup:
                                     moProfile["-RepositoryCertsOnlyErrorCount"] = liErrorCount;
                                     moProfile.Save();
 
-                                    return DoGetCert.bDoCheckOut();
+                                    return DoGetCert.bDoCheckOut(lbGetCertificate);
                                 }
                                 else
                                 if ( !lbLoadBalancerCertPending && !lbLoadBalancerCertReady )
@@ -4183,7 +4358,7 @@ Checklist for {EXE} setup:
                                             else
                                             {
                                                 Env.iNonErrorBounceSecs = moProfile.iValue("-LoadBalancerBounceSecs", 900);
-                                                return DoGetCert.bDoCheckOut();
+                                                return DoGetCert.bDoCheckOut(lbGetCertificate);
                                             }
                                 }
                             }
@@ -4223,7 +4398,7 @@ Checklist for {EXE} setup:
                                     moProfile["-CertOverrideErrorCount"] = liErrorCount;
                                     moProfile.Save();
 
-                                    return DoGetCert.bDoCheckOut();
+                                    return DoGetCert.bDoCheckOut(lbGetCertificate);
                                 }
                         }
                     }
@@ -4232,7 +4407,7 @@ Checklist for {EXE} setup:
                     {
                         Env.LogIt("Nothing to do until certificate downloads are enabled.");
 
-                        return DoGetCert.bDoCheckOut();
+                        return DoGetCert.bDoCheckOut(lbGetCertificate);
                     }
                     else
                     {
@@ -4264,7 +4439,7 @@ Checklist for {EXE} setup:
                                     Env.LogIt("Certificate renewal can't be locked. Will try again next cycle.");
                                     Env.LogIt("");
 
-                                    return DoGetCert.bDoCheckOut();
+                                    return DoGetCert.bDoCheckOut(lbGetCertificate);
                                 }
 
                         Env.LogIt("");
@@ -4928,7 +5103,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                         {
                             this.RemoveNewCertificate(loStore, loOldCertificate, loNewCertificate, lsCertPfxPathFile);
 
-                            return DoGetCert.bDoCheckOut();
+                            return DoGetCert.bDoCheckOut(lbGetCertificate);
                         }
                     }
 
@@ -5274,10 +5449,7 @@ Get-WSManInstance -ResourceURI Shell -Enumerate
 
             Env.LogIt("");
 
-            if ( lbGetCertificate )
-                lbGetCertificate = DoGetCert.bDoCheckOut();
-            else
-                DoGetCert.bDoCheckOut();
+            lbGetCertificate = DoGetCert.bDoCheckOut(lbGetCertificate);
 
             return lbGetCertificate;
         }

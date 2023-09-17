@@ -75,6 +75,18 @@ namespace GetCert2.GetCertService {
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayGetCertExeUpdateResponse")]
         System.Threading.Tasks.Task<byte[]> btArrayGetCertExeUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayDashboardData", ReplyAction="http://tempuri.org/IGetCertService/btArrayDashboardDataResponse")]
+        byte[] btArrayDashboardData(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayDashboardData", ReplyAction="http://tempuri.org/IGetCertService/btArrayDashboardDataResponse")]
+        System.Threading.Tasks.Task<byte[]> btArrayDashboardDataAsync(string asHash, byte[] abtArrayProfile);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdateResponse")]
+        byte[] btArrayDashboardZipUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayDashboardZipUpdateResponse")]
+        System.Threading.Tasks.Task<byte[]> btArrayDashboardZipUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
+        
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdate", ReplyAction="http://tempuri.org/IGetCertService/btArrayGoPcBackupExeUpdateResponse")]
         byte[] btArrayGoPcBackupExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
@@ -325,6 +337,22 @@ namespace GetCert2.GetCertService {
         
         public System.Threading.Tasks.Task<byte[]> btArrayGetCertExeUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
             return base.Channel.btArrayGetCertExeUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public byte[] btArrayDashboardData(string asHash, byte[] abtArrayProfile) {
+            return base.Channel.btArrayDashboardData(asHash, abtArrayProfile);
+        }
+        
+        public System.Threading.Tasks.Task<byte[]> btArrayDashboardDataAsync(string asHash, byte[] abtArrayProfile) {
+            return base.Channel.btArrayDashboardDataAsync(asHash, abtArrayProfile);
+        }
+        
+        public byte[] btArrayDashboardZipUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.btArrayDashboardZipUpdate(asHash, abtArrayProfile, asInstalledVersion);
+        }
+        
+        public System.Threading.Tasks.Task<byte[]> btArrayDashboardZipUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {
+            return base.Channel.btArrayDashboardZipUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
         }
         
         public byte[] btArrayGoPcBackupExeUpdate(string asHash, byte[] abtArrayProfile, string asInstalledVersion) {

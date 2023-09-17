@@ -497,7 +497,9 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             Env.bPowerScriptSkipLog = abSkipLog;
             Env.sPowerScriptOutput = null;
 
-            for (int i=0; i < tvProfile.oGlobal().iValue("-PowerScriptOutputRetries", 3); i++)
+            int liPowerScriptOutputRetries = tvProfile.oGlobal().iValue("-PowerScriptOutputRetries", 3);
+
+            for (int i=0; i < liPowerScriptOutputRetries; i++)
             {
                 Process loProcess = new Process();
                         loProcess.ErrorDataReceived += new DataReceivedEventHandler(Env.PowerScriptProcessErrorHandler);
@@ -515,7 +517,18 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
                 Env.bPowerScriptError = false;
 
-                loProcess.Start();
+                try
+                {
+                    loProcess.Start();
+                }
+                catch (Exception ex)
+                {
+                    Env.LogIt(ex.Message);
+
+                    if ( i <= liPowerScriptOutputRetries - 1 )
+                        Env.LogIt(String.Format("Proceeding to retry #{0} ...", i + 1));
+                }
+
                 loProcess.BeginErrorReadLine();
                 loProcess.BeginOutputReadLine();
 
