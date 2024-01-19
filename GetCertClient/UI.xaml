@@ -47,7 +47,16 @@
                 </Canvas>
                 <Grid Name="TopPanel" DockPanel.Dock="Top" Height="75" Width="500" Margin="10">
                     <StackPanel Name="TitlePanel" Orientation="Vertical">
-                        <Label Content="SafeTrust Get Certificate" FontSize="36" FontWeight="ExtraBold" HorizontalAlignment="Center" />
+                        <Canvas>
+                            <Button Name="btnShowSite" Click="btnShowSite_Click"
+                                    ToolTip="Show Website"
+                                    Style="{StaticResource MainCanvasLogoButton}"
+                                    HorizontalAlignment="Left"
+                                    >
+                                <Image Source="Resources\images\GoGetCert150.png" />
+                            </Button>
+                        </Canvas>
+                        <Label Content="Get Certificate" FontSize="36" FontWeight="ExtraBold" HorizontalAlignment="Center" />
                         <Label Name="CertNameTitle" Visibility="Collapsed" Margin="-15" FontSize="24" FontWeight="Normal" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
@@ -130,9 +139,9 @@
         farm,  SSO servers, SSO integrated application servers, load balancers, etc),
         you may be ready for: <LineBreak/><LineBreak/>
 
-        <Bold>SafeTrust Secure Certificate Service</Bold> <LineBreak/><LineBreak/>
+        <Bold>GoGetCert Secure Certificate Service</Bold> <LineBreak/><LineBreak/>
 
-        Ease your certificate handling hassle. Visit "<Bold>SafeTrust.org</Bold>" for more information.
+        Ease your certificate handling hassle. Visit "<Bold>GoGetCert.com</Bold>" for more details.
     </TextBlock>
 </Border>
                                     </StackPanel>

@@ -91,7 +91,7 @@ It's as simple as that when the software runs in 'stand-alone' mode (the default
 
 If 'stand-alone' mode is disabled (see -UseStandAloneMode below), the certificate
 retrieval process is used in concert with the secure certificate service (SCS),
-see 'SafeTrust.org'.
+see 'GoGetCert.com'.
 
 If the software is not running in 'stand-alone' mode, it also copies any new cert
 to a file anywhere on the local area network to be picked up by the load balancer
@@ -133,7 +133,7 @@ This tells the software to run in automatic mode:
     {EXE} -Auto
 
 
-Author:  George Schiro (GeoCode@SafeTrust.org)
+Author:  George Schiro (GeoCode@GoGetCert.com)
 
 Date:    10/24/2019
 
@@ -573,8 +573,8 @@ A brief description of each feature follows.
 
 -UseStandAloneMode=True
 
-    Set this switch False and the software will use the SafeTrust Secure Certificate
-    Service (see 'SafeTrust.org') to manage certificates between several servers
+    Set this switch False and the software will use the GoGetCert Secure Certificate
+    Service (see 'GoGetCert.com') to manage certificates between several servers
     in a server farm, on SSO servers, SSO integrated application servers and load
     balancers.
 
@@ -3442,6 +3442,7 @@ Checklist for {EXE} setup:
                     else
                     {
                         tvProfile   loDashboardDataProfile = tvProfile.oProfile(lbtArrayDashboardData);
+                                    loDashboardDataProfile["-JSON"] = loDashboardDataProfile.sJson("-JSON");
                                     loDashboardDataProfile.Save(lsDashboardDataPathFile);
 
                         Env.LogIt("Dashboard data received successfully.");
@@ -3675,22 +3676,41 @@ Checklist for {EXE} setup:
 
             if ( null != lbtArrayGpcExeUpdate || !String.IsNullOrEmpty(lsHostIniUpdate) )
             {
+                bool    lbHostStopped = true;   // Consider it "stopped" even if not previously running.
+                        DoGetCert.sStopHostExePathFile();
+
                 lbRestartHost = true;
 
-                DoGetCert.sStopHostExePathFile();
-
                 // Write the updated EXE (if any).
-                if ( null != lbtArrayGpcExeUpdate )
+                if ( lbHostStopped && null != lbtArrayGpcExeUpdate )
                 {
-                    // Write the EXE.
-                    File.WriteAllBytes(lsHostExePathFile, lbtArrayGpcExeUpdate);
+                    try
+                    {
+                        // Write the EXE.
+                        File.WriteAllBytes(lsHostExePathFile, lbtArrayGpcExeUpdate);
 
-                    Env.LogIt(String.Format("Host update successfully completed. Version {0} is now in use."
-                                                            , FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion));
+                        Env.LogIt(String.Format("Host update successfully completed. Version {0} is now in use."
+                                                    , FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion));
+                    }
+                    catch (IOException)
+                    {
+                        lbHostStopped = false;
+                        lbRestartHost = false;
+
+                        Env.LogIt(String.Format("Another host update is already running. Moving on."
+                                                    , FileVersionInfo.GetVersionInfo(lsHostExePathFile).FileVersion));
+                    }
+                    catch (Exception ex)
+                    {
+                        lbHostStopped = false;
+                        lbRestartHost = true;
+
+                        Env.LogIt(Env.sExceptionMessage(ex));
+                    }
                 }
 
                 // Write the updated INI (if any).
-                if ( !String.IsNullOrEmpty(lsHostIniUpdate) )
+                if ( lbHostStopped && !String.IsNullOrEmpty(lsHostIniUpdate) )
                 {
                     tvProfile   loUpdateProfile = new tvProfile(lsHostIniUpdate);
                     tvProfile   loHostProfile = new tvProfile(lsHostExePathFile + ".txt", false);

@@ -927,17 +927,16 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
         }
         public static string sHostExePathFile(out Process aoProcessFound, bool abQuietMode)
         {
-            string  lsHostExeFilename = Env.sHostProcess;
-            string  lsHostExePathFile = Env.sProcessExePathFile(lsHostExeFilename, out aoProcessFound);
+            string  lsHostExePathFile = Env.sProcessExePathFile(Env.sHostProcess, out aoProcessFound);
 
             if ( String.IsNullOrEmpty(lsHostExePathFile) )
             {
                 if ( !abQuietMode )
                     Env.LogIt("Host image can't be located on disk based on the currently running process. Trying typical locations ...");
 
-                lsHostExePathFile = @"C:\ProgramData\GoPcBackup\GoPcBackup.exe";
+                lsHostExePathFile = Path.Combine(Path.Combine(@"C:\ProgramData", Path.GetFileNameWithoutExtension(Env.sHostProcess)), Env.sHostProcess);
                 if ( !File.Exists(lsHostExePathFile) )
-                    lsHostExePathFile = @"C:\Program Files\GoPcBackup\GoPcBackup.exe";
+                    lsHostExePathFile = Path.Combine(Path.Combine(@"C:\Program Files", Path.GetFileNameWithoutExtension(Env.sHostProcess)), Env.sHostProcess);
 
                 if ( !File.Exists(lsHostExePathFile) )
                 {

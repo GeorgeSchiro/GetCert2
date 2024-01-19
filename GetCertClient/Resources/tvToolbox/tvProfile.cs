@@ -1,5 +1,8 @@
+// tvProfile.cs
+
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -141,7 +144,7 @@ namespace tvToolbox
     /// Author:     George Schiro (GeoCode@Schiro.name)
     /// </p>
     /// <p>
-    /// Version:    2.28
+    /// Version:    2.29
     /// Copyright:  1996 - 2121
     /// </p>
     /// </summary>
@@ -2252,6 +2255,129 @@ namespace tvToolbox
         }
 
         /// <summary>
+        /// Returns the entire contents of the profile as a JSON string.
+        /// </summary>
+        /// <param name="asSkipKey">
+        /// A key in the profile to be ignored (presumably 
+        /// one to contain the JSON result of this call).
+        /// </param>
+        /// <returns>
+        /// A JSON string.
+        /// </returns>
+        public string sJson(string asSkipKey)
+        {
+            bool            lbFirstItem = true;
+            var             loKeys = new Dictionary<string, List<string>>();
+                            foreach (DictionaryEntry loEntry in this)
+                            {
+                                string lsKey = loEntry.Key.ToString();
+
+                                if ( lsKey != asSkipKey )
+                                {
+                                    if ( !loKeys.ContainsKey(lsKey) )
+                                        loKeys[lsKey] = new List<string>();
+
+                                    loKeys[lsKey].Add(loEntry.Value.ToString());
+                                }
+                            }
+            StringBuilder   lsbJson = new StringBuilder();
+                            lsbJson.Append("{");
+
+            foreach (var loKey in loKeys)
+            {
+                if ( lbFirstItem )
+                    lbFirstItem = false;
+                else
+                    lsbJson.Append(", ");
+
+                List<string> loValuesList = loKey.Value;
+
+                lsbJson.AppendFormat("\"{0}\": ", loKey.Key);
+
+                if ( 1 == loValuesList.Count )
+                {
+                    lsbJson.Append(this.sJsonValue(loValuesList[0]));
+                }
+                else    // Array serialization
+                {
+                    lsbJson.Append("[");
+
+                    for (int i = 0; i < loValuesList.Count; i++)
+                    {
+                        if ( i > 0 )
+                            lsbJson.Append(", ");
+
+                        lsbJson.Append(this.sJsonValue(loValuesList[i]));
+                    }
+
+                    lsbJson.Append("]");
+                }
+            }
+
+            lsbJson.Append("}");
+
+            return lsbJson.ToString();
+        }
+
+        private string sJsonValue(string asValue)
+        {
+            string lsJsonValue = null;
+
+            if ( null != asValue )
+            {
+                // Is asValue a profile?
+                tvProfile   loNestedProfile = new tvProfile();
+                            if ( asValue.Contains(" -") )   // Hyphens must be preceeded by a space (in this context).
+                                loNestedProfile.LoadFromCommandLine(asValue, tvProfileLoadActions.Append);
+
+                if (loNestedProfile.Count > 0)
+                {
+                    lsJsonValue = loNestedProfile.sJson(null);
+                }
+                else
+                {
+                    bool        lbValue;
+                    double      ldValue;
+                    DateTime    ldtValue;
+                    int         liValue;
+
+                    if ( bool.TryParse(asValue, out lbValue) )
+                    {
+                        lsJsonValue = asValue.ToLower();
+                    }
+                    else
+                    if ( double.TryParse(asValue, out ldValue) )
+                    {
+                        lsJsonValue = ldValue.ToString();
+                    }
+                    else
+                    if ( DateTime.TryParse(asValue, out ldtValue) )
+                    {
+                        if ( Regex.IsMatch(asValue, @"^\s*(\d{1,2}:\d{2}\s*(AM|PM)?)\s*$", RegexOptions.IgnoreCase) )
+                            lsJsonValue = String.Format("\"{0}\"", asValue);
+                        else
+                            lsJsonValue = String.Format("\"{0}\"", ldtValue.ToString("o")); // ISO 8601 format
+                    }
+                    else
+                    if ( int.TryParse(asValue, out liValue) )
+                    {
+                        lsJsonValue = liValue.ToString();
+                    }
+                    else
+                    {
+                        lsJsonValue = String.Format("\"{0}\"",   asValue.Replace("\\", "\\\\")
+                                                                        .Replace("\"", "\\\"")
+                                                                        .Replace("\n", "\\n")
+                                                                        .Replace("\r", "\\r")
+                                                                        .Replace("\t", "\\t"));
+                    }
+                }
+            }
+
+            return lsJsonValue;
+        }
+
+        /// <summary>
         /// Returns the entire contents of the profile as an XML string. See
         /// the <see cref="sXmlXpath"/>, <see cref="sXmlKeyKey"/> and
         /// <see cref="sXmlValueKey"/> properties to learn what XML tags
@@ -2827,7 +2953,7 @@ Copy and proceed from there?
                                 return;
                             }
                             else
-	                        {
+                            {
                                 // Wait a moment ...
                                 System.Threading.Thread.Sleep(200);
 
@@ -2838,7 +2964,7 @@ Copy and proceed from there?
                                 loStreamReader = new StreamReader(lsPathFile);
                                 lsFileAsStream = loStreamReader.ReadToEnd();
                                 this.sLoadedPathFile = lsPathFile;
-	                        }
+                            }
                         }
                         finally
                         {

@@ -22,7 +22,7 @@ namespace GetCert2
         private DoGetCert   moDoGetCert;
 
         private const string mcsSanNameKey = "-Domain";
-        private const string mcsTitleText = "SafeTrust Get Certificate";
+        private const string mcsTitleText = "GoGetCert Get Certificate";
 
         private double  miOriginalScreenHeight;
         private double  miOriginalScreenWidth;
@@ -688,6 +688,13 @@ You can continue this later wherever you left off. "
             MiddlePanelDomainList.IsOpen = false;
 
             this.ShowHelp();
+        }
+
+        private void btnShowSite_Click(object sender, RoutedEventArgs e)
+        {
+            MiddlePanelDomainList.IsOpen = false;
+
+            Process.Start("https://GoGetCert.com");
         }
 
         private void btnShowLogs_Click(object sender, RoutedEventArgs e)

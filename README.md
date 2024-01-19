@@ -6,7 +6,7 @@ Overview
 
 This utility gets a digital certificate from the **FREE** "Let's Encrypt" certificate provider network (see 'LetsEncrypt.org'). It installs the certificate in your server's local computer certificate store and binds it to port 443 in IIS.
 
-If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration below), this software does nothing. Otherwise, the retrieval process begins. If 'stand-alone' mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see 'SafeTrust.org').
+If the current time is not within a given number of days prior to expiration of the current digital certificate (eg. 30 days, see -RenewalDaysBeforeExpiration below), this software does nothing. Otherwise, the retrieval process begins. If 'stand-alone' mode is disabled (see -UseStandAloneMode below), the certificate retrieval process is used in concert with the secure certificate service (SCS, see 'GoGetCert.com').
 
 If the software is not running in 'stand-alone' mode, it also copies any new cert to a secure file anywhere on the local area network to be picked up by the load balancer administrator or process. It also replaces the SSO (single-sign-on) certificate in your central SSO configuration (eg. ADFS) and restarts the SSO service on all servers in any defined SSO server farm. It also replaces all integrated application SSO certificate references in any number of configuration files anywhere on the local network.
 
@@ -531,8 +531,8 @@ Options and Features
 
 -UseStandAloneMode=True
 
-    Set this switch False and the software will use the SafeTrust Secure Certificate
-    Service (see 'SafeTrust.org') to manage certificates between several servers
+    Set this switch False and the software will use the GoGetCert Secure Certificate
+    Service (see 'GoGetCert.com') to manage certificates between several servers
     in a server farm, on SSO servers, SSO integrated application servers and load
     balancers.
 
