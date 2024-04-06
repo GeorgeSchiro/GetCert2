@@ -841,21 +841,28 @@ Notes:
         -CertificateSetupDone
         -CfgVersion
         -ContactEmailAddress
+        -DnsChallengeSleepSecs
         -HostsEntryVersion
         -HostIniVersion
         -KeysAfterReset
         -LicenseAccepted
+        -MaintenanceWindowEndTime
         -NonIISBindingScript
         -SanList
         -ScriptBindingDone
         -ScriptCertAcquired
         -ScriptSSO
+        -ScriptStage3Dns
         -SkipSsoServer
         -SkipSsoThumbprintUpdates
+        -SsoThumbprint
         -SsoThumbprintFiles
         -SsoThumbprintReplacementArgs
+        -SubmissionWaitSecs
+        -UseDnsChallenge
         -UseNonIISBindingAlso
         -UseNonIISBindingOnly
+        -UseNonIISBindingPfxFile
         -XML_Profile
         "));
                 }
@@ -2891,6 +2898,8 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                             }
                         }
 
+                        loProfile.bExit = true;
+
                         if ( !lbUpdateCopied )
                         {
                             Env.LogIt("Software update could not be copied into place. Will try again.", true);
@@ -2904,10 +2913,9 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                             , String.IsNullOrEmpty(lsUpdateRplIniPathFile) ? "" : String.Format("-ini=\"{0}\"", lsUpdateRplIniPathFile)
                                             , loCmdLine.sCommandLine());
                                     loProcess.Start();
-                        }
 
-                        System.Windows.Forms.Application.DoEvents();
-                        loProfile.bExit = true;
+                                    System.Windows.Forms.Application.DoEvents();
+                        }
                     }
                     else
                     {
@@ -3153,10 +3161,13 @@ Checklist for {EXE} setup:
                             case UpdatedEXEs.GcFailSafe:
                                 loProfile = new tvProfile(aoProfile.sRelativeToExePathFile(lsExeName + ".exe.config"), true);
                                 if ( loProfile.ContainsKey(lsKeyName) )
-                                    lsVersion = loProfile.sValue(lsKeyName, "0");
+                                    lsVersion = loProfile.sValue(lsKeyName, "1");
                                 break;
                         }
+            string      lsDomainUpdate = null;
             string      lsNewVersion = null;
+            string      lsServerUpdateVersion = null;
+            string      lsServerUpdate = null;
             tvProfile   loIniUpdateProfile = new tvProfile();
 
                         // Look for profile update.
@@ -3165,27 +3176,44 @@ Checklist for {EXE} setup:
                             switch (aeExeName)
                             {
                                 case UpdatedEXEs.Client:
-                                    string      lsDomainUpdate = loGetCertServiceClient.sIniUpdate(asHash, abtArrayMinProfile, lsVersion);
-                                                if ( !String.IsNullOrEmpty(lsDomainUpdate) )
-                                                {
-                                                    loIniUpdateProfile.LoadFromCommandLine(lsDomainUpdate, tvProfileLoadActions.Overwrite);
-                                                    lsNewVersion = loIniUpdateProfile.sValue("-IniVersion", "1");
-                                                }
-                                    string      lsServerUpdateVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, aoProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
-                                    string      lsServerUpdate = loGetCertServiceClient.sIniUpdate(asHash, abtArrayMinProfile, lsServerUpdateVersion);
-                                                if ( !String.IsNullOrEmpty(lsServerUpdate) )
-                                                {
-                                                    loIniUpdateProfile.LoadFromCommandLine(lsServerUpdate, tvProfileLoadActions.Merge);
+                                    lsDomainUpdate = loGetCertServiceClient.sIniUpdate(asHash, abtArrayMinProfile, lsVersion);
+                                    if ( !String.IsNullOrEmpty(lsDomainUpdate) )
+                                    {
+                                        loIniUpdateProfile.LoadFromCommandLine(lsDomainUpdate, tvProfileLoadActions.Overwrite);
+                                        lsNewVersion = loIniUpdateProfile.sValue(lsKeyName, "1");
+                                    }
+                                    lsServerUpdateVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, aoProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
+                                    lsServerUpdate = loGetCertServiceClient.sIniUpdate(asHash, abtArrayMinProfile, lsServerUpdateVersion);
+                                    if ( !String.IsNullOrEmpty(lsServerUpdate) )
+                                    {
+                                        loIniUpdateProfile.LoadFromCommandLine(lsServerUpdate, tvProfileLoadActions.Merge);
 
-                                                    if ( String.IsNullOrEmpty(lsDomainUpdate) )
-                                                    {
-                                                        lsVersion = lsServerUpdateVersion;
-                                                        lsNewVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, loIniUpdateProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
-                                                    }
-                                                }
+                                        if ( String.IsNullOrEmpty(lsDomainUpdate) )
+                                        {
+                                            lsVersion = lsServerUpdateVersion;
+                                            lsNewVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, loIniUpdateProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
+                                        }
+                                    }
                                     break;
                                 case UpdatedEXEs.GcFailSafe:
-                                    loIniUpdateProfile.LoadFromCommandLine(loGetCertServiceClient.sFailSafeIniUpdate(asHash, abtArrayMinProfile, lsVersion), tvProfileLoadActions.Overwrite);
+                                    lsDomainUpdate = loGetCertServiceClient.sFailSafeIniUpdate(asHash, abtArrayMinProfile, lsVersion);
+                                    if ( !String.IsNullOrEmpty(lsDomainUpdate) )
+                                    {
+                                        loIniUpdateProfile.LoadFromCommandLine(lsDomainUpdate, tvProfileLoadActions.Overwrite);
+                                        lsNewVersion = loIniUpdateProfile.sValue(lsKeyName, "1");
+                                    }
+                                    lsServerUpdateVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, aoProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
+                                    lsServerUpdate = loGetCertServiceClient.sFailSafeIniUpdate(asHash, abtArrayMinProfile, lsServerUpdateVersion);
+                                    if ( !String.IsNullOrEmpty(lsServerUpdate) )
+                                    {
+                                        loIniUpdateProfile.LoadFromCommandLine(lsServerUpdate, tvProfileLoadActions.Merge);
+
+                                        if ( String.IsNullOrEmpty(lsDomainUpdate) )
+                                        {
+                                            lsVersion = lsServerUpdateVersion;
+                                            lsNewVersion = String.Format(gsUpdateProfileServerFmt, gsUpdateProfileServerKey, loIniUpdateProfile.sValue(gsUpdateProfileServerKey, DateTime.MinValue.ToShortDateString()));
+                                        }
+                                    }
                                     break;
                             }
                             if ( CommunicationState.Faulted == loGetCertServiceClient.State )
@@ -3225,18 +3253,42 @@ Checklist for {EXE} setup:
                 // Allow for saving everything (including merged keys).
                 loProfile.bSaveSansCmdLine = false;
                 loProfile.bSaveEnabled = true;
-                // Save the updated profile.
-                loProfile.Save();
 
-                // Only the running client needs this special handling.
-                if ( UpdatedEXEs.Client == aeExeName )
+                bool lbUpdateWritten = false;
+
+                for (int i=0; i < aoProfile.iValue("-UpdateFileWriteMaxRetries", 42); i++)
                 {
-                    // Finally, reload the updated profile (and merge in the command-line).
-                    aoProfile = tvProfile.oGlobal(new tvProfile(args, true));
+                    try
+                    {
+                        // Save the updated profile.
+                        loProfile.Save();
+
+                        lbUpdateWritten = true;
+                        break;
+                    }
+                    catch
+                    {
+                        System.Windows.Forms.Application.DoEvents();
+                        Thread.Sleep(aoProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(aoProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                    }
                 }
 
-                Env.LogIt(String.Format(
-                        "{0} profile update successfully completed. Version {1} is now in use.", lsExeName, lsNewVersion));
+                if ( !lbUpdateWritten )
+                {
+                    Env.LogIt(String.Format("The update to \"{0}\" could not be written to disk. Will try again next cycle.", loProfile.sLoadedPathFile));
+                }
+                else
+                {
+                    // Only the running client needs this special handling.
+                    if ( UpdatedEXEs.Client == aeExeName )
+                    {
+                        // Finally, reload the updated profile (and merge in the command-line).
+                        aoProfile = tvProfile.oGlobal(new tvProfile(args, true));
+                    }
+
+                    Env.LogIt(String.Format(
+                            "{0} profile update successfully completed. Version {1} is now in use.", lsExeName, lsNewVersion));
+                }
             }
 
             return aoProfile;
@@ -3288,17 +3340,40 @@ Checklist for {EXE} setup:
             {
                 Env.LogIt(String.Format("{0} WCF conf version {1} is in use. Update found ...", lsExeName, lsVersion));
 
-                // Overwrite WCF config with the current update.
-                File.WriteAllText(loProfile.sLoadedPathFile, lsCfgUpdate.Replace("{ServiceEndpoint}", Env.oGetCertServiceFactory.Endpoint.Address.Uri.ToString()));
-                Env.ResetConfigMechanism(loProfile);
-                Env.oGetCertServiceFactory = null;
+                bool lbUpdateWritten = false;
 
-                // Overwrite WCF config version number in the current profile.
-                tvProfile   loWcfCfg = new tvProfile(loProfile.sLoadedPathFile, true);
-                            loProfile["-CfgVersion"] = loWcfCfg.sValue("-CfgVersion", "1");
-                            loProfile.Save();
+                for (int i=0; i < aoProfile.iValue("-UpdateFileWriteMaxRetries", 42); i++)
+                {
+                    try
+                    {
+                        // Overwrite WCF config with the current update.
+                        File.WriteAllText(loProfile.sLoadedPathFile, lsCfgUpdate.Replace("{ServiceEndpoint}", Env.oGetCertServiceFactory.Endpoint.Address.Uri.ToString()));
+                        Env.ResetConfigMechanism(loProfile);
+                        Env.oGetCertServiceFactory = null;
 
-                Env.LogIt(String.Format("{0} WCF conf update successfully completed. Version {1} is now in use.", lsExeName, loProfile.sValue("-CfgVersion", "1")));
+                        // Overwrite WCF config version number in the current profile.
+                        tvProfile   loWcfCfg = new tvProfile(loProfile.sLoadedPathFile, true);
+                                    loProfile["-CfgVersion"] = loWcfCfg.sValue("-CfgVersion", "1");
+                                    loProfile.Save();
+
+                        lbUpdateWritten = true;
+                        break;
+                    }
+                    catch
+                    {
+                        System.Windows.Forms.Application.DoEvents();
+                        Thread.Sleep(aoProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(aoProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                    }
+                }
+
+                if ( !lbUpdateWritten )
+                {
+                    Env.LogIt(String.Format("The update to \"{0}\" could not be written to disk. Will try again next cycle.", loProfile.sLoadedPathFile));
+                }
+                else
+                {
+                    Env.LogIt(String.Format("{0} WCF conf update successfully completed. Version {1} is now in use.", lsExeName, loProfile.sValue("-CfgVersion", "1")));
+                }
             }
         }
 
@@ -3581,12 +3656,14 @@ Checklist for {EXE} setup:
                         // Only the client needs this special handling (since it's running).
                         if ( UpdatedEXEs.Client == aeExeName )
                         {
-                            Env.LogIt(String.Format("Writing update profile to \"{0}\".", lsNewIniPathFile));
-                            File.Copy(lsIniPathFile, lsNewIniPathFile, true);
+                            aoProfile.bExit = true;
 
                             // Schedule a bounce in case the update craps out for whatever reason.
                             // The bounce will be cancelled, assuming the update proceeds normally.
                             Env.ScheduleOnErrorBounce(DoGetCert.oDomainProfile, true);
+
+                            Env.LogIt(String.Format("Writing update profile to \"{0}\".", lsNewIniPathFile));
+                            File.Copy(lsIniPathFile, lsNewIniPathFile, true);
 
                             Env.LogIt(String.Format("Starting update \"{0}\" ...", lsNewExePathFile));
                             Process loProcess = new Process();
@@ -3595,8 +3672,7 @@ Checklist for {EXE} setup:
                                             , asRunKey, lsExePathFile, asRplKey, asRplIniPathFile, aoCmdLineProfile.sCommandLine());
                                     loProcess.Start();
 
-                            System.Windows.Forms.Application.DoEvents();
-                            aoProfile.bExit = true;
+                                    System.Windows.Forms.Application.DoEvents();
                         }
                     }
                 }
@@ -3805,19 +3881,44 @@ Checklist for {EXE} setup:
                                 // Finally, merge in the update (sans keys already handled).
                                 loHostProfile.LoadFromCommandLine(loUpdateProfile.ToString(), tvProfileLoadActions.Merge);
 
-                    // Update GetCert profile with current GPC IniVersion.
-                    aoProfile["-HostIniVersion"] = loHostProfile.sValue("-GpcIniVersion", "1");
-                    aoProfile.Save();
+                    bool lbUpdateWritten = false;
 
-                    // Remove the version key from the host profile.
-                    loHostProfile.Remove("-GpcIniVersion");
+                    for (int i=0; i < aoProfile.iValue("-UpdateFileWriteMaxRetries", 42); i++)
+                    {
+                        try
+                        {
+                            string lsGpcIniVersion = loHostProfile.sValue("-GpcIniVersion", "1");
 
-                    // Write the INI and unlock it.
-                    loHostProfile.Save();
-                    loHostProfile.bEnableFileLock = false;
+                            // Remove the version key from the host profile.
+                            loHostProfile.Remove("-GpcIniVersion");
 
-                    Env.LogIt(String.Format(
-                            "Host profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostIniVersion", "1")));
+                            // Write the INI and unlock it.
+                            loHostProfile.Save();
+                            loHostProfile.bEnableFileLock = false;
+
+                            // Update GetCert profile with current GPC IniVersion.
+                            aoProfile["-HostIniVersion"] = lsGpcIniVersion;
+                            aoProfile.Save();
+
+                            lbUpdateWritten = true;
+                            break;
+                        }
+                        catch
+                        {
+                            System.Windows.Forms.Application.DoEvents();
+                            Thread.Sleep(aoProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(aoProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                        }
+                    }
+
+                    if ( !lbUpdateWritten )
+                    {
+                        Env.LogIt(String.Format("The update to \"{0}\" could not be written to disk. Will try again next cycle.", loHostProfile.sLoadedPathFile));
+                    }
+                    else
+                    {
+                        Env.LogIt(String.Format(
+                                "Host profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostIniVersion", "1")));
+                    }
                 }
             }
 

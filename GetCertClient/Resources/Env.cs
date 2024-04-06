@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
 using System.Text;
@@ -223,7 +224,26 @@ namespace GetCert2
 
         public static bool bIsSetupCert(X509Certificate2 aoCertificate)
         {
-            return Env.sNewClientSetupCertName == Env.sCertName(aoCertificate) || aoCertificate.Subject.Contains("*");
+            bool lbIsSetupCert = false;
+
+            if ( aoCertificate.Subject.Contains(Env.sNewClientSetupCertName) || aoCertificate.Subject.Contains("*") )
+                lbIsSetupCert = true;
+            else
+                foreach (X509Extension loExt in aoCertificate.Extensions)
+                {
+                    if ( "Subject Alternative Name" == loExt.Oid.FriendlyName )
+                    {
+                        AsnEncodedData  loAsnEncodedData = new AsnEncodedData(loExt.Oid, loExt.RawData);
+                        string          lsSanList = loAsnEncodedData.Format(true);
+                                        if ( lsSanList.Contains(Env.sNewClientSetupCertName) || lsSanList.Contains("*") )
+                                        {
+                                            lbIsSetupCert = true;
+                                            break;
+                                        }
+                    }
+                }
+
+            return lbIsSetupCert;
         }
 
         // This kludge is necessary since neither "Process.CloseMainWindow()" nor "Process.Kill()" work reliably.

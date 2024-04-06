@@ -64,10 +64,9 @@ Requirements
 ============
 
 
--   .Net Framework 4.8+
--   PowerShell 5.1+
+-   Windows Server 2016+
 -   Internet Information Services (IIS)
--   Windows Server 2008 R2+
+-   .Net Framework 4.8+
 
 
 Command-Line Usage
