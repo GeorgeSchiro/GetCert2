@@ -1170,7 +1170,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
         public static string    sPowerScriptOutput = null;
         public static string    sFetchPrefix = "Resources.Fetch.";
         public static string    sHostProcess = "GoPcBackup.exe";
-        public static string    sNewClientSetupPfxName = "GcSetup.pfx";
+        public static string    sNewClientSetupPfxName = "GgcSetup.pfx";
         public static string    sNewClientSetupCertName = "GetCertClientSetup";
         public static string    sWcfLogFile  = "WcfLog.txt";         // Must be changed in the WCF config too.
 

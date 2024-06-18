@@ -215,7 +215,7 @@
     <EmbeddedResource Include="Resources\Fetch\ReplaceText.exe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Fetch\GetCert2Task.xml" />
+    <EmbeddedResource Include="Resources\Fetch\GoGetCertTask.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

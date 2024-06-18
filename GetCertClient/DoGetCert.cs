@@ -395,12 +395,11 @@ A brief description of each feature follows.
     This is the number of days until certificate expiration before automated
     gets of the next new certificate are attempted.
 
--ResetStagingLogs=True
+-ResetStagingLogs=False
 
     Having to wade through several log sessions during testing can be cumbersome.
-    So the default behavior is to clear the log file after it is uploaded to the SCS
-    server (following each test). Setting this switch False will retain all previous
-    log sessions on the client during testing.
+    Setting this switch True will clear previous log sessions on the client after
+    each staging test.
 
     Note: this switch is ignored when -UseStandAloneMode is True.
 
@@ -1675,7 +1674,7 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
                     loGetCertServiceClient.Close();
             }
 
-            if ( tvProfile.oGlobal().bValue("-DoStagingTests", true) && tvProfile.oGlobal().bValue("-ResetStagingLogs", true) )
+            if ( tvProfile.oGlobal().bValue("-DoStagingTests", true) && tvProfile.oGlobal().bValue("-ResetStagingLogs", false) )
                 File.Delete(Env.sLogPathFile);
 
             if (       tvProfile.oGlobal().bValue("-Auto", false)
@@ -2080,7 +2079,17 @@ certutil -repairstore my {NewCertificateThumbprint}
                                 loCompressContentProfile.Add(gsContentKey, lsErrorLog);
                             }
 
-                lbDoCheckIn = loGetCertServiceClient.bClientCheckIn(asHash, abtArrayMinProfile, loCompressContentProfile.btArrayZipped());
+                using (new OperationContextScope(loGetCertServiceClient))
+                {
+                    System.ServiceModel.Channels.HttpRequestMessageProperty loHttpRequestMessageProperty = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                                                                            loHttpRequestMessageProperty.Headers["ComputerName"] = Env.sComputerName;
+                                                                            loHttpRequestMessageProperty.Headers["ProfilePathFile"] = tvProfile.oGlobal().sLoadedPathFile;
+
+                    OperationContext.Current.OutgoingMessageProperties[System.ServiceModel.Channels.HttpRequestMessageProperty.Name] = loHttpRequestMessageProperty;
+
+                    lbDoCheckIn = loGetCertServiceClient.bClientCheckIn(asHash, abtArrayMinProfile, loCompressContentProfile.btArrayZipped());
+                }
+
                 if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                     loGetCertServiceClient.Abort();
                 else
@@ -2805,7 +2814,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                     //
                     //// Fetch security context task definition (for SSO servers).
                     //tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
-                    //        , String.Format("{0}{1}", Env.sFetchPrefix, lsFetchName="GetCert2Task.xml")
+                    //        , String.Format("{0}{1}", Env.sFetchPrefix, lsFetchName="GoGetCertTask.xml")
                     //        , loProfile.sRelativeToExePathFile(lsFetchName));
                 }
 
@@ -2860,12 +2869,18 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                                 , Path.GetFileName(loProfile.sExePathFile)
                                                 , String.Join(" ", loProfile.sInputCommandLineArray)));
 
-                    // Check-in with the GetCert service.
-                    loProfile.bExit = !DoGetCert.bDoCheckIn(lsHash, lbtArrayMinProfile);
-
                     // Short-circuit updates until basic setup is complete.
                     if ( "" == loProfile.sValue("-ContactEmailAddress", "") )
+                    {
+                        loProfile["-NoPrompts"] = false;
+                        loProfile.Remove("-AllConfigWizardStepsCompleted");
+                        loProfile.Save();
+
                         return loProfile;
+                    }
+
+                    // Check-in with the GetCert service.
+                    loProfile.bExit = !DoGetCert.bDoCheckIn(lsHash, lbtArrayMinProfile);
 
                     // Does the service reference need updating? (must be handled first)
                     if ( !loProfile.bExit )
@@ -2927,19 +2942,15 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                             {
                                 lsCurrentVersion = FileVersionInfo.GetVersionInfo(loProfile.sExePathFile).FileVersion;
 
-                                if ( lsCurrentVersion != FileVersionInfo.GetVersionInfo(lsUpdateDeletePathFile).FileVersion )
+                                if ( File.Exists(lsUpdateDeletePathFile) && lsCurrentVersion != FileVersionInfo.GetVersionInfo(lsUpdateDeletePathFile).FileVersion )
                                     lsCurrentVersion = null;
 
                                 Directory.Delete(Path.GetDirectoryName(lsUpdateDeletePathFile), true);
                                 break;
                             }
-                            catch (Exception ex)
+                            catch
                             {
-                                if ( i == loProfile.iValue("-UpdateFileWriteMaxRetries", 42) - 1 )
-                                {
-                                    throw ex;
-                                }
-                                else
+                                if ( i < loProfile.iValue("-UpdateFileWriteMaxRetries", 42) )
                                 {
                                     System.Windows.Forms.Application.DoEvents();
                                     Thread.Sleep(loProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(loProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
@@ -2950,10 +2961,13 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                         if ( null == lsCurrentVersion )
                         {
                             Env.LogIt("Software update DID NOT complete successfully. Will try again.");
+
+                            loProfile.bExit = true;
                         }
                         else
                         {
                             Env.LogIt(String.Format("Software update successfully completed. Version {0} is now running.", lsCurrentVersion));
+                            Env.LogIt("");
 
                             // The update did not crap out, so cancel the previously scheduled "on error" bounce.
                             Env.ScheduleBounceOnErrorCancel(true);
@@ -2997,7 +3011,7 @@ Checklist for {EXE} setup:
            domain specific certificate for further communications.
 
         .) ""Host process can't be located on disk. Can't continue."" means the host
-           software (ie. the task scheduler) must also be installed to continue.
+           software (ie. the GGC task scheduler) must also be installed to continue.
            Look in the ""{EXE}"" folder for the host EXE and run it.
 
         .) If you suspect an issue locating the proper identifying certificate,
@@ -3008,11 +3022,8 @@ Checklist for {EXE} setup:
         .) The ""-StagingTestsEnabled"" switch must be set to ""True"" for the staging
            tests (it gets reset automatically every night).
 
-        .) The ""{CertificateDomainName}"" certificate must be added
-           to the trusted people store.
-
-        .) The ""{CertificateDomainName}"" certificate must be removed 
-           from the ""untrusted"" certificate store (if it's there).
+        .) The setup certificate certificate must be trusted. It will be automatically
+           ""untrusted"" after staging tests have been completed.
 "
                             .Replace("{EXE}", Path.GetFileName(ResourceAssembly.Location))
                             .Replace("{CertificateDomainName}", Env.sNewClientSetupCertName)
@@ -3938,6 +3949,9 @@ Checklist for {EXE} setup:
 
         private static void HandleSetupCertUpdate(tvProfile aoProfile, tvProfile aoMinProfile, string asHash, byte[] abtArrayMinProfile)
         {
+            if ( !aoProfile.bValue("-CertificateSetupDone", false) || aoProfile.bValue("-DisableSetupCertChanges", false) )
+                return;
+
             X509Certificate2    loOldSetupCertificate = null;
             X509Store           loStore = null;
                                 try
@@ -3948,6 +3962,10 @@ Checklist for {EXE} setup:
                                     X509Certificate2Collection  loCertCollection = loStore.Certificates.Find(X509FindType.FindBySubjectName, Env.sNewClientSetupCertName, false);
                                                                 if ( null != loCertCollection && 0 != loCertCollection.Count )
                                                                     loOldSetupCertificate = loCertCollection[0];
+
+                                    // Remove any extras.
+                                    for (int i=1; i < loCertCollection.Count; i++)
+                                        DoGetCert.RemoveCertificate(loCertCollection[i], loStore);
                                 }
                                 finally
                                 {
@@ -3966,48 +3984,73 @@ Checklist for {EXE} setup:
                                     else
                                         loGetCertServiceClient.Close();
                                 }
+            X509Certificate2    loNewSetupCertificate = null;
+                                if ( null != lbtArraySetupCertUpdate )
+                                {
+                                    string              lsCertPfxPathFile = aoProfile.sRelativeToProfilePathFile(Guid.NewGuid().ToString("N"));
+                                    string              lsCertificatePassword = HashClass.sHashPw(aoMinProfile);
+                                                        File.WriteAllBytes(lsCertPfxPathFile, lbtArraySetupCertUpdate);
 
-            if ( null != lbtArraySetupCertUpdate )
+                                    loNewSetupCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
+
+                                    Env.LogIt(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Update found ..."
+                                                , null == loOldSetupCertificate ? Env.sNewClientSetupCertName : loOldSetupCertificate.Subject, null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint));
+
+                                    File.Delete(lsCertPfxPathFile);
+
+                                    try
+                                    {
+                                        loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                                        loStore.Open(OpenFlags.ReadWrite);
+                                        loStore.Add(loNewSetupCertificate);
+
+                                        DoGetCert.RemoveCertificate(loOldSetupCertificate, loStore);
+                                    }
+                                    finally
+                                    {
+                                        if ( null != loStore )
+                                            loStore.Close();
+                                    }
+                                }
+
+            try
             {
-                string              lsCertPfxPathFile = aoProfile.sRelativeToProfilePathFile(Guid.NewGuid().ToString("N"));
-                string              lsCertificatePassword = HashClass.sHashPw(aoMinProfile);
-                                    File.WriteAllBytes(lsCertPfxPathFile, lbtArraySetupCertUpdate);
+                // Let's be 100% sure a single setup certificate is now out there before modifying the WCF configuration.
 
-                X509Certificate2 loNewSetupCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
+                loOldSetupCertificate = null;
 
-                Env.LogIt(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Update found ..."
-                            , null == loOldSetupCertificate ? Env.sNewClientSetupCertName : loOldSetupCertificate.Subject, null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint));
+                loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                loStore.Open(OpenFlags.ReadOnly);
 
-                File.Delete(lsCertPfxPathFile);
-
-                try
-                {
-                    loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-                    loStore.Open(OpenFlags.ReadWrite);
-                    loStore.Add(loNewSetupCertificate);
-
-                    DoGetCert.RemoveCertificate(loOldSetupCertificate, loStore);
-
-                    string  lsWcfSetupCertNode = "<clientCertificate findValue=\"GetCertClientSetup\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />";
-                    string  lsWcfConfiguration = File.ReadAllText(aoProfile.sLoadedPathFile);
-                            if ( !lsWcfConfiguration.Contains(lsWcfSetupCertNode) )
-                            {
-                                Regex   loRegex = new Regex("(\\s*)<\\/serviceCertificate>(.*?)(\\s*)<\\/clientCredentials>", RegexOptions.Singleline);
-                                        if ( !loRegex.IsMatch(lsWcfConfiguration) )
-                                            throw new Exception(String.Format("Failed attempting to locate WCF configuration for the \"{0}\"=\"{1}\" certificate.", Env.sNewClientSetupCertName, loNewSetupCertificate.Thumbprint));
-
-                                File.WriteAllText(aoProfile.sLoadedPathFile, loRegex.Replace(lsWcfConfiguration, "$1</serviceCertificate>$1lsWcfSetupCertNode$3</clientCredentials>".Replace("lsWcfSetupCertNode", lsWcfSetupCertNode)));
-                                Env.ResetConfigMechanism(aoProfile);
-
-                                Env.LogIt(String.Format("Setup certificate \"{0}\" update successfully completed. Version \"{1}\" is now in use.", Env.sNewClientSetupCertName, loNewSetupCertificate.Thumbprint));
-                            }
-                }
-                finally
-                {
-                    if ( null != loStore )
-                        loStore.Close();
-                }
+                X509Certificate2Collection  loCertCollection = loStore.Certificates.Find(X509FindType.FindBySubjectName, Env.sNewClientSetupCertName, false);
+                                            if ( null != loCertCollection && 1 == loCertCollection.Count )
+                                                loOldSetupCertificate = loCertCollection[0];
             }
+            finally
+            {
+                if ( null != loStore )
+                    loStore.Close();
+            }
+
+            if ( null != loOldSetupCertificate )
+            {
+                string  lsWcfSetupCertNode = String.Format("<clientCertificate findValue=\"{0}\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />", Env.sNewClientSetupCertName);
+                string  lsWcfConfiguration = File.ReadAllText(aoProfile.sLoadedPathFile);
+                        if ( !lsWcfConfiguration.Contains(lsWcfSetupCertNode) )
+                        {
+                            Regex   loRegex = new Regex("(\\s*)<\\/serviceCertificate>(.*?)(\\s*)<\\/clientCredentials>", RegexOptions.Singleline);
+                                    if ( !loRegex.IsMatch(lsWcfConfiguration) )
+                                        throw new Exception(String.Format("Failed attempting to locate WCF configuration for the \"{0}\" certificate.", Env.sNewClientSetupCertName));
+
+                            File.WriteAllText(aoProfile.sLoadedPathFile, loRegex.Replace(lsWcfConfiguration, "$1</serviceCertificate>$1lsWcfSetupCertNode$3</clientCredentials>".Replace("lsWcfSetupCertNode", lsWcfSetupCertNode)));
+                            Env.ResetConfigMechanism(aoProfile);
+
+                            Env.LogIt(String.Format("WCF configuration updated with reference to setup certificate (\"{0}\").", Env.sNewClientSetupCertName));
+                        }
+            }
+
+            if ( null != loNewSetupCertificate )
+                Env.LogIt(String.Format("Setup certificate version \"{0}\" is now in use.", loNewSetupCertificate.Thumbprint));
         }
 
         private static void HandleSvcUpdate(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
@@ -5133,10 +5176,9 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                         if ( lbGetCertificate && !this.bMainLoopStopped )
                         {
                             if ( lbCertOverrideApplies )
-                                lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, lsCertName, lsCertPfxPathFile
-                                                                                    , HashClass.sDecrypted(Env.oChannelCertificate, DoGetCert.oDomainProfile.sValue("-CertOverridePfxPassword", "")));
-                            else
-                                lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, lsCertName, lsCertPfxPathFile, lsCertificatePassword);
+                                lsCertificatePassword = HashClass.sDecrypted(Env.oChannelCertificate, DoGetCert.oDomainProfile.sValue("-CertOverridePfxPassword", ""));
+
+                            lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, lsCertName, lsCertPfxPathFile, lsCertificatePassword);
                         }
 
                         // Upload new certificate to the repository.

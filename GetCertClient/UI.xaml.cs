@@ -314,7 +314,7 @@ namespace GetCert2
 
                     ScrollingText loLicense = null;
 
-                    if ( !this.bNoPrompts )
+                    if ( !this.bNoPrompts || !moDoGetCert.bCertificateSetupDone )
                     {
                         tvMessageBox.ShowBriefly(this, string.Format("The \"{0}\" will now be displayed."
                                         + "\r\n\r\nPlease accept it if you would like to use this software."
@@ -419,6 +419,7 @@ namespace GetCert2
                 {
                     this.SetupDoneApplyProfileUpdates();
 
+                    this.SetupDoneText();
                     this.HideMiddlePanels();
                     this.MainButtonPanel.IsEnabled = true;
 
@@ -452,7 +453,6 @@ If you change your mind (ie. click ""No""), the ""Use Stand Alone Mode"" switch 
                     else
                     {
                         this.SetupDoneApplyProfileUpdates();
-                        this.SetupDoneText();
 
                         this.Close();
 
@@ -460,28 +460,39 @@ If you change your mind (ie. click ""No""), the ""Use Stand Alone Mode"" switch 
                     }
                 }
                 else
-                if ( tvMessageBoxResults.Yes == this.Show(string.Format(@"
+                {
+                    this.SetupDoneApplyProfileUpdates();
+
+                    if ( !moProfile.bValue("-UseStandAloneMode", true) )
+                    {
+                        tvMessageBox.ShowBriefly(this, "This software requires a restart. Restarting ...", Path.GetFileNameWithoutExtension(moProfile.sExePathFile), tvMessageBoxIcons.Information, 2000);
+
+                        this.Close();
+
+                        Process.Start(moProfile.sExePathFile);
+                    }
+                    else
+                    if ( tvMessageBoxResults.Yes == this.Show(string.Format(@"
 The get certificate process could take a minute or more to complete. Are you sure you want to run this now?
 
 You can continue this later wherever you left off. "
 + @" You can also edit the profile file directly (""{0}"") for"
 + @" much more detailed configuration (see ""Help"").
 "
-                                , Path.GetFileName(moProfile.sLoadedPathFile)
+                                    , Path.GetFileName(moProfile.sLoadedPathFile)
+                                    )
+                                , "Get Certificate"
+                                , tvMessageBoxButtons.YesNo
+                                , tvMessageBoxIcons.Question
                                 )
-                            , "Get Certificate"
-                            , tvMessageBoxButtons.YesNo
-                            , tvMessageBoxIcons.Question
                             )
-                        )
-                {
-                    this.SetupDoneApplyProfileUpdates();
-                    this.SetupDoneText();
+                    {
+                        this.SetupDoneText();
+                        this.HideMiddlePanels();
+                        this.MainButtonPanel.IsEnabled = true;
 
-                    this.HideMiddlePanels();
-                    this.MainButtonPanel.IsEnabled = true;
-
-                    this.DoMainProcess();
+                        this.DoMainProcess();
+                    }
                 }
             }
         }

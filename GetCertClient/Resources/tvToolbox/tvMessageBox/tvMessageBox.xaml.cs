@@ -74,6 +74,18 @@ public partial class tvMessageBox : Window
     private bool mbDialogAccepted = false;
 
 
+    private string sMessageText
+    {
+        get
+        {
+            return this.MessageText.Text;
+        }
+        set
+        {
+            this.MessageText.Text = value.Replace("-", "\u2011");   // convert to non-breaking hyphen
+        }
+    }
+    
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         // This kludge is necessary to center in screen
@@ -127,6 +139,10 @@ public partial class tvMessageBox : Window
         {
             case Key.Enter:
                 this.bDialogAccepted = true;
+                break;
+
+            case Key.Escape:
+                this.Close();
                 break;
         }
     }
@@ -436,7 +452,7 @@ public partial class tvMessageBox : Window
             aoWindow.Cursor = null;             // Turn off wait cursor in parent window.
 
         tvMessageBox    loMsgBox = new tvMessageBox();
-                        loMsgBox.MessageText.Text = asMessageText;
+                        loMsgBox.sMessageText = asMessageText;
 
                         // Use some parent window attributes, if available.
                         if ( null != aoWindow )
@@ -526,7 +542,7 @@ public partial class tvMessageBox : Window
             )
     {
         tvMessageBox    loMsgBox = new tvMessageBox();
-                        loMsgBox.MessageText.Text = asMessageText;
+                        loMsgBox.sMessageText = asMessageText;
 
                         // Use some parent window attributes, if available.
                         if ( null != aoWindow )
@@ -573,7 +589,7 @@ public partial class tvMessageBox : Window
         this.Cursor = Cursors.Wait;
         mbIsShowWait = true;
         this.BottomPanel.Height = 35;
-        this.MessageText.Text = asMessageText;
+        this.sMessageText = asMessageText;
 
         // Use some parent window attributes, if available.
         if ( null != aoWindow )

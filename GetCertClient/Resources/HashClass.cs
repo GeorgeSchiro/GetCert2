@@ -70,19 +70,8 @@ namespace GetCert2
             }
             catch (InvalidOperationException ex)
             {
-                if ( aoProfile.bValue("-DeclareErrorOnPrivateKeyFileCleanedUp", false) )
-                {
-                    Type ltDoGetCert = Type.GetType("DoGetCert");
-                    if ( null == ltDoGetCert )
-                        throw ex;
-                    else
-                        ltDoGetCert.GetMethod("LogIt").Invoke(null, new object[]{
-                                  String.Format("GetCertServiceFault: {0}{1}{2}{3}"
-                                , ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message)
-                                , Environment.NewLine
-                                , ex.StackTrace)
-                                });
-                }
+                if ( aoProfile.bValue("-DeclareErrorOnPrivateKeyFileCleanup", false) )
+                    throw ex;
             }
 
             return lsMachineKeyPathFile;

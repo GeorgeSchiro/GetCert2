@@ -352,12 +352,11 @@ Options and Features
     This is the number of days until certificate expiration before automated
     gets of the next new certificate are attempted.
 
--ResetStagingLogs=True
+-ResetStagingLogs=False
 
     Having to wade through several log sessions during testing can be cumbersome.
-    So the default behavior is to clear the log file after it is uploaded to the SCS
-    server (following each test). Setting this switch False will retain all previous
-    log sessions on the client during testing.
+    Setting this switch True will clear previous log sessions on the client after
+    each staging test.
 
     Note: this switch is ignored when -UseStandAloneMode is True.
 

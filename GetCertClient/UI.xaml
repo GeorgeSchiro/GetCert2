@@ -38,7 +38,7 @@
             <DockPanel LastChildFill="True">
                 <Canvas>
                     <Button Name="btnShowHelp" Click="btnShowHelp_Click"
-                        ToolTip="Show Detailed Help"
+                        ToolTip="Show Help"
                         Style="{StaticResource MainCanvasButton}"
                         HorizontalAlignment="Left"
                         >
