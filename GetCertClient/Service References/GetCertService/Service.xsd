@@ -223,7 +223,7 @@
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
         <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
-        <xs:element minOccurs="0" name="asCurrentThumprint" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="asCurrentThumbprint" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -366,6 +366,7 @@
       <xs:sequence>
         <xs:element minOccurs="0" name="asHash" nillable="true" type="xs:string" />
         <xs:element minOccurs="0" name="abtArrayProfile" nillable="true" type="xs:base64Binary" />
+        <xs:element minOccurs="0" name="asThumbprint" nillable="true" type="xs:string" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>

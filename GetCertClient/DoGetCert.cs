@@ -819,7 +819,15 @@ Notes:
                     }
                 }
 
+                Env.oDomainProfile = goDomainProfile;
+
                 return goDomainProfile;
+            }
+            set
+            {
+                goDomainProfile = value;
+
+                Env.oDomainProfile = goDomainProfile;
             }
         }
         private static tvProfile goDomainProfile;
@@ -847,6 +855,7 @@ Notes:
         -LicenseAccepted
         -MaintenanceWindowEndTime
         -NonIISBindingScript
+        -ResetAccountFilesEachRun
         -SanList
         -ScriptBindingDone
         -ScriptCertAcquired
@@ -1215,6 +1224,7 @@ Notes:
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(lsLoadBalancerPfxPathFile));
                     File.WriteAllBytes(lsLoadBalancerPfxPathFile, loLbCertificate.Export(X509ContentType.Pfx, lsLoadBalancerPassword));
+                    DoGetCert.RemoveCertificatePrivateKeyFile(loLbCertificate);
                 }
 
                 lbUploadCertToLoadBalancer = true;
@@ -1367,7 +1377,7 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
         public static void ClearCache()
         {
             // Clear the domain profile cache.
-            goDomainProfile = null;
+            DoGetCert.oDomainProfile = null;
         }
 
         public bool bDoInAndOut()
@@ -1646,7 +1656,7 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
                     && 0 == Env.iNonErrorBounceSecs
                     && (null == ex || !(ex is CommunicationException))
                     )
-                Env.ScheduleOnErrorBounce(DoGetCert.oDomainProfile);
+                Env.ScheduleOnErrorBounce();
         }
 
         public static void ReportEverything(out string asLogFileTextReported)
@@ -2084,6 +2094,7 @@ certutil -repairstore my {NewCertificateThumbprint}
                     System.ServiceModel.Channels.HttpRequestMessageProperty loHttpRequestMessageProperty = new System.ServiceModel.Channels.HttpRequestMessageProperty();
                                                                             loHttpRequestMessageProperty.Headers["ComputerName"] = Env.sComputerName;
                                                                             loHttpRequestMessageProperty.Headers["ProfilePathFile"] = tvProfile.oGlobal().sLoadedPathFile;
+                                                                            loHttpRequestMessageProperty.Headers["CertificateDomainName"] = lsCertName;
 
                     OperationContext.Current.OutgoingMessageProperties[System.ServiceModel.Channels.HttpRequestMessageProperty.Name] = loHttpRequestMessageProperty;
 
@@ -2217,6 +2228,17 @@ certutil -repairstore my {NewCertificateThumbprint}
                 if ( null != loStore )
                     loStore.Close();
             }
+        }
+
+        private static void RemoveCertificatePrivateKeyFile(X509Certificate2 aoCertificate)
+        {
+            if ( null == aoCertificate )
+                return;
+
+            // Get cert's private key file - and remove it (sadly, the OS typically let's these things accumulate forever).
+            string  lsMachineKeyPathFile = HashClass.sMachineKeyPathFile(tvProfile.oGlobal(), aoCertificate);
+                    if ( !String.IsNullOrEmpty(lsMachineKeyPathFile) )
+                        File.Delete(lsMachineKeyPathFile);
         }
 
         private void RemoveNewCertificate(X509Store aoStore, X509Certificate2 aoOldCertificate, X509Certificate2 aoNewCertificate, string asNewCertPfxPathFile)
@@ -2620,14 +2642,27 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                 }
                 else
                 if ( !DoGetCert.oDomainProfile.bValue("-CertOverridePfxReady", false) && Env.sComputerName == lsCertOverrideComputerName && File.Exists(lsCertOverridePfxPathFile) )
+                {
+                    Env.LogIt("Certificate override found ...");
+
+                    string              lsCertificatePassword = HashClass.sDecrypted(Env.oChannelCertificate, DoGetCert.oDomainProfile.sValue("-CertOverridePfxPassword", ""));
+                    X509Certificate2    loCertOverrideReady = new X509Certificate2(lsCertOverridePfxPathFile, lsCertificatePassword);
+
+                    Env.LogIt("");
+                    Env.LogIt(String.Format("Certificate override thumbprint: {0} (\"{1}\")", loCertOverrideReady.Thumbprint, Env.sCertName(loCertOverrideReady)));
+                    Env.LogIt("");
+
+                    DoGetCert.RemoveCertificatePrivateKeyFile(loCertOverrideReady);
+
                     using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                     {
-                        loGetCertServiceClient.NotifyCertOverrideCertificateReady(asHash, abtArrayMinProfile);
+                        loGetCertServiceClient.NotifyCertOverrideCertificateReady(asHash, abtArrayMinProfile, loCertOverrideReady.Thumbprint);
                         if ( CommunicationState.Faulted == loGetCertServiceClient.State )
                             loGetCertServiceClient.Abort();
                         else
                             loGetCertServiceClient.Close();
                     }
+                }
 
                 // Allow checking staging certificates for expiration only in non-interactive (or non-setup) mode.
 
@@ -2845,6 +2880,15 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                                 }
                 }
 
+                if ( !loProfile.bExit && String.IsNullOrEmpty(lsUpdateRunExePathFile) && String.IsNullOrEmpty(lsUpdateDeletePathFile) )
+                {
+                    Env.LogIt("");
+                    Env.LogIt(String.Format("Version {0} command-line: {1} {2}"
+                                                , FileVersionInfo.GetVersionInfo(loProfile.sExePathFile).FileVersion
+                                                , Path.GetFileName(loProfile.sExePathFile)
+                                                , String.Join(" ", loProfile.sInputCommandLineArray)));
+                }
+
                 if ( loProfile.bExit || loProfile.bValue("-UseStandAloneMode", true) )
                     return loProfile;
 
@@ -2863,12 +2907,6 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
 
                 if ( String.IsNullOrEmpty(lsUpdateRunExePathFile) && String.IsNullOrEmpty(lsUpdateDeletePathFile) )
                 {
-                    Env.LogIt("");
-                    Env.LogIt(String.Format("Version {0} command-line: {1} {2}"
-                                                , FileVersionInfo.GetVersionInfo(loProfile.sExePathFile).FileVersion
-                                                , Path.GetFileName(loProfile.sExePathFile)
-                                                , String.Join(" ", loProfile.sInputCommandLineArray)));
-
                     // Short-circuit updates until basic setup is complete.
                     if ( "" == loProfile.sValue("-ContactEmailAddress", "") )
                     {
@@ -3671,7 +3709,7 @@ Checklist for {EXE} setup:
 
                             // Schedule a bounce in case the update craps out for whatever reason.
                             // The bounce will be cancelled, assuming the update proceeds normally.
-                            Env.ScheduleOnErrorBounce(DoGetCert.oDomainProfile, true);
+                            Env.ScheduleOnErrorBounce(true);
 
                             Env.LogIt(String.Format("Writing update profile to \"{0}\".", lsNewIniPathFile));
                             File.Copy(lsIniPathFile, lsNewIniPathFile, true);
@@ -3802,133 +3840,144 @@ Checklist for {EXE} setup:
                     tvProfile   loUpdateProfile = new tvProfile(lsHostIniUpdate);
                     tvProfile   loHostProfile = new tvProfile(lsHostExePathFile + ".txt", false);
 
-                                // Look for update task references in the existing list of added tasks. If found, skip them. In other words, within
-                                // the new loUpdateProfile, leave out all tasks from loHostProfile that make any references to what's in the update.
-                                tvProfile   loTasks = new tvProfile();
-                                            // Place tasks in the update on top of the list.
-                                            foreach (DictionaryEntry loEntry in loUpdateProfile.oProfile("-AddTasks"))
-                                            {
-                                                loTasks.Add("-Task", loEntry.Value);
-                                            }
-                                            // Look for tasks in the host profile that are NOT in the update and NOT in the -RemoveTasks profile.
-                                            foreach (DictionaryEntry loEntry in loHostProfile.oProfile("-AddTasks"))
-                                            {
-                                                tvProfile   loTask = new tvProfile(loEntry.Value.ToString());
-                                                string      lsHostTaskExeArgs = (loTask.sValue("-CommandEXE", "") + loTask.sValue("-CommandArgs", "")).ToLower();
-                                                string      lsHostTaskExeArgsTime = lsHostTaskExeArgs + loTask.sValue("-StartTime", "").ToLower();
-                                                bool        lbAddTask = true;
-
-                                                foreach (DictionaryEntry loEntry2 in loUpdateProfile.oProfile("-AddTasks"))
-                                                {
-                                                    tvProfile   loTaskUpdate = new tvProfile(loEntry2.Value.ToString());
-                                                                if ( lsHostTaskExeArgs == (loTaskUpdate.sValue("-CommandEXE", "") + loTaskUpdate.sValue("-CommandArgs", "")).ToLower() )
-                                                                {
-                                                                    lbAddTask = false;
-                                                                    break;
-                                                                }
-                                                }
-                                                if ( lbAddTask )
-                                                    foreach (DictionaryEntry loEntry2 in loUpdateProfile.oProfile("-RemoveTasks"))
-                                                    {
-                                                        tvProfile   loTaskUpdate = new tvProfile(loEntry2.Value.ToString());
-                                                                    if ( lsHostTaskExeArgsTime == (loTaskUpdate.sValue("-CommandEXE", "")
-                                                                                                +  loTaskUpdate.sValue("-CommandArgs", "")
-                                                                                                +  loTaskUpdate.sValue("-StartTime", "")
-                                                                                                ).ToLower()
-                                                                            )
-                                                                    {
-                                                                        lbAddTask = false;
-                                                                        break;
-                                                                    }
-                                                    }
-
-                                                if ( lbAddTask )
-                                                    loTasks.Add("-Task", loEntry.Value);
-                                            }
-                                // Look for update path\file references in the existing backup and cleanup sets. If found, skip them. In other
-                                // words, leave out all sets from loHostProfile that make any path\file references to what's in loUpdateProfile.
-                                tvProfile   loBackupSets = DoGetCert.oPathFileSetsNotInUpdate(loHostProfile, loUpdateProfile, "-BackupSet", "-FolderToBackup");
-                                            // Place backup sets in the update on the bottom of the list.
-                                            foreach (DictionaryEntry loEntry in loUpdateProfile.oOneKeyProfile("-BackupSet"))
-                                            {
-                                                loBackupSets.Add("-BackupSet", loEntry.Value);
-                                            }
-                                tvProfile   loCleanupSets = DoGetCert.oPathFileSetsNotInUpdate(loHostProfile, loUpdateProfile, "-CleanupSet", "-FilesToDelete");
-                                            // Place cleanup sets in the update on the bottom of the list.
-                                            foreach (DictionaryEntry loEntry in loUpdateProfile.oOneKeyProfile("-CleanupSet"))
-                                            {
-                                                loCleanupSets.Add("-CleanupSet", loEntry.Value);
-                                            }
-
-                                // The following steps place these 3 keys on top of
-                                // the profile for easier access (via text editor).
-                                tvProfile   loNewProfile = new tvProfile();
-                                tvProfile   loAddTasksProfile = new tvProfile();
-                                            foreach (DictionaryEntry loEntry in loTasks)
-                                                loAddTasksProfile.Add(loEntry);
-
-                                loNewProfile["-AddTasks"] = loAddTasksProfile.sCommandBlock();
-                                foreach (DictionaryEntry loEntry in loBackupSets)
-                                    loNewProfile.Add(loEntry);
-                                foreach (DictionaryEntry loEntry in loCleanupSets)
-                                    loNewProfile.Add(loEntry);
-                            
-                                loHostProfile.Remove("-AddTasks");
-                                loHostProfile.Remove("-BackupSet");
-                                loHostProfile.Remove("-CleanupSet");
-
-                                foreach (DictionaryEntry loEntry in loHostProfile)
-                                    loNewProfile.Add(loEntry);
-
-                                loHostProfile.Remove("*");
-
-                                foreach (DictionaryEntry loEntry in loNewProfile)
-                                    loHostProfile.Add(loEntry);
-
-                                loUpdateProfile.Remove("-AddTasks");
-                                loUpdateProfile.Remove("-BackupSet");
-                                loUpdateProfile.Remove("-CleanupSet");
-
-                                // Finally, merge in the update (sans keys already handled).
-                                loHostProfile.LoadFromCommandLine(loUpdateProfile.ToString(), tvProfileLoadActions.Merge);
-
-                    bool lbUpdateWritten = false;
-
-                    for (int i=0; i < aoProfile.iValue("-UpdateFileWriteMaxRetries", 42); i++)
+                    if ( loHostProfile.bValue("-NoGgcUpdates", false) )
                     {
-                        try
-                        {
-                            string lsGpcIniVersion = loHostProfile.sValue("-GpcIniVersion", "1");
+                        loHostProfile.bEnableFileLock = false;
 
-                            // Remove the version key from the host profile.
-                            loHostProfile.Remove("-GpcIniVersion");
-
-                            // Write the INI and unlock it.
-                            loHostProfile.Save();
-                            loHostProfile.bEnableFileLock = false;
-
-                            // Update GetCert profile with current GPC IniVersion.
-                            aoProfile["-HostIniVersion"] = lsGpcIniVersion;
-                            aoProfile.Save();
-
-                            lbUpdateWritten = true;
-                            break;
-                        }
-                        catch
-                        {
-                            System.Windows.Forms.Application.DoEvents();
-                            Thread.Sleep(aoProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(aoProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
-                        }
-                    }
-
-                    if ( !lbUpdateWritten )
-                    {
-                        Env.LogIt(String.Format("The update to \"{0}\" could not be written to disk. Will try again next cycle.", loHostProfile.sLoadedPathFile));
+                        // Update GetCert profile with current GPC IniVersion.
+                        aoProfile["-HostIniVersion"] = loUpdateProfile.sValue("-GpcIniVersion", "1");
+                        aoProfile.Save();
                     }
                     else
                     {
-                        Env.LogIt(String.Format(
-                                "Host profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostIniVersion", "1")));
+                        // Look for update task references in the existing list of added tasks. If found, skip them. In other words, within
+                        // the new loUpdateProfile, leave out all tasks from loHostProfile that make any references to what's in the update.
+                        tvProfile   loTasks = new tvProfile();
+                                    // Place tasks in the update on top of the list.
+                                    foreach (DictionaryEntry loEntry in loUpdateProfile.oProfile("-AddTasks"))
+                                    {
+                                        loTasks.Add("-Task", loEntry.Value);
+                                    }
+                                    // Look for tasks in the host profile that are NOT in the update and NOT in the -RemoveTasks profile.
+                                    foreach (DictionaryEntry loEntry in loHostProfile.oProfile("-AddTasks"))
+                                    {
+                                        tvProfile   loTask = new tvProfile(loEntry.Value.ToString());
+                                        string      lsHostTaskExeArgs = (loTask.sValue("-CommandEXE", "") + loTask.sValue("-CommandArgs", "")).ToLower();
+                                        string      lsHostTaskExeArgsTime = lsHostTaskExeArgs + loTask.sValue("-StartTime", "").ToLower();
+                                        bool        lbAddTask = true;
+
+                                        foreach (DictionaryEntry loEntry2 in loUpdateProfile.oProfile("-AddTasks"))
+                                        {
+                                            tvProfile   loTaskUpdate = new tvProfile(loEntry2.Value.ToString());
+                                                        if ( lsHostTaskExeArgs == (loTaskUpdate.sValue("-CommandEXE", "") + loTaskUpdate.sValue("-CommandArgs", "")).ToLower() )
+                                                        {
+                                                            lbAddTask = false;
+                                                            break;
+                                                        }
+                                        }
+                                        if ( lbAddTask )
+                                            foreach (DictionaryEntry loEntry2 in loUpdateProfile.oProfile("-RemoveTasks"))
+                                            {
+                                                tvProfile   loTaskUpdate = new tvProfile(loEntry2.Value.ToString());
+                                                            if ( lsHostTaskExeArgsTime == (loTaskUpdate.sValue("-CommandEXE", "")
+                                                                                        +  loTaskUpdate.sValue("-CommandArgs", "")
+                                                                                        +  loTaskUpdate.sValue("-StartTime", "")
+                                                                                        ).ToLower()
+                                                                    )
+                                                            {
+                                                                lbAddTask = false;
+                                                                break;
+                                                            }
+                                            }
+
+                                        if ( lbAddTask )
+                                            loTasks.Add("-Task", loEntry.Value);
+                                    }
+                        // Look for update path\file references in the existing backup and cleanup sets. If found, skip them. In other
+                        // words, leave out all sets from loHostProfile that make any path\file references to what's in loUpdateProfile.
+                        tvProfile   loBackupSets = DoGetCert.oPathFileSetsNotInUpdate(loHostProfile, loUpdateProfile, "-BackupSet", "-FolderToBackup");
+                                    // Place backup sets in the update on the bottom of the list.
+                                    foreach (DictionaryEntry loEntry in loUpdateProfile.oOneKeyProfile("-BackupSet"))
+                                    {
+                                        loBackupSets.Add("-BackupSet", loEntry.Value);
+                                    }
+                        tvProfile   loCleanupSets = DoGetCert.oPathFileSetsNotInUpdate(loHostProfile, loUpdateProfile, "-CleanupSet", "-FilesToDelete");
+                                    // Place cleanup sets in the update on the bottom of the list.
+                                    foreach (DictionaryEntry loEntry in loUpdateProfile.oOneKeyProfile("-CleanupSet"))
+                                    {
+                                        loCleanupSets.Add("-CleanupSet", loEntry.Value);
+                                    }
+
+                        // The following steps place these 3 keys on top of
+                        // the profile for easier access (via text editor).
+                        tvProfile   loNewProfile = new tvProfile();
+                        tvProfile   loAddTasksProfile = new tvProfile();
+                                    foreach (DictionaryEntry loEntry in loTasks)
+                                        loAddTasksProfile.Add(loEntry);
+
+                        loNewProfile["-AddTasks"] = loAddTasksProfile.sCommandBlock();
+                        foreach (DictionaryEntry loEntry in loBackupSets)
+                            loNewProfile.Add(loEntry);
+                        foreach (DictionaryEntry loEntry in loCleanupSets)
+                            loNewProfile.Add(loEntry);
+                            
+                        loHostProfile.Remove("-AddTasks");
+                        loHostProfile.Remove("-BackupSet");
+                        loHostProfile.Remove("-CleanupSet");
+
+                        foreach (DictionaryEntry loEntry in loHostProfile)
+                            loNewProfile.Add(loEntry);
+
+                        loHostProfile.Remove("*");
+
+                        foreach (DictionaryEntry loEntry in loNewProfile)
+                            loHostProfile.Add(loEntry);
+
+                        loUpdateProfile.Remove("-AddTasks");
+                        loUpdateProfile.Remove("-BackupSet");
+                        loUpdateProfile.Remove("-CleanupSet");
+
+                        // Finally, merge in the update (sans keys already handled).
+                        loHostProfile.LoadFromCommandLine(loUpdateProfile.ToString(), tvProfileLoadActions.Merge);
+
+                        bool lbUpdateWritten = false;
+
+                        for (int i=0; i < aoProfile.iValue("-UpdateFileWriteMaxRetries", 42); i++)
+                        {
+                            try
+                            {
+                                string lsGpcIniVersion = loHostProfile.sValue("-GpcIniVersion", "1");
+
+                                // Remove the version key from the host profile.
+                                loHostProfile.Remove("-GpcIniVersion");
+
+                                // Write the INI and unlock it.
+                                loHostProfile.Save();
+                                loHostProfile.bEnableFileLock = false;
+
+                                // Update GetCert profile with current GPC IniVersion.
+                                aoProfile["-HostIniVersion"] = lsGpcIniVersion;
+                                aoProfile.Save();
+
+                                lbUpdateWritten = true;
+                                break;
+                            }
+                            catch
+                            {
+                                System.Windows.Forms.Application.DoEvents();
+                                Thread.Sleep(aoProfile.iValue("-UpdateFileWriteMinRetryMS", 500) + new Random().Next(aoProfile.iValue("-UpdateFileWriteMaxRetryMS", 500)));
+                            }
+                        }
+
+                        if ( !lbUpdateWritten )
+                        {
+                            Env.LogIt(String.Format("The update to \"{0}\" could not be written to disk. Will try again next cycle.", loHostProfile.sLoadedPathFile));
+                        }
+                        else
+                        {
+                            Env.LogIt(String.Format(
+                                    "Host profile update successfully completed. Version {0} is now in use.", aoProfile.sValue("-HostIniVersion", "1")));
+                        }
                     }
                 }
             }
@@ -3993,23 +4042,33 @@ Checklist for {EXE} setup:
 
                                     loNewSetupCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
 
-                                    Env.LogIt(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Update found ..."
-                                                , null == loOldSetupCertificate ? Env.sNewClientSetupCertName : loOldSetupCertificate.Subject, null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint));
-
                                     File.Delete(lsCertPfxPathFile);
 
-                                    try
+                                    if (  null != loOldSetupCertificate && loOldSetupCertificate.Thumbprint == loNewSetupCertificate.Thumbprint )
                                     {
-                                        loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-                                        loStore.Open(OpenFlags.ReadWrite);
-                                        loStore.Add(loNewSetupCertificate);
+                                        loNewSetupCertificate = null;
 
-                                        DoGetCert.RemoveCertificate(loOldSetupCertificate, loStore);
+                                        Env.LogIt(Env.sExceptionMessage(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Same certificate returned. No update (does not impact overall process success)."
+                                                , loOldSetupCertificate.Subject, loNewSetupCertificate.Thumbprint)));
                                     }
-                                    finally
+                                    else
                                     {
-                                        if ( null != loStore )
-                                            loStore.Close();
+                                        Env.LogIt(String.Format("Setup certificate \"{0}\"=\"{1}\" is in use. Update found ..."
+                                                    , null == loOldSetupCertificate ? Env.sNewClientSetupCertName : loOldSetupCertificate.Subject, null == loOldSetupCertificate ? "[none]" : loOldSetupCertificate.Thumbprint));
+
+                                        try
+                                        {
+                                            loStore = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                                            loStore.Open(OpenFlags.ReadWrite);
+                                            loStore.Add(loNewSetupCertificate);
+
+                                            DoGetCert.RemoveCertificate(loOldSetupCertificate, loStore);
+                                        }
+                                        finally
+                                        {
+                                            if ( null != loStore )
+                                                loStore.Close();
+                                        }
                                     }
                                 }
 
@@ -4231,7 +4290,8 @@ Checklist for {EXE} setup:
             string              lsAcmeAccountKeyPathFile = moProfile.sRelativeToExePathFile(moProfile.sValue(gsAcmeAccountKeyFileKey, "AccountKey.xml"));
 
                                 // Reset account files after a change to the -DoStagingTests switch or when not using a DNS challenge.
-                                if ( moProfile.bValue("-DoStagingTests", true) != moProfile.bValue("-DoStagingTestsPrevious", false) || !moProfile.bValue("-UseDnsChallenge", false) )
+                                if ( moProfile.bValue("-DoStagingTests", true) != moProfile.bValue("-DoStagingTestsPrevious", false)
+                                        || moProfile.bValue("-ResetAccountFilesEachRun", false) )
                                 {
                                     File.Delete(lsAcmeAccountPathFile);
                                     File.Delete(lsAcmeAccountKeyPathFile);
@@ -4703,8 +4763,8 @@ Get-ACMEServiceDirectory ""{AcmeWorkPath}"" -ServiceName ""{AcmeServiceName}"" -
                             this.LogStage("2 - register domain contact, submit order & authorization request");
 
                             bool    lbUseNewAccount = !File.Exists(lsAcmeAccountPathFile) || !File.Exists(lsAcmeAccountKeyPathFile);
-                            string  lsAcmeWorkAccountPathFile = Path.Combine(lsAcmeWorkPath, moProfile.sValue(gsAcmeAccountFileKey, "Account.xml"));
-                            string  lsAcmeWorkAccountKeyPathFile = Path.Combine(lsAcmeWorkPath, moProfile.sValue(gsAcmeAccountKeyFileKey, "AccountKey.xml"));
+                            string  lsAcmeWorkAccountPathFile = Path.Combine(lsAcmeWorkPath, moProfile.sValue("-AcmeWorkAccountFile", "Account.xml"));
+                            string  lsAcmeWorkAccountKeyPathFile = Path.Combine(lsAcmeWorkPath, moProfile.sValue("-AcmeWorkAccountKeyFile", "AccountKey.xml"));
                                     if ( !lbUseNewAccount )
                                     {
                                         File.Copy(lsAcmeAccountPathFile, lsAcmeWorkAccountPathFile, true);
@@ -4771,9 +4831,10 @@ New-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
                             {
                                 this.LogStage(String.Format("3 - Define DNS name to be challenged (\"{0}\"), setup domain challenge and submit it to certificate provider", lsSanItem));
 
-                                string  lsAcmePath = null;
+                                string  lsAcmeBasePath = moProfile.sValue("-AcmeBasePath", Path.Combine(lsWellKnownBasePath, "acme-challenge"));
+                                string  lsAcmePath = lsAcmeBasePath;
 
-                                if ( !moProfile.bValue("-UseDnsChallenge", false) )
+                                if ( !moProfile.bValue("-UseDnsChallenge", false) && !moProfile.bValue("-UseNonIISBindingOnly", false) )
                                 {
                                     Site    loSanSite = null;
                                     Site    loPrimarySiteForDefaults = null;
@@ -4791,10 +4852,8 @@ New-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
                                     if ( null == loSanSite && lbCreateSanSitesForCertGet )
                                         loSanSite = this.oSanSiteCreated(lsSanItem, loServerManager, loPrimarySiteForDefaults);
 
-                                    string  lsAcmeBasePath = moProfile.sValue("-AcmeBasePath", Path.Combine(lsWellKnownBasePath, "acme-challenge"));
-                                            lsAcmePath = Path.Combine(
-                                              Environment.ExpandEnvironmentVariables(loSanSite.Applications["/"].VirtualDirectories["/"].PhysicalPath)
-                                            , lsAcmeBasePath);
+                                    lsAcmePath = Path.Combine(
+                                        Environment.ExpandEnvironmentVariables(loSanSite.Applications["/"].VirtualDirectories["/"].PhysicalPath), lsAcmeBasePath);
 
                                     // Cleanup ACME folder.
                                     if ( !loAcmeCleanedList.Contains(lsAcmePath) )
@@ -5215,6 +5274,8 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                                 .Replace("{NewCertificateThumbprint}", loCertAcquired.Thumbprint)
                                                 );
                                     }
+
+                            DoGetCert.RemoveCertificatePrivateKeyFile(loCertAcquired);
                         }
                     }
 
@@ -5332,6 +5393,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                                 , X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.Exportable))
                                         {
                                             File.WriteAllBytes(lsNonIISBindingPfxPathFile, loCertificate.Export(X509ContentType.Pfx, lsNewPassword));
+                                            DoGetCert.RemoveCertificatePrivateKeyFile(loCertificate);
                                         }
 
                                     }
@@ -5437,6 +5499,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                         {
                                             Directory.CreateDirectory(Path.GetDirectoryName(lsNewPfxPathFile));
                                             File.WriteAllBytes(lsNewPfxPathFile, loCertificate.Export(X509ContentType.Pfx, lsNewPassword));
+                                            DoGetCert.RemoveCertificatePrivateKeyFile(loCertificate);
                                         }
 
                                     }

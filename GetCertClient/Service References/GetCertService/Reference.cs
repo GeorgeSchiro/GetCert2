@@ -100,10 +100,10 @@ namespace GetCert2.GetCertService {
         System.Threading.Tasks.Task<byte[]> btArrayNewCertificateAsync(string asHash, byte[] abtArrayProfile);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArraySetupCertificate", ReplyAction="http://tempuri.org/IGetCertService/btArraySetupCertificateResponse")]
-        byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumprint);
+        byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumbprint);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/btArraySetupCertificate", ReplyAction="http://tempuri.org/IGetCertService/btArraySetupCertificateResponse")]
-        System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumprint);
+        System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumbprint);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/sCallAnyMethod", ReplyAction="http://tempuri.org/IGetCertService/sCallAnyMethodResponse")]
         string sCallAnyMethod(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile);
@@ -154,10 +154,10 @@ namespace GetCert2.GetCertService {
         System.Threading.Tasks.Task<string> sIniUpdateAsync(string asHash, byte[] abtArrayProfile, string asInstalledVersion);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReady", ReplyAction="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReadyResponse")]
-        void NotifyCertOverrideCertificateReady(string asHash, byte[] abtArrayProfile);
+        void NotifyCertOverrideCertificateReady(string asHash, byte[] abtArrayProfile, string asThumbprint);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReady", ReplyAction="http://tempuri.org/IGetCertService/NotifyCertOverrideCertificateReadyResponse")]
-        System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile);
+        System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile, string asThumbprint);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalled", ReplyAction="http://tempuri.org/IGetCertService/NotifyClientCertificateListInstalledResponse")]
         void NotifyClientCertificateListInstalled(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts);
@@ -371,12 +371,12 @@ namespace GetCert2.GetCertService {
             return base.Channel.btArrayNewCertificateAsync(asHash, abtArrayProfile);
         }
         
-        public byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumprint) {
-            return base.Channel.btArraySetupCertificate(asHash, abtArrayProfile, asCurrentThumprint);
+        public byte[] btArraySetupCertificate(string asHash, byte[] abtArrayProfile, string asCurrentThumbprint) {
+            return base.Channel.btArraySetupCertificate(asHash, abtArrayProfile, asCurrentThumbprint);
         }
         
-        public System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumprint) {
-            return base.Channel.btArraySetupCertificateAsync(asHash, abtArrayProfile, asCurrentThumprint);
+        public System.Threading.Tasks.Task<byte[]> btArraySetupCertificateAsync(string asHash, byte[] abtArrayProfile, string asCurrentThumbprint) {
+            return base.Channel.btArraySetupCertificateAsync(asHash, abtArrayProfile, asCurrentThumbprint);
         }
         
         public string sCallAnyMethod(string asHash, byte[] abtArrayProfile, byte[] abtArrayMethodProfile) {
@@ -443,12 +443,12 @@ namespace GetCert2.GetCertService {
             return base.Channel.sIniUpdateAsync(asHash, abtArrayProfile, asInstalledVersion);
         }
         
-        public void NotifyCertOverrideCertificateReady(string asHash, byte[] abtArrayProfile) {
-            base.Channel.NotifyCertOverrideCertificateReady(asHash, abtArrayProfile);
+        public void NotifyCertOverrideCertificateReady(string asHash, byte[] abtArrayProfile, string asThumbprint) {
+            base.Channel.NotifyCertOverrideCertificateReady(asHash, abtArrayProfile, asThumbprint);
         }
         
-        public System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile) {
-            return base.Channel.NotifyCertOverrideCertificateReadyAsync(asHash, abtArrayProfile);
+        public System.Threading.Tasks.Task NotifyCertOverrideCertificateReadyAsync(string asHash, byte[] abtArrayProfile, string asThumbprint) {
+            return base.Channel.NotifyCertOverrideCertificateReadyAsync(asHash, abtArrayProfile, asThumbprint);
         }
         
         public void NotifyClientCertificateListInstalled(string asHash, byte[] abtArrayProfile, byte[] abtArrayCerts) {
