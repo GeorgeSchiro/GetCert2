@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 
 namespace GetCert2
 {
@@ -28,23 +29,14 @@ namespace GetCert2
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            try
-            {
-                // Update the window settings.
-                if ( WindowState.Normal == this.WindowState )
-                {
-                    this.oApp.oProfile[string.Format("-{0}.Top", this.TN)] = this.Top;
-                    this.oApp.oProfile[string.Format("-{0}.Left", this.TN)] = this.Left;
-                    this.oApp.oProfile.Save();
-                }
-
-                this.SaveWindowSettings();
-            }
-            catch (Exception ex)
-            {
-                tvMessageBox.ShowError(this, ex);
-            }
+            this.SaveWindowSettings();
         }
+
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            this.SaveWindowSettings();
+        }
+
 
         private void LoadWindowSettings()
         {
@@ -57,7 +49,7 @@ namespace GetCert2
                 if ( this.oApp.oProfile.ContainsKey(lsWindowStateKey) )
                 {
                     this.WindowStartupLocation = WindowStartupLocation.Manual;
-                    this.WindowState = (WindowState) this.oApp.oProfile.iValue(lsWindowStateKey, 0);
+                    this.WindowState = (WindowState)Enum.Parse(typeof(WindowState), this.oApp.oProfile.sValue(lsWindowStateKey, "Normal"), true);
                     this.Top = this.oApp.oProfile.dValue(string.Format("-{0}.Top", this.TN), 100);
                     this.Left = this.oApp.oProfile.dValue(string.Format("-{0}.Left", this.TN), 100);
                 }
@@ -77,22 +69,32 @@ namespace GetCert2
             if ( mbLoading )
                 return;
 
-            this.oApp.oProfile.Save();
+            try
+            {
+                // Update window settings.
+                if ( WindowState.Normal == this.WindowState )
+                {
+                    this.oApp.oProfile[string.Format("-{0}.WindowState", this.TN)] = this.WindowState.ToString();
+                    this.oApp.oProfile[string.Format("-{0}.Top", this.TN)] = this.Top;
+                    this.oApp.oProfile[string.Format("-{0}.Left", this.TN)] = this.Left;
+                    this.oApp.oProfile.Save();
+                }
+
+                this.oApp.oProfile.Save();
+            }
+            catch (Exception ex)
+            {
+                tvMessageBox.ShowError(this, ex);
+            }
         }
 
 
         public void Init()
         {
             this.Closing += new CancelEventHandler(this.Window_Closing);
+            this.MouseLeftButtonUp += new MouseButtonEventHandler(this.Window_MouseLeftButtonUp);
 
-            try
-            {
-                this.LoadWindowSettings();
-            }
-            catch (Exception ex)
-            {
-                tvMessageBox.ShowError(this, ex);
-            }
+            this.LoadWindowSettings();
         }
     }
 }

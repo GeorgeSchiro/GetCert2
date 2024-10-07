@@ -216,6 +216,12 @@ Options and Features
     new IIS websites that can't otherwise be associated with an existing
     site (see -CreateSanSitesFor* above).
 
+-DnsChallengeSleepSecs=15
+
+    This is the number of seconds to wait after updating the global DNS
+    database with new domain specific challenge data and before submitting
+    the ACME challenge to the certificate provider network.
+
 -DoStagingTests=True
 
     Initial testing is done with the certificate provider staging network.
@@ -229,6 +235,14 @@ Options and Features
 -Help= SEE PROFILE FOR DEFAULT VALUE
 
     This help text.
+
+-KeysAfterReset= SEE PROFILE FOR DEFAULT VALUE
+
+    This is the list of profile keys that are preserved whenever the SCS method
+    'ResetConfig' is used (see 'GoGetCert Client Callable SCS Methods.pdf').
+    If you've made customizations, be sure to add the changed keys to this list.
+
+    Note: this parameter is ignored when -UseStandAloneMode is True.
 
 -KillProcessForcedWaitMS=1000
 
@@ -333,7 +347,7 @@ Options and Features
 -RemoveReplacedCert=False
 
     Set this switch True and the old (ie. previously bound) certificate will be
-    removed whenever a new retrieved certificate is bound to replace it.
+    removed whenever a newly retrieved certificate is bound to replace it.
 
     Note: this switch is ignored when -UseStandAloneMode is False.
 
@@ -351,6 +365,15 @@ Options and Features
 
     This is the number of days until certificate expiration before automated
     gets of the next new certificate are attempted.
+
+-ResetAccountFilesEachRun=False
+
+    This switch allows you to override the default behavior of only removing
+    certificate provider network account files when changing between testing and
+    production mode. These account files are automatically created if they don't
+    already exist. It is recommended that you preserve these account files (see
+    -AcmeAccountFile and -AcmeAccountKeyFile above) if you are doing very high
+    volumes of ACME DNS challenges.
 
 -ResetStagingLogs=False
 
@@ -417,6 +440,12 @@ Options and Features
     from the certificate provider network. Each stage has an associated PowerShell
     script snippet. The stages are represented in this profile by -ScriptStage1
     through -ScriptStage7.
+
+-ScriptStage3Dns= SEE PROFILE FOR DEFAULT VALUE
+
+    This is where you customize adding TXT records to the global DNS database for
+    the purpose of doing ACME DNS challenges. The details are specific to your DNS
+    provider (which must allow for automated changes to your DNS records).
 
 -ServiceNameLive='LetsEncrypt'
 
@@ -486,6 +515,12 @@ Options and Features
     An SSO proxy server will wait this many minutes for the SSO server
     to change its certificates before throwing a timeout exception.
 
+-SsoThumbprint= NO DEFAULT VALUE
+
+    This is the thumbprint value of the current SSO certificate. It is received
+    from the SCS. When it changes, corresponding changes must also be made to
+    application related configuration files (see -SsoThumbprintFiles below).
+
 -SsoThumbprintFiles='C:\inetpub\wwwroot\web.config'
 
     This is the path and filename of files that will have their SSO certificate
@@ -517,6 +552,13 @@ Options and Features
     has been submitted. This is the amount of time during which the request should
     transition from a 'pending' state to anything other than 'pending'.
 
+-UseDnsChallenge=False
+
+    The default ACME challenge type is the HTTP challenge. Set this switch True
+    if you will be doing ACME DNS challenges instead. DNS challenges are needed
+    for large enterprises with many internal domains (ie. domains that you'd
+    rather not add to the global DNS database).
+
 -UseNonIISBindingAlso=False
 
     Set this switch True to use the typical IIS binding procedures
@@ -526,6 +568,13 @@ Options and Features
 
     Set this switch True to disable the usual IIS binding procedures on
     this machine and use the -NonIISBindingScript instead (see above).
+
+-UseNonIISBindingPfxFile=False
+
+    Set this switch True to allow for the creation of a PFX file for use by
+    the non-IIS binding script (see -NonIISBindingScript above). The server
+    location and the password of this PFX file must be defined on the SCS
+    (see 'GoGetCert Client Callable SCS Methods.pdf').
 
 -UseStandAloneMode=True
 

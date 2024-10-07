@@ -109,8 +109,8 @@ namespace GetCert2
 
 
         /// <summary>
-        /// This is used with "HideMe() / ShowMe()"
-        /// to track the visible state of this window.
+        /// This indicates whether or not the
+        /// UI can interrupt other processing.
         /// </summary>
         public bool bNoPrompts
         {
@@ -267,7 +267,6 @@ namespace GetCert2
 
             // This window is hidden by default. Only make it initially
             // visible if all setup steps have not yet been completed.
-            // Otherwise it is displayed via its system tray icon.
             if ( !moProfile.bValue("-AllConfigWizardStepsCompleted", false) )
                 this.ShowMe();
 
@@ -306,8 +305,8 @@ namespace GetCert2
                 }
                 else
                 {
-                    const string lsLicenseCaption = "MIT License";
-                    const string lsLicensePathFile = lsLicenseCaption + ".txt";
+                    string lsLicenseCaption = "MIT License";
+                    string lsLicensePathFile = String.Format("{0} (GetCert2).txt", lsLicenseCaption);
 
                     // Fetch license.
                     tvFetchResource.ToDisk(Application.ResourceAssembly.GetName().Name, lsLicensePathFile, null);
@@ -320,7 +319,7 @@ namespace GetCert2
                                         + "\r\n\r\nPlease accept it if you would like to use this software."
                                 , lsLicenseCaption), lsLicenseCaption, tvMessageBoxIcons.Information, 3000);
 
-                        loLicense = new ScrollingText(File.ReadAllText(
+                        loLicense = new ScrollingText(this, File.ReadAllText(
                                               moProfile.sRelativeToProfilePathFile(lsLicensePathFile))
                                             , lsLicenseCaption, true);
                         loLicense.TextBackground = Brushes.LightYellow;
@@ -996,9 +995,11 @@ You can continue this later wherever you left off. "
                 miAdjustedWindowHeight = this.Height;
                 miAdjustedWindowWidth = this.Width;
 
-                // "this.WindowStartupLocation = WindowStartupLocation.CenterScreen" fails. Who knew?
-                this.Top = (SystemParameters.MaximizedPrimaryScreenHeight - this.Height) / 2;
-                this.Left = (SystemParameters.MaximizedPrimaryScreenWidth - this.Width) / 2;
+                if ( !moProfile.ContainsKey(string.Format("-{0}.Top", this.TN)) )
+                {
+                    this.Top = (SystemParameters.MaximizedPrimaryScreenHeight - this.Height) / 2;
+                    this.Left = (SystemParameters.MaximizedPrimaryScreenWidth - this.Width) / 2;
+                }
             }
         }
 
@@ -1316,8 +1317,11 @@ If you would prefer to finish this setup at another time, you can exit now and c
 
         private void SetupDoneApplyProfileUpdates()
         {
-            moProfile["-AllConfigWizardStepsCompleted"] = true;
-            moProfile.Save();                
+            if ( this.bValidateConfiguration() )
+            {
+                moProfile["-AllConfigWizardStepsCompleted"] = true;
+                moProfile.Save();
+            }
         }
 
         private void ShowHelp()
@@ -1333,7 +1337,7 @@ If you would prefer to finish this setup at another time, you can exit now and c
                 }
             }
 
-            ScrollingText   loHelp = new ScrollingText(moProfile["-Help"].ToString(), "Get Certificate Help", true);
+            ScrollingText   loHelp = new ScrollingText(this, moProfile["-Help"].ToString(), "Get Certificate Help", true);
                             loHelp.TextBackground = Brushes.Khaki;
                             loHelp.Show();
 

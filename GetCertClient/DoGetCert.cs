@@ -33,7 +33,7 @@ namespace GetCert2
 
 
     /// <summary>
-    /// Get digital certificate from a certificate provider network.
+    /// Get a digital certificate from a certificate provider network.
     /// </summary>
     public class DoGetCert : System.Windows.Application
     {
@@ -259,6 +259,12 @@ A brief description of each feature follows.
     new IIS websites that can't otherwise be associated with an existing
     site (see -CreateSanSitesFor* above).
 
+-DnsChallengeSleepSecs=15
+
+    This is the number of seconds to wait after updating the global DNS
+    database with new domain specific challenge data and before submitting
+    the ACME challenge to the certificate provider network.
+
 -DoStagingTests=True
 
     Initial testing is done with the certificate provider staging network.
@@ -272,6 +278,14 @@ A brief description of each feature follows.
 -Help= SEE PROFILE FOR DEFAULT VALUE
 
     This help text.
+
+-KeysAfterReset= SEE PROFILE FOR DEFAULT VALUE
+
+    This is the list of profile keys that are preserved whenever the SCS method
+    'ResetConfig' is used (see 'GoGetCert Client Callable SCS Methods.pdf').
+    If you've made customizations, be sure to add the changed keys to this list.
+
+    Note: this parameter is ignored when -UseStandAloneMode is True.
 
 -KillProcessForcedWaitMS=1000
 
@@ -395,6 +409,15 @@ A brief description of each feature follows.
     This is the number of days until certificate expiration before automated
     gets of the next new certificate are attempted.
 
+-ResetAccountFilesEachRun=False
+
+    This switch allows you to override the default behavior of only removing
+    certificate provider network account files when changing between testing and
+    production mode. These account files are automatically created if they don't
+    already exist. It is recommended that you preserve these account files (see
+    -AcmeAccountFile and -AcmeAccountKeyFile above) if you are doing very high
+    volumes of ACME DNS challenges.
+
 -ResetStagingLogs=False
 
     Having to wade through several log sessions during testing can be cumbersome.
@@ -460,6 +483,12 @@ A brief description of each feature follows.
     from the certificate provider network. Each stage has an associated PowerShell
     script snippet. The stages are represented in this profile by -ScriptStage1
     through -ScriptStage7.
+
+-ScriptStage3Dns= SEE PROFILE FOR DEFAULT VALUE
+
+    This is where you customize adding TXT records to the global DNS database for
+    the purpose of doing ACME DNS challenges. The details are specific to your DNS
+    provider (which must allow for automated changes to your DNS records).
 
 -ServiceNameLive='LetsEncrypt'
 
@@ -529,6 +558,12 @@ A brief description of each feature follows.
     An SSO proxy server will wait this many minutes for the SSO server
     to change its certificates before throwing a timeout exception.
 
+-SsoThumbprint= NO DEFAULT VALUE
+
+    This is the thumbprint value of the current SSO certificate. It is received
+    from the SCS. When it changes, corresponding changes must also be made to
+    application related configuration files (see {SsoKey} below).
+
 {SsoKey}='C:\inetpub\wwwroot\web.config'
 
     This is the path and filename of files that will have their SSO certificate
@@ -560,6 +595,13 @@ A brief description of each feature follows.
     has been submitted. This is the amount of time during which the request should
     transition from a 'pending' state to anything other than 'pending'.
 
+-UseDnsChallenge=False
+
+    The default ACME challenge type is the HTTP challenge. Set this switch True
+    if you will be doing ACME DNS challenges instead. DNS challenges are needed
+    for large enterprises with many internal domains (ie. domains that you'd
+    rather not add to the global DNS database).
+
 -UseNonIISBindingAlso=False
 
     Set this switch True to use the typical IIS binding procedures
@@ -569,6 +611,13 @@ A brief description of each feature follows.
 
     Set this switch True to disable the usual IIS binding procedures on
     this machine and use the -NonIISBindingScript instead (see above).
+
+-UseNonIISBindingPfxFile=False
+
+    Set this switch True to allow for the creation of a PFX file for use by
+    the non-IIS binding script (see -NonIISBindingScript above). The server
+    location and the password of this PFX file must be defined on the SCS
+    (see 'GoGetCert Client Callable SCS Methods.pdf').
 
 -UseStandAloneMode=True
 
@@ -756,6 +805,7 @@ Notes:
         private static string gsSsoThumbprintFilesKey       = "-SsoThumbprintFiles";
         private static string gsUpdateProfileServerKey      = "-ServerUpdate";
         private static string gsUpdateProfileServerFmt      = "{0}={1}";
+        private static string gsWcfSetupCertNode            = String.Format("<clientCertificate findValue=\"{0}\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />", Env.sNewClientSetupCertName);
 
 
         /// <summary>
@@ -848,9 +898,14 @@ Notes:
         -CertificateSetupDone
         -CfgVersion
         -ContactEmailAddress
+        -DashboardVersion
         -DnsChallengeSleepSecs
-        -HostsEntryVersion
+        -EndpointVersion
+        -HostFetched
         -HostIniVersion
+        -HostLicenseAccepted
+        -HostsEntryVersion
+        -IniVersion
         -KeysAfterReset
         -LicenseAccepted
         -MaintenanceWindowEndTime
@@ -871,7 +926,6 @@ Notes:
         -UseNonIISBindingAlso
         -UseNonIISBindingOnly
         -UseNonIISBindingPfxFile
-        -XML_Profile
         "));
                 }
 
@@ -1068,31 +1122,35 @@ Notes:
                         if ( !moProfile.ContainsKey(gsSsoThumbprintFilesKey) )
                         {
                             string  lsDefaultPhysicalPathFiles = Path.Combine(moProfile.sValue("-DefaultPhysicalPath", @"%SystemDrive%\inetpub\wwwroot"), "web.config");
-                            Site[]  loSetupCertBoundSiteArray = DoGetCert.oSetupCertBoundSiteArray(new ServerManager());
                                     moProfile.Remove(gsSsoThumbprintFilesKey + "Note");
-                                    if ( null == loSetupCertBoundSiteArray || 0 == loSetupCertBoundSiteArray.Length )
-                                    {
-                                        Env.LogIt(String.Format("{0} will be set to the IIS default since no sites could be found bound to the current certificate.", gsSsoThumbprintFilesKey));
 
-                                        if ( null != loSetupCertBoundSiteArray )
+                            if ( !moProfile.bValue("-UseNonIISBindingOnly", false) )
+                            {
+                                Site[]  loSetupCertBoundSiteArray = DoGetCert.oSetupCertBoundSiteArray(new ServerManager());
+                                        if ( null == loSetupCertBoundSiteArray || 0 == loSetupCertBoundSiteArray.Length )
                                         {
-                                            moProfile.Add(gsSsoThumbprintFilesKey, Environment.ExpandEnvironmentVariables(lsDefaultPhysicalPathFiles));
-                                            moProfile.Add(gsSsoThumbprintFilesKey + "Note", "No IIS websites could be found bound to the current certificate.");
+                                            Env.LogIt(String.Format("{0} will be set to the IIS default since no sites could be found bound to the current certificate.", gsSsoThumbprintFilesKey));
+
+                                            if ( null != loSetupCertBoundSiteArray )
+                                            {
+                                                moProfile.Add(gsSsoThumbprintFilesKey, Environment.ExpandEnvironmentVariables(lsDefaultPhysicalPathFiles));
+                                                moProfile.Add(gsSsoThumbprintFilesKey + "Note", "No IIS websites could be found bound to the current certificate.");
+                                            }
+                                            else
+                                            {
+                                                Env.LogIt("");
+                                                throw new Exception("The current setup certificate is null. This is an error.");
+                                            }
                                         }
                                         else
                                         {
-                                            Env.LogIt("");
-                                            throw new Exception("The current setup certificate is null. This is an error.");
+                                            foreach (Site loSite in loSetupCertBoundSiteArray)
+                                                moProfile.Add(gsSsoThumbprintFilesKey
+                                                        , Path.Combine(Environment.ExpandEnvironmentVariables(loSite.Applications["/"].VirtualDirectories["/"].PhysicalPath)
+                                                        , Path.GetFileName(lsDefaultPhysicalPathFiles)));
                                         }
-                                    }
-                                    else
-                                    {
-                                        foreach (Site loSite in loSetupCertBoundSiteArray)
-                                            moProfile.Add(gsSsoThumbprintFilesKey
-                                                    , Path.Combine(Environment.ExpandEnvironmentVariables(loSite.Applications["/"].VirtualDirectories["/"].PhysicalPath)
-                                                    , Path.GetFileName(lsDefaultPhysicalPathFiles)));
-                                    }
-                                    moProfile.Save();
+                                        moProfile.Save();
+                            }
                         }
                         if ( String.IsNullOrEmpty(lsSsoPreviousThumbprint) )
                         {
@@ -1196,7 +1254,7 @@ Notes:
                 return false;
             }
 
-            if ( DateTime.Now < DoGetCert.oDomainProfile.dtValue("-RenewalCertificateBindingDate", DateTime.MinValue).AddDays(-1) )
+            if ( DateTime.Now < DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue).AddDays(-1) )
             {
                 Env.LogIt("    The load balancer can't accept the new certificate until the day before certificate binding.");
                 return true;
@@ -1561,9 +1619,18 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
                         File.Copy(moProfile.sLoadedPathFile, lsBackupPathFile);
 
                         Env.LogIt(String.Format("    Writing profile reset to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
-                        Env.LogIt(              "    Done.");
 
                         loNewProfile.Save(moProfile.sLoadedPathFile);
+
+                        string  lsWcfConfiguration = File.ReadAllText(moProfile.sLoadedPathFile);
+                                if ( lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
+                                {
+                                    File.WriteAllText(moProfile.sLoadedPathFile, lsWcfConfiguration.Replace(gsWcfSetupCertNode, ""));
+
+                                    Env.LogIt(  "    WCF configuration updated also. Setup certificate reference removed.");
+                                }
+
+                        Env.LogIt(              "    Done.");
                     }
                 }
 
@@ -2825,7 +2892,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                 // Only do the following fetches before initial setup and if the containing application folder has been created.
                 if ( Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Contains(Path.GetFileNameWithoutExtension(ResourceAssembly.Location)) )
                 {
-                    if ( "" == loProfile.sValue("-ContactEmailAddress", "") && "" == lsCertName )
+                    if ( "" == loProfile.sValue("-ContactEmailAddress", "") || "" == lsCertName )
                     {
                         // Discard the default profile. Replace it with the WCF version fetched below.
                         File.Delete(loProfile.sLoadedPathFile);
@@ -2836,28 +2903,40 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                     }
 
                     //// Fetch host (if it's not already running).
-                    //if ( String.IsNullOrEmpty(Env.sProcessExePathFile(Env.sHostProcess)) && !loProfile.bValue("-HostFetched", false) )
+                    //if ( !String.IsNullOrEmpty(Env.sProcessExePathFile(Env.sHostProcess)) )
                     //{
+                    //    if ( !loProfile.bValue("-HostFetched", false) )
+                    //    {
+                    //        loProfile["-HostFetched"] = true;
+                    //        loProfile.Save();
+                    //    }
+                    //}
+                    //else
+                    //if ( !loProfile.bValue("-HostFetched", false) )
+                    //{
+                    //    string  lsHostProfileFile = Env.sHostProcess + ".txt";
+                    //            tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
+                    //                    , String.Format("{0}{1}", Env.sFetchPrefix, lsHostProfileFile), loProfile.sRelativeToExePathFile(lsHostProfileFile));
+
                     //    tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
                     //            , String.Format("{0}{1}", Env.sFetchPrefix, Env.sHostProcess), loProfile.sRelativeToExePathFile(Env.sHostProcess));
-                    //
+
                     //    loProfile["-HostFetched"] = true;
                     //    loProfile.Save();
                     //}
-                    //
+
                     //string lsFetchName = null;
-                    //
-                    //// Fetch security context task definition (for SSO servers).
+
+                    //// Fetch security context task definition.
                     //tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
                     //        , String.Format("{0}{1}", Env.sFetchPrefix, lsFetchName="GoGetCertTask.xml")
                     //        , loProfile.sRelativeToExePathFile(lsFetchName));
-                }
 
-                //if ( !loProfile.bExit && null != Env.sProcessExePathFile(Env.sHostProcess) )
-                //{
-                //    // Remove host setup (if host is already installed).
-                //    File.Delete(Path.Combine(Path.GetDirectoryName(loProfile.sLoadedPathFile), Env.sHostProcess));
-                //}
+                    //// Fetch security context task definition (for SSO servers).
+                    //tvFetchResource.ToDisk(ResourceAssembly.GetName().Name
+                    //        , String.Format("{0}{1}", Env.sFetchPrefix, lsFetchName="GoGetCertSsoTask.xml")
+                    //        , loProfile.sRelativeToExePathFile(lsFetchName));
+                }
 
                 if ( !loProfile.bExit )
                 {
@@ -2908,7 +2987,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                 if ( String.IsNullOrEmpty(lsUpdateRunExePathFile) && String.IsNullOrEmpty(lsUpdateDeletePathFile) )
                 {
                     // Short-circuit updates until basic setup is complete.
-                    if ( "" == loProfile.sValue("-ContactEmailAddress", "") )
+                    if ( "" == loProfile.sValue("-ContactEmailAddress", "") || "" == lsCertName )
                     {
                         loProfile["-NoPrompts"] = false;
                         loProfile.Remove("-AllConfigWizardStepsCompleted");
@@ -3730,6 +3809,7 @@ Checklist for {EXE} setup:
 
         private static void HandleHostUpdates(tvProfile aoProfile, string asHash, byte[] abtArrayMinProfile)
         {
+            bool        lbHostLicenseAccepted = false;
             bool        lbRestartHost = false;
             Process     loHostProcess = null;
             string      lsHostExePathFile= Env.sHostExePathFile(out loHostProcess);
@@ -3796,7 +3876,7 @@ Checklist for {EXE} setup:
                             }
                         }
 
-            if ( null == lbtArrayGpcExeUpdate && String.IsNullOrEmpty(lsHostIniUpdate) && null == loHostProcess )
+            if ( null == loHostProcess )
                 lbRestartHost = true;
 
             if ( null != lbtArrayGpcExeUpdate || !String.IsNullOrEmpty(lsHostIniUpdate) )
@@ -3840,6 +3920,15 @@ Checklist for {EXE} setup:
                     tvProfile   loUpdateProfile = new tvProfile(lsHostIniUpdate);
                     tvProfile   loHostProfile = new tvProfile(lsHostExePathFile + ".txt", false);
 
+                    lbHostLicenseAccepted = loHostProfile.bValue("-LicenseAccepted", false) || aoProfile.bValue("-HostLicenseAccepted", false);
+
+                    if ( !lbHostLicenseAccepted )
+                    {
+                        loHostProfile.bEnableFileLock = false;
+
+                        Env.LogIt("Host license not accepted (set -HostLicenseAccepted=True). Can't continue with host profile update.");
+                    }
+                    else
                     if ( loHostProfile.bValue("-NoGgcUpdates", false) )
                     {
                         loHostProfile.bEnableFileLock = false;
@@ -3984,15 +4073,35 @@ Checklist for {EXE} setup:
 
             if ( lbRestartHost )
             {
-                // Restart the host EXE (skip startup tasks to avoid conflicts with what's currently running).
-                loHostProcess = new Process();
-                loHostProcess.StartInfo.FileName = Path.Combine(Path.GetDirectoryName(lsHostExePathFile), "Startup.cmd");
-                loHostProcess.StartInfo.Arguments = "-StartupTasksDisabled";
-                loHostProcess.StartInfo.UseShellExecute = false;
-                loHostProcess.StartInfo.CreateNoWindow = true;
-                loHostProcess.Start();
+                bool lbClientSetupDone = "" != aoProfile.sValue("-ContactEmailAddress" ,"") && "" != aoProfile.sValue("-CertificateDomainName" ,"");
 
-                Env.LogIt("Host process restarted successfully.");
+                if ( lbClientSetupDone && lbHostLicenseAccepted )
+                {
+                    // Restart the host EXE (skip startup tasks to avoid conflicts with what's currently running).
+                    loHostProcess = new Process();
+                    loHostProcess.StartInfo.FileName = Path.Combine(Path.GetDirectoryName(lsHostExePathFile), "Startup.cmd");
+                    loHostProcess.StartInfo.Arguments = "-StartupTasksDisabled";
+                    loHostProcess.StartInfo.UseShellExecute = false;
+                    loHostProcess.StartInfo.CreateNoWindow = true;
+                    loHostProcess.Start();
+
+                    Env.LogIt("Host process restarted successfully.");
+                }
+                else
+                {
+                    if ( aoProfile.bValue("-NoPrompts", false) )
+                    {
+                        Env.LogIt("Host process not started. Client setup incomplete or host license not accepted.");
+                    }
+                    else
+                    if ( lbClientSetupDone )
+                    {
+                        // Start the host EXE so the license can be accepted.
+                        loHostProcess = new Process();
+                        loHostProcess.StartInfo.FileName = lsHostExePathFile;
+                        loHostProcess.Start();
+                    }
+                }
             }
         }
 
@@ -4093,15 +4202,14 @@ Checklist for {EXE} setup:
 
             if ( null != loOldSetupCertificate )
             {
-                string  lsWcfSetupCertNode = String.Format("<clientCertificate findValue=\"{0}\" x509FindType=\"FindBySubjectName\" storeLocation=\"LocalMachine\" storeName=\"My\" />", Env.sNewClientSetupCertName);
                 string  lsWcfConfiguration = File.ReadAllText(aoProfile.sLoadedPathFile);
-                        if ( !lsWcfConfiguration.Contains(lsWcfSetupCertNode) )
+                        if ( !lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
                         {
                             Regex   loRegex = new Regex("(\\s*)<\\/serviceCertificate>(.*?)(\\s*)<\\/clientCredentials>", RegexOptions.Singleline);
                                     if ( !loRegex.IsMatch(lsWcfConfiguration) )
                                         throw new Exception(String.Format("Failed attempting to locate WCF configuration for the \"{0}\" certificate.", Env.sNewClientSetupCertName));
 
-                            File.WriteAllText(aoProfile.sLoadedPathFile, loRegex.Replace(lsWcfConfiguration, "$1</serviceCertificate>$1lsWcfSetupCertNode$3</clientCredentials>".Replace("lsWcfSetupCertNode", lsWcfSetupCertNode)));
+                            File.WriteAllText(aoProfile.sLoadedPathFile, loRegex.Replace(lsWcfConfiguration, "$1</serviceCertificate>$1gsWcfSetupCertNode$3</clientCredentials>".Replace("gsWcfSetupCertNode", gsWcfSetupCertNode)));
                             Env.ResetConfigMechanism(aoProfile);
 
                             Env.LogIt(String.Format("WCF configuration updated with reference to setup certificate (\"{0}\").", Env.sNewClientSetupCertName));
@@ -4289,7 +4397,7 @@ Checklist for {EXE} setup:
             string              lsAcmeAccountPathFile = moProfile.sRelativeToExePathFile(moProfile.sValue(gsAcmeAccountFileKey, "Account.xml"));
             string              lsAcmeAccountKeyPathFile = moProfile.sRelativeToExePathFile(moProfile.sValue(gsAcmeAccountKeyFileKey, "AccountKey.xml"));
 
-                                // Reset account files after a change to the -DoStagingTests switch or when not using a DNS challenge.
+                                // Reset account files after a change to the -DoStagingTests switch or when -ResetAccountFilesEachRun is set. 
                                 if ( moProfile.bValue("-DoStagingTests", true) != moProfile.bValue("-DoStagingTestsPrevious", false)
                                         || moProfile.bValue("-ResetAccountFilesEachRun", false) )
                                 {
@@ -4376,10 +4484,10 @@ Checklist for {EXE} setup:
                     {
                         if ( lbLoadBalancerCertReady )
                         {
-                            if ( DateTime.Now < DoGetCert.oDomainProfile.dtValue("-RenewalCertificateBindingDate", DateTime.MinValue) )
+                            if ( DateTime.Now < DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue) )
                             {
                                 Env.LogIt(String.Format("Nothing to do until the certificate binding date (\"{0}\").{1}"
-                                        , DoGetCert.oDomainProfile.dtValue("-RenewalCertificateBindingDate", DateTime.MinValue).ToShortDateString()
+                                        , DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue).ToShortDateString()
                                         , !lbProceedAnyway ? "" : " Proceeding anyway since renewal has already commenced elsewhere."
                                         ));
 
@@ -4467,12 +4575,12 @@ Checklist for {EXE} setup:
                             && lbAuto && !lbSetup
                             && (lbRepositoryCertsOnly || liCertCount > 1)
                             && (lbLoadBalancerCertReady || Env.sComputerName != DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", ""))
-                            && DateTime.Now < DoGetCert.oDomainProfile.dtValue("-RenewalCertificateBindingDate", DateTime.MinValue)
+                            && DateTime.Now < DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue)
                             && null != loOldCertificate
                             )
                     {
                         Env.LogIt(String.Format("Nothing to do until the certificate binding date (\"{0}\").{1}"
-                                , DoGetCert.oDomainProfile.dtValue("-RenewalCertificateBindingDate", DateTime.MinValue).ToShortDateString()
+                                , DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue).ToShortDateString()
                                 , !lbProceedAnyway ? "" : " Proceeding anyway since renewal has already commenced elsewhere."
                                 ));
 
@@ -5014,6 +5122,7 @@ $challenge | Complete-ACMEChallenge ""{AcmeWorkPath}""
                                 this.LogStage(String.Format("4 - update challenge{0} from certificate provider", 1 == lsSanArray.Length ? "" : "s"));
 
                                 string  lsSubmissionPending = ": pending";
+                                string  lsSubmissionSuccess = ": ready";
                                 string  lsOutput = null;
 
                                 if ( lbSingleSessionEnabled )
@@ -5040,8 +5149,21 @@ $order | Update-ACMEOrder ""{AcmeWorkPath}"" -PassThru
                                             .Replace("{SanPsStringArray}", lsSanPsStringArray)
                                             );
 
-                                if ( !lsOutput.Contains(lsSubmissionPending) || this.bMainLoopStopped )
+                                if ( this.bMainLoopStopped )
                                     break;
+
+                                if ( !lsOutput.Contains(lsSubmissionPending) )
+                                {
+                                    lbGetCertificate = lsOutput.Contains(lsSubmissionSuccess);
+
+                                    if ( !lbGetCertificate )
+                                    {
+                                        Env.LogIt("");
+                                        Env.LogIt("The challenge failed. Can't continue. Try checking your DNS configuration.");
+                                    }
+
+                                    break;
+                                }
                             }
                         }
 

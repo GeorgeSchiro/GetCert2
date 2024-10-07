@@ -207,7 +207,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="MIT License.txt" />
+    <EmbeddedResource Include="MIT License (GetCert2).txt" />
     <EmbeddedResource Include="GetCert2.zip" />
   </ItemGroup>
   <ItemGroup>
@@ -216,6 +216,10 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\Fetch\GoGetCertTask.xml" />
+    <EmbeddedResource Include="Resources\Fetch\GoGetCertSsoTask.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Fetch\GoPcBackup.exe.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -5,16 +5,16 @@
     <Description>Executes GoGetCert.exe within a specific security context.</Description>
     <Documentation>
         1) Import "GoGetCertTask.xml" into Task Scheduler.
-        2) Set task's security context to a domain admin account.
-        3) Add to GoGetCert host: -Task='-OnStartup=True -StartTime="1:10 AM" -CommandEXE=schtasks.exe -CommandArgs="/run /tn GoGetCertTask" -CreateNoWindow'
+        2) Use this task to run "GoGetCert.exe" in the "SYSTEM" security context.
+        3) The software will run in "-Auto -Setup" mode. Check the GoGetCert log.
+        4) This task should only be used manually. It should NOT be automated.
     </Documentation>
     <URI>\GoGetCertTask</URI>
   </RegistrationInfo>
   <Triggers />
   <Principals>
     <Principal id="Author">
-      <UserId>[Domain Admin here.]</UserId>
-      <LogonType>Password</LogonType>
+      <UserId>SYSTEM</UserId>
       <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
@@ -40,8 +40,7 @@
   <Actions Context="Author">
     <Exec>
       <Command>C:\ProgramData\GoGetCert\GoGetCert.exe</Command>
-      <Arguments>-Auto -NoPrompts</Arguments>
-      <WorkingDirectory>C:\ProgramData\GoGetCert</WorkingDirectory>
+      <Arguments>-Auto -Setup</Arguments>
     </Exec>
   </Actions>
 </Task>

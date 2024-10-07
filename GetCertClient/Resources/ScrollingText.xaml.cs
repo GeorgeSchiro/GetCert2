@@ -22,8 +22,8 @@ namespace GetCert2
         private double      miOriginalScreenWidth;
         private double      miAdjustedWindowHeight;
         private double      miAdjustedWindowWidth;
-        private int         miTopLeftOffset = 50;
-
+        private int         miTopLeftOffset = 70;
+        private SavedWindow moParentWindow;
 
         private ScrollingText() {}
 
@@ -37,8 +37,8 @@ namespace GetCert2
         /// <param name="asMessageCaption">
         /// The summary caption for the message text.
         /// </param>
-        public ScrollingText(string asMessageText, string asMessageCaption)
-                : this(asMessageText, asMessageCaption, false)
+        public ScrollingText(SavedWindow aoParentWindow, string asMessageText, string asMessageCaption)
+                : this(aoParentWindow, asMessageText, asMessageCaption, false)
         {}
 
 
@@ -57,18 +57,20 @@ namespace GetCert2
         /// The boolean for preparing block text for text wrapping.
         /// </param>
         public ScrollingText(
-                  string asMessageText
+                  SavedWindow aoParentWindow
+                , string asMessageText
                 , string asMessageCaption
                 , bool abPrepareTextForWrap
                 )
         {
+            moParentWindow = aoParentWindow;
+
             InitializeComponent();
 
             // This loads window ScrollingText defaults from the given profile.
             base.Init();
 
             this.txtMessageText.Text = !abPrepareTextForWrap ? asMessageText : this.sPrepareTextForWrap(asMessageText);
-            //this.txtMessageCaption.Text = asMessageCaption;
             this.txtMessageCaption.Content = asMessageCaption;
             this.Title = asMessageCaption;
         }
@@ -243,10 +245,9 @@ namespace GetCert2
                 miAdjustedWindowHeight = this.Height;
                 miAdjustedWindowWidth = this.Width;
 
-                // "this.WindowStartupLocation = WindowStartupLocation.CenterScreen" fails. Who knew?
                 // An offset is added to both dimensions so the parent window can be seen underneath.
-                this.Top = (SystemParameters.MaximizedPrimaryScreenHeight - this.Height) / 2 + miTopLeftOffset;
-                this.Left = (SystemParameters.MaximizedPrimaryScreenWidth - this.Width) / 2  + miTopLeftOffset;
+                this.Top  = moParentWindow.Top  + miTopLeftOffset;
+                this.Left = moParentWindow.Left + miTopLeftOffset;
             }
         }
 

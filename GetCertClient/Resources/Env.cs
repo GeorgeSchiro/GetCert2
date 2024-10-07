@@ -989,6 +989,14 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 Environment.ExitCode = 1;
                 Env.LogIt(ex.Message);
                 Env.LogIt("IIS may not be installed or fully configured. This will prevent certificate-to-site binding in IIS.");
+
+                if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
+                {
+                    Env.LogIt("Setting \"-UseNonIISBindingOnly=True\".");
+
+                    tvProfile.oGlobal()["-UseNonIISBindingOnly"] = true;
+                    tvProfile.oGlobal().Save();
+                }
             }
 
             return loCurrentCertificate;
@@ -996,7 +1004,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
         public static string sExceptionMessage(Exception ex)
         {
-            return String.Format("ServiceFault({0}): {1}{2}{3}{4}", ex.GetType().FullName, ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message), Environment.NewLine, ex.StackTrace);
+            return String.Format("ServiceFault({0}): {1}{2}{3}", ex.GetType().FullName, ex.Message, (null == ex.InnerException ? "": "; " + ex.InnerException.Message)
+                    , tvProfile.oGlobal().bValue("-ShowStackTrace", false) ? Environment.NewLine + ex.StackTrace + Environment.NewLine : "");
         }
         public static string sExceptionMessage(string asMessage)
         {
@@ -1021,7 +1030,9 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 if ( !abQuietMode )
                     Env.LogIt("Host image can't be located on disk based on the currently running process. Trying typical locations ...");
 
-                lsHostExePathFile = Path.Combine(Path.Combine(@"C:\ProgramData", Path.GetFileNameWithoutExtension(Env.sHostProcess)), Env.sHostProcess);
+                lsHostExePathFile = tvProfile.oGlobal().sRelativeToExePathFile(Env.sHostProcess);
+                if ( !File.Exists(lsHostExePathFile) )
+                    lsHostExePathFile = Path.Combine(Path.Combine(@"C:\ProgramData", Path.GetFileNameWithoutExtension(Env.sHostProcess)), Env.sHostProcess);
                 if ( !File.Exists(lsHostExePathFile) )
                     lsHostExePathFile = Path.Combine(Path.Combine(@"C:\Program Files", Path.GetFileNameWithoutExtension(Env.sHostProcess)), Env.sHostProcess);
 
@@ -1446,12 +1457,14 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 {
                     try
                     {
-                        if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") )
+                        if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") && "" != loProfile.sValue("-CertificateDomainName" ,"") )
                             Env.oChannelCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
 
-                        if ( null == Env.oChannelCertificate && !loProfile.bValue("-CertificateSetupDone", false)
+                        if ( null == Env.oChannelCertificate
+                                && !loProfile.bValue("-CertificateSetupDone", false)
                                 && (!tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false))
-                                && (!loProfile.bValue("-NoPrompts", false) || (!loProfile.bValue("-LicenseAccepted", false) && !loProfile.bValue("-AllConfigWizardStepsCompleted", false))) )
+                                && (!loProfile.bValue("-NoPrompts", false) || (!loProfile.bValue("-LicenseAccepted", false) && !loProfile.bValue("-AllConfigWizardStepsCompleted", false)))
+                                )
                         {
                             System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
                                                                 loOpenDialog.FileName = Env.sNewClientSetupPfxName;
