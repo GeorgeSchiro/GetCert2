@@ -265,7 +265,7 @@ namespace GetCert2
                 string  lsLogPathFileBase = tvProfile.oGlobal().sValue("-LogPathFile"
                                 , Path.Combine("Logs", Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sLoadedPathFile) + "Log.txt"));
                         lsLogPathFileBase = Path.Combine(Path.GetDirectoryName(lsLogPathFileBase), String.Format("{0}({1}){2}"
-                                , Path.GetFileNameWithoutExtension(lsLogPathFileBase), tvProfile.oGlobal().sValue("-CertificateDomainName" ,""), Path.GetExtension(lsLogPathFileBase)));
+                                , Path.GetFileNameWithoutExtension(lsLogPathFileBase), tvProfile.oGlobal().sValue(Env.sDnsNameKey ,""), Path.GetExtension(lsLogPathFileBase)));
 
                 return lsLogPathFileBase;
             }
@@ -528,7 +528,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             bool            lbRunPowerScript = false;
             string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToExePathFile(
                                     tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1")
-                                    .Replace(".ps1", tvProfile.oGlobal().sValue("-CertificateDomainName" ,"") + ".ps1"));
+                                    .Replace(".ps1", tvProfile.oGlobal().sValue(Env.sDnsNameKey ,"") + ".ps1"));
             string          lsScript = null;
                             string          lsKludgeHide1 = Guid.NewGuid().ToString("N");   // Apparently Regex can't handle "++" in the text to process.
                             StringBuilder   lsbReplaceProfileTokens = new StringBuilder(asScript.Replace("++", lsKludgeHide1));
@@ -750,19 +750,29 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             aoSiteFound = null;
             aoPrimarySiteForDefaults = null;
 
+            if ( "" == tvProfile.oGlobal().sValue(Env.sDnsNameKey, "") )
+                return null;
+
             try
             {
-                string  lsCertNameOrSanItem = Env.sCertName(asCertNameOrSanItem);
-                bool    lbLogCertificateStatus = tvProfile.oGlobal().bValue("-LogCertificateStatus", false);
-                        if ( lbLogCertificateStatus )
-                        {
-                            Env.LogIt(new String('*', 80));
-                            Env.LogIt("Env.oCurrentCertificate(asCertNameOrSanItem, asSanArray)");
-                            Env.LogIt(String.Format("Env.oCurrentCertificate({0}, {1})"
-                                        , null == asCertNameOrSanItem ? "null" : String.Format("\"{0}\"", lsCertNameOrSanItem)
-                                        , null == asSanArray ? "null" : String.Format("\"{0}\"", String.Join(",", asSanArray))
-                                        ));
-                        }
+                string      lsCertNameOrSanItem = Env.sCertName(asCertNameOrSanItem);
+                bool        lbHasStarCertName = "" != tvProfile.oGlobal().sValue(Env.sStarCertNameKey, "");
+                // This allows for easy comparisons between certificate names and DNS names (as well as star cert names - if any). 
+                string[]    lsCertNameOrSanItemArray = { lsCertNameOrSanItem.ToLower(), null } ;
+                            if ( lbHasStarCertName )
+                                lsCertNameOrSanItemArray[1] = tvProfile.oGlobal().sValue(Env.sDnsNameKey, "").ToLower();
+                bool        lbLogCertificateStatus = tvProfile.oGlobal().bValue("-LogCertificateStatus", false);
+                            if ( lbLogCertificateStatus )
+                            {
+                                Env.LogIt(new String('*', 80));
+                                Env.LogIt("Env.oCurrentCertificate(asCertNameOrSanItem, asSanArray)");
+                                Env.LogIt(String.Format("Env.oCurrentCertificate({0}, [{1}])"
+                                            , null == asCertNameOrSanItem ? "null" : String.Format("\"{0}\"", lsCertNameOrSanItem)
+                                            , null == asSanArray ? "null" : String.Join(",", asSanArray)
+                                            ));
+                                if ( lbHasStarCertName )
+                                    Env.LogIt(String.Format("lsCertNameOrSanItemArray=[{0}]", String.Join(",", lsCertNameOrSanItemArray)));
+                            }
 
                 if (       null != Env.oGetCertServiceFactory
                         && null != Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate
@@ -783,24 +793,29 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 {
                     lsCertNameOrSanItem = null == asCertNameOrSanItem ? null : lsCertNameOrSanItem.ToLower();
 
-                    if ( lbLogCertificateStatus )
-                        Env.LogIt("First, look thru existing IIS websites ...");
-
                     if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
                     {
+                        if ( lbLogCertificateStatus )
+                            Env.LogIt("First, look thru existing IIS websites ...");
+
                         Binding loBindingFound = null;
 
                         aoServerManager = new ServerManager();
 
                         string  lsSiteName = null;
-                                if ( lsCertNameOrSanItem != tvProfile.oGlobal().sValue(Env.sStarCertNameKey, "").ToLower() )
+                                if ( !lbHasStarCertName )
                                     lsSiteName = lsCertNameOrSanItem;
                                 else
-                                if ( null != asSanArray && 0 != asSanArray.Length )
-                                    lsSiteName = asSanArray[0].ToLower();
+                                    lsSiteName = tvProfile.oGlobal().sValue(Env.sDnsNameKey, "").ToLower();
+
+                        if ( lbLogCertificateStatus )
+                            Env.LogIt(String.Format("Looking for lsSiteName={0}", lsSiteName));
 
                         foreach (Site loSite in aoServerManager.Sites)
                         {
+                            if ( lbLogCertificateStatus )
+                                Env.LogIt(String.Format("Site found: {0}", loSite.Name));
+
                             if ( loSite.Name == lsSiteName )
                             {
                                 if ( lbLogCertificateStatus )
@@ -816,7 +831,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                     foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                                     {
                                         if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
-                                                && lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower() )
+                                                && lsCertNameOrSanItemArray.Contains(Env.sCertName(loCertificate).ToLower()) )
                                         {
                                             // Binding found that matches certificate thumbprint and name.
                                             loCurrentCertificate = loCertificate;
@@ -860,8 +875,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                 foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                                 {
                                     if ( loCertificate.GetCertHash().SequenceEqual(loBinding.CertificateHash)
-                                        && (String.IsNullOrEmpty(lsCertNameOrSanItem)
-                                            || lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower()) )
+                                        && ( lsCertNameOrSanItemArray.Contains(Env.sCertName(loCertificate).ToLower())
+                                            || String.IsNullOrEmpty(lsCertNameOrSanItem)) )
                                     {
                                         // Binding found that matches certificate thumbprint and name (or no name).
                                         loCurrentCertificate = loCertificate;
@@ -870,7 +885,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
                                         if ( lbLogCertificateStatus )
                                             Env.LogIt(String.Format("'My' store certificate matches (\"{0}\" - {1}).", loCertificate.Thumbprint
-                                                    , lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower() ? "by thumbprint & certificate name" : "by thumbprint only, no name given"));
+                                                    , lsCertNameOrSanItemArray.Contains(Env.sCertName(loCertificate).ToLower()) ? "by thumbprint & certificate name" : "by thumbprint only, no name given"));
                                         break;
                                     }
                                     else
@@ -943,10 +958,10 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                         }
 
                         // Finally, finally (no really), with no site found, find a related primary site to use for defaults.
-                        string lsPrimaryCertName = null == asSanArray || 0 == asSanArray.Length ? null : asSanArray[0].ToLower();
+                        string lsPrimaryCertName = tvProfile.oGlobal().sValue(Env.sDnsNameKey, "").ToLower();
 
                         if ( null == aoSiteFound && !String.IsNullOrEmpty(lsPrimaryCertName)
-                                && lsCertNameOrSanItem != lsPrimaryCertName && "" == tvProfile.oGlobal().sValue(Env.sStarCertNameKey, "") )
+                                && lsCertNameOrSanItem != lsPrimaryCertName && !lbHasStarCertName )
                         {
                             // Use the primary site in the SAN array as defaults for any new site (to be created).
                             Env.oCurrentCertificate(lsPrimaryCertName, asSanArray, out aoPrimarySiteForDefaults);
@@ -964,8 +979,9 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 
                         foreach (X509Certificate2 loCertificate in Env.oCurrentCertificateCollection)
                         {
-                            if ( lsCertNameOrSanItem == Env.sCertName(loCertificate).ToLower()
-                                    && (null == loCurrentCertificate || loCertificate.NotAfter < loCurrentCertificate.NotAfter) )
+                            if ( lsCertNameOrSanItemArray.Contains(Env.sCertName(loCertificate).ToLower())
+                                    && (null == loCurrentCertificate || loCertificate.NotBefore > loCurrentCertificate.NotBefore || loCertificate.NotAfter > loCurrentCertificate.NotAfter)
+                                    )
                             {
                                 loCurrentCertificate = loCertificate;
 
@@ -992,10 +1008,12 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
                 if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
                 {
-                    Env.LogIt("Setting \"-UseNonIISBindingOnly=True\".");
+                    Env.LogIt("Setting \"-UseNonIISBindingOnly=True\" ...");
 
                     tvProfile.oGlobal()["-UseNonIISBindingOnly"] = true;
                     tvProfile.oGlobal().Save();
+
+                    Env.LogSuccess();
                 }
             }
 
@@ -1245,11 +1263,12 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
         public static bool      bPowerScriptError = false;
         public static bool      bPowerScriptSkipLog = false;
         public static int       iNonErrorBounceSecs = 0;
-        public static string    sPowerScriptOutput = null;
+        public static string    sDnsNameKey = "-CertificateDomainName";
         public static string    sFetchPrefix = "Resources.Fetch.";
         public static string    sHostProcess = "GoPcBackup.exe";
         public static string    sNewClientSetupPfxName = "GgcSetup.pfx";
         public static string    sNewClientSetupCertName = "GetCertClientSetup";
+        public static string    sPowerScriptOutput = null;
         public static string    sStarCertNameKey = "-StarCertName";
         public static string    sWcfLogFile  = "WcfLog.txt";         // Must be changed in the WCF config too.
 
@@ -1338,7 +1357,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                     , tvProfile.oGlobal().sValue("-ScriptBounce", "shutdown.exe /r /t {SecondsUntilBounce} /c \"{ExeName} initiated bounce for '{CertificateDomainName}' domain\"")
                             .Replace("{SecondsUntilBounce}", aiSecondsUntilBounce.ToString())
                             .Replace("{ExeName}", Path.GetFileNameWithoutExtension(tvProfile.oGlobal().sExePathFile))
-                            .Replace("{CertificateDomainName}", tvProfile.oGlobal().sValue("-CertificateDomainName" ,""))
+                            .Replace("{CertificateDomainName}", tvProfile.oGlobal().sValue(Env.sDnsNameKey ,""))
                     , false, abSkipLog, false);
         }
 
@@ -1379,7 +1398,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
             if ( !File.Exists(Env.sBounceOnNonErrorLockPathFile) )
             {
-                File.WriteAllText(Env.sBounceOnNonErrorLockPathFile, tvProfile.oGlobal().sValue("-CertificateDomainName" ,""));
+                File.WriteAllText(Env.sBounceOnNonErrorLockPathFile, tvProfile.oGlobal().sValue(Env.sDnsNameKey ,""));
 
                 Env.ScheduleBounce(Env.iNonErrorBounceSecs, abSkipLog);
             }
@@ -1396,7 +1415,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
 
             if ( !File.Exists(Env.sBounceOnErrorLockPathFile) )
             {
-                File.WriteAllText(Env.sBounceOnErrorLockPathFile, tvProfile.oGlobal().sValue("-CertificateDomainName" ,""));
+                File.WriteAllText(Env.sBounceOnErrorLockPathFile, tvProfile.oGlobal().sValue(Env.sDnsNameKey ,""));
 
                 Env.ScheduleBounce(tvProfile.oGlobal().iValue("-OnErrorBounceSecs", 600), abDuringStartup);
             }
@@ -1457,8 +1476,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 {
                     try
                     {
-                        if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") && "" != loProfile.sValue("-CertificateDomainName" ,"") )
-                            Env.oChannelCertificate = Env.oCurrentCertificate(loProfile.sValue("-CertificateDomainName" ,""));
+                        if ( "" != loProfile.sValue("-ContactEmailAddress" ,"") && "" != loProfile.sValue(Env.sDnsNameKey ,"") )
+                            Env.oChannelCertificate = Env.oCurrentCertificate(loProfile.sValue(Env.sDnsNameKey ,""));
 
                         if ( null == Env.oChannelCertificate
                                 && !loProfile.bValue("-CertificateSetupDone", false)

@@ -200,7 +200,7 @@ Options and Features
           That means every SAN value must have a corresponding entry in the
           global internet DNS database.
 
-          When a new website is created in IIS for a new SAN value, by default
+          When a new website is created in IIS for a new SAN value, by default,
           it is setup to use the same physical path as the primary domain.
 
 -CreateSanSitesForBinding=False
@@ -420,6 +420,11 @@ Options and Features
     the profile file (ie. 'GetCert2.exe.config'). When True, everything
     but command-line keys will be saved.
 
+-ScriptAcmeExported=''
+
+    This is the PowerShell script snippet that handles any post-processing of a
+    new certificate after an ACME export from the certificate provider network.
+
 -ScriptBindingDone=''
 
     This is the PowerShell script snippet that handles any final processing after
@@ -428,7 +433,8 @@ Options and Features
 -ScriptCertAcquired=''
 
     This is the PowerShell script snippet that handles any final processing after
-    the successful acquisition of a new certificate from the certificate provider.
+    the successful acquisition of a new certificate from the certificate provider
+    network (after the ACME export) or from a local certificate override file.
 
 -ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
@@ -485,7 +491,7 @@ Options and Features
 
     The 'GetCertPrevious' certificate store is used to house the previously bound
     'old' certificate (ie. one most recently removed from the 'Personal' store).
-    Set this switch False to simply delete old certificates directly.
+    Set this switch True to simply delete old certificates directly.
 
 -SkipSsoServer=False
 

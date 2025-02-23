@@ -211,15 +211,11 @@
     <EmbeddedResource Include="GetCert2.zip" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Fetch\ReplaceText.exe" />
-    <EmbeddedResource Include="Resources\Fetch\ReplaceText.exe.txt" />
+    <EmbeddedResource Include="Resources\Fetch\openssl.zip" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\Fetch\GoGetCertTask.xml" />
     <EmbeddedResource Include="Resources\Fetch\GoGetCertSsoTask.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Fetch\GoPcBackup.exe.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

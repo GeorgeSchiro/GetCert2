@@ -98,7 +98,7 @@
 </TextBlock>
 <Border Style="{StaticResource ConfigWizardTextBorder}">
     <TextBlock MaxWidth="800" Style="{StaticResource ConfigWizardTextBottom}">
-    Enter a valid email address and domain name. 
+    Enter a valid domain name and email address (email is ONLY ever used for expiration notifications). 
     </TextBlock>
 </Border>
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

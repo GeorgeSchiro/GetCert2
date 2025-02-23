@@ -1337,11 +1337,18 @@ If you would prefer to finish this setup at another time, you can exit now and c
                 }
             }
 
-            ScrollingText   loHelp = new ScrollingText(this, moProfile["-Help"].ToString(), "Get Certificate Help", true);
-                            loHelp.TextBackground = Brushes.Khaki;
-                            loHelp.Show();
+            if ( null == moProfile["-Help"] )
+            {
+                tvMessageBox.ShowBriefly(this, "The expected embedded help text is missing.", "No Help!", tvMessageBoxIcons.Error, 2500);
+            }
+            else
+            {
+                ScrollingText   loHelp = new ScrollingText(this, moProfile["-Help"].ToString(), "Get Certificate Help", true);
+                                loHelp.TextBackground = Brushes.Khaki;
+                                loHelp.Show();
 
-                            moOtherWindows.Add(loHelp);
+                                moOtherWindows.Add(loHelp);
+            }
         }
 
         private bool ShowPreviousProcessStatus()
