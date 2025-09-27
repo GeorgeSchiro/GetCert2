@@ -529,24 +529,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToExePathFile(
                                     tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1")
                                     .Replace(".ps1", tvProfile.oGlobal().sValue(Env.sDnsNameKey ,"") + ".ps1"));
-            string          lsScript = null;
-                            string          lsKludgeHide1 = Guid.NewGuid().ToString("N");   // Apparently Regex can't handle "++" in the text to process.
-                            StringBuilder   lsbReplaceProfileTokens = new StringBuilder(asScript.Replace("++", lsKludgeHide1));
-
-                            // Look for string tokens of the form: {ProfileKey}, where "ProfileKey" is
-                            // only expected to be found in the profile if it is prefixed by a hyphen.
-                            bool    lbUseLiteralsOnly = tvProfile.oGlobal().bUseLiteralsOnly;
-                            Regex   loRegex = new Regex("{(.*?)}");
-                                    tvProfile.oGlobal().bUseLiteralsOnly = true;
-                                    foreach (Match loMatch in loRegex.Matches(lsbReplaceProfileTokens.ToString()))
-                                    {
-                                        string  lsKey = loMatch.Groups[1].ToString();
-                                                if ( lsKey.StartsWith("-") && tvProfile.oGlobal().ContainsKey(lsKey) )
-                                                    lsbReplaceProfileTokens.Replace(loMatch.Groups[0].ToString(), tvProfile.oGlobal()[lsKey].ToString());
-                                    }
-                                    tvProfile.oGlobal().bUseLiteralsOnly = lbUseLiteralsOnly;
-
-                            lsScript = lsbReplaceProfileTokens.ToString().Replace(lsKludgeHide1, "++");
+            string          lsScript = Env.sReplaceProfileTokens(tvProfile.oGlobal(), asScript);
 
                             File.WriteAllText(lsScriptPathFile, lsScript);
                             System.Windows.Forms.Application.DoEvents();
@@ -704,7 +687,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             Site            loDiscard3 = null;
 
             return Env.oCurrentCertificate(asCertName, lsSanArray, out loDiscard1, out loDiscard2, out loDiscard3);
-          }
+        }
         public static X509Certificate2 oCurrentCertificate(string asCertName, out ServerManager aoServerManager)
         {
             string[]        lsSanArray = null;
@@ -1004,9 +987,9 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             {
                 Environment.ExitCode = 1;
                 Env.LogIt(ex.Message);
-                Env.LogIt("IIS may not be installed or fully configured. This will prevent certificate-to-site binding in IIS.");
+                Env.LogIt("IIS may not be installed or fully configured. This may prevent certificate-to-site binding in IIS.");
 
-                if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) )
+                if ( !tvProfile.oGlobal().bValue("-UseNonIISBindingOnly", false) && !tvProfile.oGlobal().bValue("-CertificateSetupDone", false) )
                 {
                     Env.LogIt("Setting \"-UseNonIISBindingOnly=True\" ...");
 
@@ -1204,6 +1187,30 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             return lsFindProcessExePathFile;
         }
 
+        public static string sReplaceProfileTokens(tvProfile aoProfile, string asSource)
+        {
+            if ( String.IsNullOrEmpty(asSource) )
+                return asSource;
+
+            string          lsKludgeHide1 = Guid.NewGuid().ToString("N");   // Apparently Regex can't handle "++" in the text to process.
+            StringBuilder   lsbReplaceProfileTokens = new StringBuilder(asSource.Replace("++", lsKludgeHide1));
+
+            // Look for string tokens of the form: {ProfileKey}, where "ProfileKey" is
+            // only expected to be found in the profile if it is prefixed by a hyphen.
+            bool    lbUseLiteralsOnly = aoProfile.bUseLiteralsOnly;
+            Regex   loRegex = new Regex("{(.*?)}");
+                    aoProfile.bUseLiteralsOnly = true;
+                    foreach (Match loMatch in loRegex.Matches(lsbReplaceProfileTokens.ToString()))
+                    {
+                        string  lsKey = loMatch.Groups[1].ToString();
+                                if ( lsKey.StartsWith("-") && aoProfile.ContainsKey(lsKey) )
+                                    lsbReplaceProfileTokens.Replace(loMatch.Groups[0].ToString(), aoProfile[lsKey].ToString());
+                    }
+                    aoProfile.bUseLiteralsOnly = lbUseLiteralsOnly;
+
+            return lsbReplaceProfileTokens.ToString().Replace(lsKludgeHide1, "++");
+        }
+
 
         private static string sCertThumbprintFromBindingHash(Binding aoBinding)
         {
@@ -1396,7 +1403,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             if ( !tvProfile.oGlobal().bValue("-Auto", false) || tvProfile.oGlobal().bValue("-Setup", false) || !tvProfile.oGlobal().bValue("-EnableRetryBounce", true) )
                 return;
 
-            if ( !File.Exists(Env.sBounceOnNonErrorLockPathFile) )
+            if ( Env.bCanScheduleNonErrorBounce )
             {
                 File.WriteAllText(Env.sBounceOnNonErrorLockPathFile, tvProfile.oGlobal().sValue(Env.sDnsNameKey ,""));
 

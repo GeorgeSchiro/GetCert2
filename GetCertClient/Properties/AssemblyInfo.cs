@@ -12,7 +12,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("GoGetCert.com")]
 [assembly: AssemblyProduct("GetCert2")]
-[assembly: AssemblyCopyright("Copyright © GoGetCert.com 2019-2121")]
+[assembly: AssemblyCopyright("Copyright © George Schiro 2019-2121")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -30,5 +30,5 @@ using System.Windows;
 //
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("2.98")]
-[assembly: AssemblyFileVersion("2.98")]
+[assembly: AssemblyVersion("2.981")]
+[assembly: AssemblyFileVersion("2.981")]

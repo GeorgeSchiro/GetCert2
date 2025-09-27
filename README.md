@@ -100,8 +100,8 @@ Options and Features
 ====================
 
 
-    The main options for this utility are listed below with their default values.
-    A brief description of each feature follows.
+                                                                          The main options for this utility are listed below with their default values.
+A brief description of each feature follows.
 
 -AcmeAccountFile='Account.xml'
 
@@ -294,11 +294,6 @@ Options and Features
     clients the opportunity to lock the certificate renewal (ie. only one client
     at a time per domain can communicate with the certificate provider network).
 
--NonIISBindingScript= SEE PROFILE FOR DEFAULT VALUE
-
-    This is the PowerShell script that binds a new certificate when IIS is not in
-    use or the standard IIS binding procedure does not work for whatever reason.
-
 -NoPrompts=False
 
     Set this switch True and all pop-up prompts will be suppressed. Messages
@@ -436,6 +431,21 @@ Options and Features
     the successful acquisition of a new certificate from the certificate provider
     network (after the ACME export) or from a local certificate override file.
 
+-ScriptDnsCleanup= SEE PROFILE FOR DEFAULT VALUE
+
+    This is the PowerShell script snippet that handles cleanup of ACME DNS-01
+    domain challenge TXT records via your preferred DNS automation provider.
+
+-ScriptLoadBalancer= SEE PROFILE FOR DEFAULT VALUE
+
+    This is the PowerShell script snippet that handles sending
+    a new certificate as a PfX or PEM file to the load balancer.
+
+-ScriptNonIISBinding= SEE PROFILE FOR DEFAULT VALUE
+
+    This is the PowerShell script that binds a new certificate when IIS is not in
+    use or the standard IIS binding procedure does not work for whatever reason.
+
 -ScriptSSO= SEE PROFILE FOR DEFAULT VALUE
 
     This is the PowerShell script that updates SSO servers with new certificates.
@@ -568,17 +578,17 @@ Options and Features
 -UseNonIISBindingAlso=False
 
     Set this switch True to use the typical IIS binding procedures
-    on this machine as well as the -NonIISBindingScript (see above).
+    on this machine as well as the -ScriptNonIISBinding (see above).
 
 -UseNonIISBindingOnly=False
 
     Set this switch True to disable the usual IIS binding procedures on
-    this machine and use the -NonIISBindingScript instead (see above).
+    this machine and use the -ScriptNonIISBinding instead (see above).
 
 -UseNonIISBindingPfxFile=False
 
     Set this switch True to allow for the creation of a PFX file for use by
-    the non-IIS binding script (see -NonIISBindingScript above). The server
+    the non-IIS binding script (see -ScriptNonIISBinding above). The server
     location and the password of this PFX file must be defined on the SCS
     (see 'GoGetCert Client Callable SCS Methods.pdf').
 
