@@ -22,7 +22,7 @@ namespace GetCert2
         private DoGetCert   moDoGetCert;
 
         private const string mcsSanNameKey = "-Domain";
-        private const string mcsTitleText = "GoGetCert Get Certificate";
+        private const string mcsTitleText = "AutoCert Get Certificate";
 
         private double  miOriginalScreenHeight;
         private double  miOriginalScreenWidth;
@@ -704,7 +704,7 @@ You can continue this later wherever you left off. "
         {
             MiddlePanelDomainList.IsOpen = false;
 
-            Process.Start("https://GoGetCert.com");
+            Process.Start("https://AutoCertNow.com");
         }
 
         private void btnShowLogs_Click(object sender, RoutedEventArgs e)

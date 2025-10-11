@@ -174,7 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\images\Shield.ico" />
-    <Resource Include="Resources\images\GoGetCert150.png" />
+    <Resource Include="Resources\images\AutoCert150.png" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
@@ -214,8 +214,8 @@
     <EmbeddedResource Include="Resources\Fetch\openssl.zip" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Fetch\GoGetCertTask.xml" />
-    <EmbeddedResource Include="Resources\Fetch\GoGetCertSsoTask.xml" />
+    <EmbeddedResource Include="Resources\Fetch\AutoCertTask.xml" />
+    <EmbeddedResource Include="Resources\Fetch\AutoCertSsoTask.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

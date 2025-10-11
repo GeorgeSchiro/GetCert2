@@ -8,7 +8,7 @@ if ( $ExePath -eq "" )
     exit
 }
 
-$RegistryName = "GoGetCert\Startup"
+$RegistryName = "AutoCert\Startup"
 $ScriptPathFile = (Get-Item -Path (Join-Path -Path $ExePath -ChildPath "Startup.cmd")).FullName
 
 if ( -not [String]::IsNullOrEmpty($ScriptPathFile) )

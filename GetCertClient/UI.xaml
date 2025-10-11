@@ -53,7 +53,7 @@
                                     Style="{StaticResource MainCanvasLogoButton}"
                                     HorizontalAlignment="Left"
                                     >
-                                <Image Source="Resources\images\GoGetCert150.png" />
+                                <Image Source="Resources\images\AutoCert150.png" />
                             </Button>
                         </Canvas>
                         <Label Content="Get Certificate" FontSize="36" FontWeight="ExtraBold" HorizontalAlignment="Center" />
@@ -139,9 +139,9 @@
         farm,  SSO servers, SSO integrated application servers, load balancers, etc),
         you may be ready for: <LineBreak/><LineBreak/>
 
-        <Bold>GoGetCert Secure Certificate Service</Bold> <LineBreak/><LineBreak/>
+        <Bold>AutoCert Secure Certificate Service</Bold> <LineBreak/><LineBreak/>
 
-        Ease your certificate handling hassle. Visit "<Bold>GoGetCert.com</Bold>" for more details.
+        Ease your certificate handling hassle. Visit "<Bold>AutoCertNow.com</Bold>" for more details.
     </TextBlock>
 </Border>
                                     </StackPanel>

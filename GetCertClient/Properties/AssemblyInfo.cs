@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyTitle("GetCert2")]
 [assembly: AssemblyDescription("Digital Certificate Retrieval and Installation")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("GoGetCert.com")]
+[assembly: AssemblyCompany("AutoCertNow.com")]
 [assembly: AssemblyProduct("GetCert2")]
 [assembly: AssemblyCopyright("Copyright © George Schiro 2019-2121")]
 [assembly: AssemblyTrademark("")]
@@ -30,5 +30,5 @@ using System.Windows;
 //
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("2.981")]
-[assembly: AssemblyFileVersion("2.981")]
+[assembly: AssemblyVersion("2.99")]
+[assembly: AssemblyFileVersion("2.99")]
