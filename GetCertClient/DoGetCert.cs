@@ -957,6 +957,7 @@ Notes:
         -UseNonIISBindingAlso
         -UseNonIISBindingOnly
         -UseNonIISBindingPfxFile
+        -XML_Profile
         "));
                 }
 
@@ -1592,8 +1593,7 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
 
             tvProfile   loReturnProfile = null;
             tvProfile   loMethodProfile = new tvProfile(moProfile.sValue(gsInAndOut2ServiceCallKey, ""));
-            string      lsMethodKey     = "-Method";
-            string      lsMethodName    = loMethodProfile.sValue(lsMethodKey, "");
+            string      lsMethodName    = loMethodProfile.sValue("-Method", "");
             string      lsSuccessKey    = "-Success";
 
             if ( String.IsNullOrEmpty(lsMethodName) )
@@ -1603,87 +1603,105 @@ echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}
             }
             else
             {
-                Env.LogIt("");
-                Env.LogIt(String.Format("Calling method \"{0}\" on the SCS ...", loMethodProfile.sValue(lsMethodKey, "")));
-
-                tvProfile   loMinProfile = Env.oMinProfile(moProfile);
-                byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
-                string      lsHash = HashClass.sHashIt(loMinProfile);
-
-                using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                try
                 {
-                    loReturnProfile = new tvProfile(loGetCertServiceClient.sCallAnyMethod(lsHash, lbtArrayMinProfile, loMethodProfile.btArrayZipped()));
-                    if ( CommunicationState.Faulted == loGetCertServiceClient.State )
-                        loGetCertServiceClient.Abort();
-                    else
-                        loGetCertServiceClient.Close();
-                }
+                    goStartupWaitMsg = new tvMessageBox();
+                    goStartupWaitMsg.ShowWait(null, "Calling SCS, please wait ...", 250);
 
-                if ( !loReturnProfile.bValue(lsSuccessKey, false) )
-                {
-                    Env.LogIt(String.Format("    Method \"{0}\" failed.", loMethodProfile.sValue(lsMethodKey, "")));
-                }
-                else
-                {
-                    string lsOutputFile = loMethodProfile.sValue("-OutputFile", "");
+                    Env.LogIt("");
+                    Env.LogIt(String.Format("Calling \"{0}\" method on the SCS ...", lsMethodName));
 
-                    if ( !String.IsNullOrEmpty(lsOutputFile) )
+                    tvProfile   loMinProfile = Env.oMinProfile(moProfile);
+                    byte[]      lbtArrayMinProfile = loMinProfile.btArrayZipped();
+                    string      lsHash = HashClass.sHashIt(loMinProfile);
+
+                    using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                     {
-                        loReturnProfile.bUseXmlFiles = loMethodProfile.bValue("-UseXmlOutput", true);
-                        loReturnProfile.Save(lsOutputFile);
+                        loReturnProfile = new tvProfile(loGetCertServiceClient.sCallAnyMethod(lsHash, lbtArrayMinProfile, loMethodProfile.btArrayZipped()));
+                        if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                            loGetCertServiceClient.Abort();
+                        else
+                            loGetCertServiceClient.Close();
                     }
 
-                    if ( "resetconfig" != lsMethodName.ToLower() )
+                    if ( !loReturnProfile.bValue(lsSuccessKey, false) )
                     {
-                        moProfile.Remove(gsInAndOut2ServiceCallKey);
-                        moProfile.Save();
+                        Env.LogIt(String.Format("    Method \"{0}\" failed.", lsMethodName));
                     }
                     else
                     {
-                        tvProfile loNewProfile = new tvProfile();
+                        string lsOutputFile = loMethodProfile.sValue("-OutputFile", "");
 
-                        foreach (DictionaryEntry loEntry in moProfile)
-                            if ( DoGetCert.oPreservedKeys.ContainsKey(loEntry.Key.ToString()) )
-                                loNewProfile.Add(loEntry);
+                        if ( !String.IsNullOrEmpty(lsOutputFile) )
+                        {
+                            loReturnProfile.bUseXmlFiles = loMethodProfile.bValue("-UseXmlOutput", true);
+                            loReturnProfile.Save(lsOutputFile);
+                        }
 
-                        string lsBackupPathFile = moProfile.sLoadedPathFile + ".backup.txt";
+                        if ( "resetconfig" != lsMethodName.ToLower() )
+                        {
+                            moProfile.Remove(gsInAndOut2ServiceCallKey);
+                            moProfile.Save();
+                        }
+                        else
+                        {
+                            tvProfile loNewProfile = new tvProfile();
 
-                        Env.LogIt(String.Format("    Backing up \"{0}\" to \"{1}\" ...", Path.GetFileName(moProfile.sLoadedPathFile), Path.GetFileName(lsBackupPathFile)));
+                            foreach (DictionaryEntry loEntry in moProfile)
+                                if ( DoGetCert.oPreservedKeys.ContainsKey(loEntry.Key.ToString()) )
+                                    loNewProfile.Add(loEntry);
 
-                        File.Delete(lsBackupPathFile);
-                        File.Copy(moProfile.sLoadedPathFile, lsBackupPathFile);
+                            string lsBackupPathFile = moProfile.sLoadedPathFile + ".backup.txt";
 
-                        Env.LogIt(String.Format("    Writing profile reset to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
+                            Env.LogIt(String.Format("    Backing up \"{0}\" to \"{1}\" ...", Path.GetFileName(moProfile.sLoadedPathFile), Path.GetFileName(lsBackupPathFile)));
 
-                        loNewProfile.Save(moProfile.sLoadedPathFile);
+                            File.Delete(lsBackupPathFile);
+                            File.Copy(moProfile.sLoadedPathFile, lsBackupPathFile);
 
-                        string  lsWcfConfiguration = File.ReadAllText(moProfile.sLoadedPathFile);
-                                if ( lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
-                                {
-                                    File.WriteAllText(moProfile.sLoadedPathFile, lsWcfConfiguration.Replace(gsWcfSetupCertNode, ""));
+                            Env.LogIt(String.Format("    Writing reset profile to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
 
-                                    Env.LogIt(  "    WCF configuration updated also. Setup certificate reference removed.");
-                                }
+                            loNewProfile.Save(moProfile.sLoadedPathFile);
+                            moProfile.Reload();
 
-                        Env.LogIt(              "    Done.");
+                            string  lsWcfConfiguration = File.ReadAllText(moProfile.sLoadedPathFile);
+                                    if ( lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
+                                    {
+                                        File.WriteAllText(moProfile.sLoadedPathFile, lsWcfConfiguration.Replace(gsWcfSetupCertNode, ""));
+
+                                        Env.LogIt(  "    WCF configuration updated also. Setup certificate reference removed.");
+                                    }
+
+                            Env.LogIt(              "    Done.");
+                        }
+                    }
+
+                    if ( !loMethodProfile.bValue("-ShowIt", true) )
+                    {
+                        Env.LogIt(loReturnProfile.sCommandLine());
+                    }
+                    else
+                    {
+                        goStartupWaitMsg.Hide();
+
+                        bool    lbNoPromptsBackup = moProfile.bValue("-NoPrompts", false);
+                                moProfile["-NoPrompts"] = false;
+                        string  lsCaption = "SCS Result";
+                                if ( loReturnProfile.bValue(lsSuccessKey, false) )
+                                    this.Show(loReturnProfile.sCommandBlock(), lsCaption);
+                                else
+                                    this.ShowError(loReturnProfile.sCommandBlock(), lsCaption);
+
+                        moProfile["-NoPrompts"] = lbNoPromptsBackup;
                     }
                 }
-
-                if ( !loMethodProfile.bValue("-ShowIt", true) )
+                catch
                 {
-                    Env.LogIt(loReturnProfile.sCommandLine());
+                    throw;
                 }
-                else
+                finally
                 {
-                    bool    lbNoPromptsBackup = moProfile.bValue("-NoPrompts", false);
-                            moProfile["-NoPrompts"] = false;
-                    string  lsCaption = "SCS Result";
-                            if ( loReturnProfile.bValue(lsSuccessKey, false) )
-                                this.Show(loReturnProfile.sCommandBlock(), lsCaption);
-                            else
-                                this.ShowError(loReturnProfile.sCommandBlock(), lsCaption);
-
-                    moProfile["-NoPrompts"] = lbNoPromptsBackup;
+                    if ( null != goStartupWaitMsg )
+                        goStartupWaitMsg.Hide();
                 }
             }
 
@@ -2989,7 +3007,7 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                 {
                     goStartupWaitMsg = new tvMessageBox();
                     goStartupWaitMsg.ShowWait(
-                            null, Path.GetFileNameWithoutExtension(loProfile.sExePathFile) + " loading, please wait ...", 250);
+                            null, String.Format("{0} loading, please wait ...", Path.GetFileNameWithoutExtension(loProfile.sExePathFile)), 250);
                 }
 
                 Env.ResetConfigMechanism(loProfile);
@@ -5606,9 +5624,7 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                 }
                             }
 
-                            string lsScript = moProfile.ContainsKey("-NonIISBindingScript") ? moProfile.sValue("-NonIISBindingScript", "") : moProfile.sValue("-ScriptNonIISBinding", "");
-
-                            lbGetCertificate = Env.bRunPowerScript(lsScript
+                            lbGetCertificate = Env.bRunPowerScript(moProfile.sValue("-ScriptNonIISBinding", "")
                                                                     .Replace("{CertificateDomainName}", lsCertName)
                                                                     .Replace("{NewCertificatePfxPathFile}", lsNonIISBindingPfxPathFile)
                                                                     .Replace("{NewCertificateThumbprint}", loNewCertificate.Thumbprint)
