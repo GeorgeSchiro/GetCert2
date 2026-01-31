@@ -1273,8 +1273,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
         public static string    sDnsNameKey = "-CertificateDomainName";
         public static string    sFetchPrefix = "Resources.Fetch.";
         public static string    sHostProcess = "GoPcBackup.exe";
-        public static string    sNewClientSetupPfxName = "GgcSetup.pfx";
-        public static string    sNewClientSetupCertName = "GetCertClientSetup";
+        public static string    sNewClientSetupPfxName = "AcSetup.pfx";
+        public static string    sNewClientSetupCertName = "CertClientSetup";
         public static string    sPowerScriptOutput = null;
         public static string    sStarCertNameKey = "-StarCertName";
         public static string    sWcfLogFile  = "WcfLog.txt";         // Must be changed in the WCF config too.
@@ -1556,7 +1556,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                     Env.LogIt("Env.oChannelCertificate=null");
 
                     if ( !loProfile.bValue("-CertificateSetupDone", false) )
-                        Env.LogIt("    Note: -CertificateSetupDone=False (set this value True if you know the current domain certificate already supersedes the setup certificate.");
+                        Env.LogIt("    Note: -CertificateSetupDone=False (set this value True if you know the current domain certificate already supersedes the setup certificate).");
 
                     Env.oChannelCertificate = Env.oGetCertServiceFactory.Credentials.ClientCertificate.Certificate;
 

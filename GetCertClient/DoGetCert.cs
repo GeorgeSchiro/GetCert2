@@ -96,10 +96,9 @@ see 'AutoCertNow.com'.
 If the software is not running in 'stand-alone' mode, it also copies any new cert
 to a file anywhere on the local area network to be picked up by the load balancer
 administrator or process. It also replaces the SSO (single sign-on) certificate in
-your central SSO configuration (eg. ADFS) and restarts the SSO service on all
-servers in any defined SSO server farm. It also replaces all integrated application
-SSO certificate references in any number of configuration files anywhere in the
-local file system.
+your central SSO configuration and restarts the SSO service on all servers in any
+defined SSO server farm. It also replaces all integrated application SSO certificate
+references in any number of configuration files anywhere in the local file system.
 
 Also (when -UseStandAloneMode is False), this software checks for any previously
 fetched certificate (by another client running the same software). If found,
@@ -608,8 +607,8 @@ A brief description of each feature follows.
 
     These are the seconds of wait time after an ACME challenge request has been
     submitted to the certificate network as well as after a certificate request
-    has been submitted. This is the amount of time during which the request should
-    transition from a 'pending' state to anything other than 'pending'.
+    has been submitted. This is the amount of time during which the request
+    should transition from a 'pending' state to anything other than 'pending'.
 
 -UseDnsChallenge=False
 
@@ -630,17 +629,17 @@ A brief description of each feature follows.
 
 -UseNonIISBindingPfxFile=False
 
-    Set this switch True to allow for the creation of a PFX file for use by
-    the non-IIS binding script (see -ScriptNonIISBinding above). The server
-    location and the password of this PFX file must be defined on the SCS
-    (see 'AutoCert Client Callable SCS Methods.pdf').
+    Set this switch True to allow for the creation of a local PFX file for
+    use by the non-IIS binding script (see -ScriptNonIISBinding above). The
+    PFX password must be set on the SCS with the option to output PEM files
+    instead (see 'AutoCert Client Callable SCS Methods.pdf').
 
 -UseStandAloneMode=True
 
-    Set this switch False and the software will use the AutoCert Secure Certificate
-    Service (see 'AutoCertNow.com') to manage certificates between several servers
-    in a server farm, on SSO servers, SSO integrated application servers and load
-    balancers.
+    Set this switch False and the software will use the AutoCert Secure
+    Certificate Service (see 'AutoCertNow.com') to manage certificates
+    between several servers in a server farm, on SSO servers, SSO integrated
+    application servers and load balancers.
 
 
 Notes:
@@ -825,7 +824,7 @@ Notes:
         private static string gsDashboardDataFile           = "Data.txt";
         private static string gsDashboardVersionFile        = "Version.txt";
         private static string gsDashboardVersionKey         = "-DashboardVersion";
-        private static string gsDashboardZipFile            = "ggc.zip";
+        private static string gsDashboardZipFile            = "ACdashboard.zip";
         private static string gsInAndOut1LbReleaseCertKey   = "-LoadBalancerReleaseCert";
         private static string gsInAndOut2ServiceCallKey     = "-SCS";
         private static string gsMaintWindBegKey             = "-MaintenanceWindowBeginTime";
@@ -1351,10 +1350,7 @@ Notes:
                 Env.LogIt("");
                 Env.LogIt("Uploading certificate to load balancer directly ...");
 
-                lbUploadCertToLoadBalancer = this.bRunPowerScript(moProfile.sValue("-ScriptLoadBalancer", @"
-
-echo ""Command-line to send new certificate PFX file ('{LoadBalancerPfxPathFile}') for domain ('{CertificateDomainName}') to the load balancer.""
-                        ")
+                lbUploadCertToLoadBalancer = this.bRunPowerScript(moProfile.sValue("-ScriptLoadBalancer", "")
                         .Replace("{CertificateDomainName}", asCertName)
                         .Replace("{LoadBalancerPfxPathFile}", lsLoadBalancerPfxPathFile)
                         .Replace("{NewCertificatePfxPathFile}", asCertPfxPathFile)
@@ -3160,7 +3156,7 @@ Checklist for {EXE} setup:
            domain specific certificate for further communications.
 
         .) ""Host process can't be located on disk. Can't continue."" means the host
-           software (ie. the GGC task scheduler) must also be installed to continue.
+           software (ie. the AC task scheduler) must also be installed to continue.
            Look in the ""{EXE}"" folder for the host EXE and run it.
 
         .) If you suspect an issue locating the proper identifying certificate,
@@ -3962,7 +3958,7 @@ Checklist for {EXE} setup:
                         Env.LogIt("Host license not accepted (set -HostLicenseAccepted=True). Can't continue with host profile update.");
                     }
                     else
-                    if ( loHostProfile.bValue("-NoGgcUpdates", false) )
+                    if ( loHostProfile.bValue("-NoHostUpdates", false) )
                     {
                         loHostProfile.bEnableFileLock = false;
 
