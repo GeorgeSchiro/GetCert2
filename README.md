@@ -311,6 +311,17 @@ A brief description of each feature follows.
     This is the number of sleep milliseconds between loops while waiting for the
     PowerShell script process to complete.
 
+-PowerScriptSystemWide= NO DEFAULT VALUE
+
+    This script snippet is prepended to every other script snippet at runtime.
+
+    Here's an example:
+
+        -PowerScriptSystemWide="$PSStyle.OutputRendering = 'PlainText'"
+
+        The above strips all ANSI escape sequences from the formatted output
+        stream. This example applies to PS7.2+ only.
+
 -PowerScriptTimeoutSecs=300
 
     This is the maximum number of seconds allocated to any PowerShell script
@@ -488,11 +499,6 @@ A brief description of each feature follows.
 
         GetCert2.exe -Auto -Setup
 
--ShowProfile=False
-
-    Set this switch True to immediately display the entire contents of the profile
-    file at startup in command-line format. This may be helpful as a diagnostic.
-
 -SingleSessionEnabled=False
 
     Set this switch True to run all PowerShell scripts in a single global session.
@@ -565,8 +571,8 @@ A brief description of each feature follows.
 
     These are the seconds of wait time after an ACME challenge request has been
     submitted to the certificate network as well as after a certificate request
-    has been submitted. This is the amount of time during which the request should
-    transition from a 'pending' state to anything other than 'pending'.
+    has been submitted. This is the amount of time during which the request
+    should transition from a 'pending' state to anything other than 'pending'.
 
 -UseDnsChallenge=False
 
@@ -587,17 +593,17 @@ A brief description of each feature follows.
 
 -UseNonIISBindingPfxFile=False
 
-    Set this switch True to allow for the creation of a PFX file for use by
-    the non-IIS binding script (see -ScriptNonIISBinding above). The server
-    location and the password of this PFX file must be defined on the SCS
-    (see 'AutoCert Client Callable SCS Methods.pdf').
+    Set this switch True to allow for the creation of a local PFX file for
+    use by the non-IIS binding script (see -ScriptNonIISBinding above). The
+    PFX password must be set on the SCS with the option to output PEM files
+    instead (see 'AutoCert Client Callable SCS Methods.pdf').
 
 -UseStandAloneMode=True
 
-    Set this switch False and the software will use the AutoCert Secure Certificate
-    Service (see 'AutoCertNow.com') to manage certificates between several servers
-    in a server farm, on SSO servers, SSO integrated application servers and load
-    balancers.
+    Set this switch False and the software will use the AutoCert Secure
+    Certificate Service (see 'AutoCertNow.com') to manage certificates
+    between several servers in a server farm, on SSO servers, SSO integrated
+    application servers and load balancers.
 
 
 Notes:

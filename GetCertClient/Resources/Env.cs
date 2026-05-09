@@ -529,7 +529,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
             string          lsScriptPathFile = tvProfile.oGlobal().sRelativeToExePathFile(
                                     tvProfile.oGlobal().sValue("-PowerScriptPathFile", "PowerScript.ps1")
                                     .Replace(".ps1", tvProfile.oGlobal().sValue(Env.sDnsNameKey ,"") + ".ps1"));
-            string          lsScript = Env.sReplaceProfileTokens(tvProfile.oGlobal(), asScript);
+            string          lsScriptTop = tvProfile.oGlobal().sValue("-PowerScriptSystemWide", "");
+            string          lsScript = lsScriptTop + (String.IsNullOrEmpty(lsScriptTop) ? "" : Environment.NewLine) + Env.sReplaceProfileTokens(tvProfile.oGlobal(), asScript);
 
                             File.WriteAllText(lsScriptPathFile, lsScript);
                             System.Windows.Forms.Application.DoEvents();
@@ -547,7 +548,8 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                         lsProcessArgs = String.Format(lsProcessArgs, lsScriptPathFile, "");
                     else
                         lsProcessArgs = String.Format(lsProcessArgs, asSingleSessionScriptPathFile, lsScriptPathFile);
-            string  lsLogScript = !lsScript.Contains("-CertificateKey") ? lsScript : lsScript.Substring(0, lsScript.IndexOf("-CertificateKey"));
+            string  lsLogScript = String.Join(Environment.NewLine, lsScript.Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+                            .Select(lsLine => lsLine.Contains("-CertificateKey") ? lsLine.Substring(0, lsLine.IndexOf("-CertificateKey")) : lsLine));
 
             if ( !abSkipLog && (!lbSingleSessionEnabled || !abOpenOrCloseSingleSession) )
                 Env.LogIt(lsLogScript);

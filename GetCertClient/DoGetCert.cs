@@ -353,6 +353,17 @@ A brief description of each feature follows.
     This is the number of sleep milliseconds between loops while waiting for the
     PowerShell script process to complete.
 
+-PowerScriptSystemWide= NO DEFAULT VALUE
+
+    This script snippet is prepended to every other script snippet at runtime.
+
+    Here's an example:
+
+        -PowerScriptSystemWide=""$PSStyle.OutputRendering = 'PlainText'""
+
+        The above strips all ANSI escape sequences from the formatted output
+        stream. This example applies to PS7.2+ only.
+
 -PowerScriptTimeoutSecs=300
 
     This is the maximum number of seconds allocated to any PowerShell script
@@ -529,11 +540,6 @@ A brief description of each feature follows.
     This switch is typically passed as a command-line argument:
 
         {EXE} -Auto -Setup
-
--ShowProfile=False
-
-    Set this switch True to immediately display the entire contents of the profile
-    file at startup in command-line format. This may be helpful as a diagnostic.
 
 -SingleSessionEnabled=False
 
@@ -756,9 +762,13 @@ Notes:
                                 Environment.ExitCode = 1;
                             }
 
-                            loProfile["-PreviousProcessOutputText"] = lsLogFileTextReported
-                                    + "\r\nNote: the timestamp prepended to each text line implies the software was last run using the \"-Auto\" switch.";
-                            loProfile.Save();
+                            try
+                            {
+                                loProfile["-PreviousProcessOutputText"] = lsLogFileTextReported
+                                        + "\r\nNote: the timestamp prepended to each text line implies the software was last run using the \"-Auto\" switch.";
+                                loProfile.Save();
+                            }
+                            catch {}
                         }
                     }
                 }
@@ -936,6 +946,7 @@ Notes:
         -KeysAfterReset
         -LicenseAccepted
         -MaintenanceWindowEndTime
+        -PowerScriptSystemWide
         -ResetAccountFilesEachRun
         -SanList
         -ScriptAcmeExported
@@ -1649,25 +1660,28 @@ Notes:
 
                             string lsBackupPathFile = moProfile.sLoadedPathFile + ".backup.txt";
 
-                            Env.LogIt(String.Format("    Backing up \"{0}\" to \"{1}\" ...", Path.GetFileName(moProfile.sLoadedPathFile), Path.GetFileName(lsBackupPathFile)));
+                            Env.LogIt(String.Format(  "    Backing up \"{0}\" to \"{1}\" ...", Path.GetFileName(moProfile.sLoadedPathFile), Path.GetFileName(lsBackupPathFile)));
 
                             File.Delete(lsBackupPathFile);
                             File.Copy(moProfile.sLoadedPathFile, lsBackupPathFile);
 
-                            Env.LogIt(String.Format("    Writing reset profile to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
+                            Env.LogIt(String.Format(  "    Writing the reset profile to \"{0}\" ...", Path.GetFileName(moProfile.sLoadedPathFile)));
 
                             loNewProfile.Save(moProfile.sLoadedPathFile);
                             moProfile.Reload();
 
-                            string  lsWcfConfiguration = File.ReadAllText(moProfile.sLoadedPathFile);
-                                    if ( lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
-                                    {
-                                        File.WriteAllText(moProfile.sLoadedPathFile, lsWcfConfiguration.Replace(gsWcfSetupCertNode, ""));
+                            if ( DoGetCert.oDomainProfile.bValue("-RemoveSetupCertificateReferenceAfterResetConfig", false) )
+                            {
+                                string  lsWcfConfiguration = File.ReadAllText(moProfile.sLoadedPathFile);
+                                        if ( lsWcfConfiguration.Contains(gsWcfSetupCertNode) )
+                                        {
+                                            File.WriteAllText(moProfile.sLoadedPathFile, lsWcfConfiguration.Replace(gsWcfSetupCertNode, ""));
 
-                                        Env.LogIt(  "    WCF configuration updated also. Setup certificate reference removed.");
-                                    }
+                                            Env.LogIt("    WCF configuration updated also. Setup certificate reference removed.");
+                                        }
+                            }
 
-                            Env.LogIt(              "    Done.");
+                            Env.LogIt(                "    Done.");
                         }
                     }
 
@@ -2165,7 +2179,7 @@ certutil -repairstore my {NewCertificateThumbprint}
                             ldtMaintenanceWindowEndTime = DateTime.Now.Date.AddMinutes((ldtMaintenanceWindowEndTime - ldtMaintenanceWindowEndTime.Date).TotalMinutes);
                 int         liMinsToMaintenanceWindowEndTime = (int)(ldtMaintenanceWindowEndTime - DateTime.Now).TotalMinutes
                                                                 - tvProfile.oGlobal().iValue("-MinCheckInMinsToMaintenanceWindowEndTime", 5) + 1;
-                            if ( liMinsToMaintenanceWindowEndTime > 0
+                            if ( liMinsToMaintenanceWindowEndTime > 0 && liMinsToMaintenanceWindowEndTime < tvProfile.oGlobal().iValue("-MaxMaintenanceWindowMinutes", 300)
                                     && !tvProfile.oGlobal().bValue("-DoStagingTests", true)
                                     && tvProfile.oGlobal().bValue("-Auto", false) && !tvProfile.oGlobal().bValue("-Setup", false)
                                     )
@@ -2740,8 +2754,6 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
                     Env.LogIt("");
                     Env.LogIt(String.Format("Certificate override thumbprint: {0} (\"{1}\")", loCertOverrideReady.Thumbprint, Env.sCertName(loCertOverrideReady)));
                     Env.LogIt("");
-
-                    DoGetCert.RemoveCertificatePrivateKeyFile(loCertOverrideReady);
 
                     using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
                     {
@@ -4677,8 +4689,7 @@ Checklist for {EXE} setup:
                                         && !lbLoadBalancerCertPending && !lbLoadBalancerCertReady )
                                 {
                                     // Load new certificate into memory allowing brief access to its properties during LB upload.
-                                    X509Certificate2    loLoadBalancerCert = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword);
-                                                        DoGetCert.RemoveCertificatePrivateKeyFile(loLoadBalancerCert);
+                                    X509Certificate2 loLoadBalancerCert = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword);
 
                                     if ( lbCertOverrideApplies )
                                         lbGetCertificate = this.bUploadCertToLoadBalancer(lsHash, lbtArrayMinProfile, loOldCertificate, loLoadBalancerCert, lsCertName, lsCertPfxPathFile
@@ -5125,7 +5136,7 @@ Using Module ""{AcmePsPath}""
 {AcmeSystemWide}
 $challenge = Get-ACMEChallenge $global:state $global:authZ[$global:SanMap[{SanArrayIndex}]] ""dns-01""
 
-echo DNS challenge command-line goes here (-Name $challenge.Data.TxtRecordName -Value $challenge.Data.Content).
+echo ""DNS challenge command-line goes here (-Name $challenge.Data.TxtRecordName -Value $challenge.Data.Content).""
 Start-Sleep -Seconds {DnsChallengeSleepSecs}
 
 $challenge | Complete-ACMEChallenge $global:state
@@ -5191,8 +5202,8 @@ $challenge | Complete-ACMEChallenge ""{AcmeWorkPath}""
 
                                 this.LogStage(String.Format("4 - update challenge{0} from certificate provider", 1 == lsSanArray.Length ? "" : "s"));
 
-                                string  lsSubmissionPending = ": pending";
-                                string  lsSubmissionSuccess = ": ready";
+                                string  lsSubmissionPending = moProfile.sValue("-AcmeSubmissionPending", ": pending");
+                                string  lsSubmissionSuccess = moProfile.sValue("-AcmeSubmissionSuccess", ": ready");
                                 string  lsOutput = null;
 
                                 if ( lbSingleSessionEnabled )
@@ -5276,7 +5287,7 @@ $authZ   = Get-ACMEAuthorization ""{AcmeWorkPath}"" -Order $order
 for ($i=0; $i -lt $authZ.Length; $i++)
 {
     $challenge = Get-ACMEChallenge ""{AcmeWorkPath}"" $authZ[$i] ""dns-01""
-    echo Remove DNS challenge command-line goes here (-Name $challenge.Data.TxtRecordName -Value $challenge.Data.Content -Remove).
+    echo ""Remove DNS challenge command-line goes here (-Name $challenge.Data.TxtRecordName -Value $challenge.Data.Content -Remove).""
 }
                                         ")
                                         .Replace("{AcmePsPath}", lsAcmePsPath)
@@ -5409,7 +5420,7 @@ Import-Module ""{AcmePsPath}""
 {AcmeSystemWide}
 $order = Find-ACMEOrder ""{AcmeWorkPath}"" -Identifiers {SanPsStringArray}
 $certKey = Import-ACMECertificateKey -Path ""{AcmeWorkPath}\cert.key.xml""
-Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKey -Path ""{CertificatePathFile}""
+Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKey -Path ""{CertificatePathFile}"" -Password (ConvertTo-SecureString ""{CertificatePassword}"" -AsPlainText -Force)
                                         ")
                                         .Replace("{AcmePsPath}", lsAcmePsPath)
                                         .Replace("{AcmeSystemWide}", moProfile.sValue("-AcmeSystemWide", ""))
@@ -5420,11 +5431,6 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                         .Replace("{SanPsStringArray}", lsSanPsStringArray)
                                         );
                                         moProfile.sValue("-ScriptStage7Help","Available tokens: {AcmePsPath}, {AcmeSystemWide}, {AcmeWorkPath}, {CertificateFile}, {CertificatePassword}, {CertificatePathFile}, {SanPsStringArray}");
-
-                            loNewCertificate = new X509Certificate2(lsCertPfxPathFile, (string)null, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.Exportable);
-                            File.WriteAllBytes(lsCertPfxPathFile, loNewCertificate.Export(X509ContentType.Pfx, lsCertificatePassword));
-                            DoGetCert.RemoveCertificatePrivateKeyFile(loNewCertificate);
-                            loNewCertificate = null;
 
                             if ( lbGetCertificate && !this.bMainLoopStopped )
                             {
@@ -5457,19 +5463,21 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                     }
                     else
                     {
+                        X509KeyStorageFlags loX509KeyStorageFlags = X509KeyStorageFlags.MachineKeySet;
+                                            if ( null != lbtArrayNewCertificate || moProfile.bValue("-UseStandAloneMode", true) )
+                                                loX509KeyStorageFlags = loX509KeyStorageFlags | X509KeyStorageFlags.PersistKeySet;
+
                         if ( !moProfile.bValue("-CertificatePrivateKeyExportable", false)
                                 || ( !moProfile.bValue("-UseStandAloneMode", true) && !DoGetCert.oDomainProfile.bValue("-CertPrivateKeyExportAllowed", false)) )
                         {
-                            loNewCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword
-                                    , X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
+                            loNewCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, loX509KeyStorageFlags);
                         }
                         else 
                         {
                             Env.LogIt("");
                             Env.LogIt("The new certificate private key is exportable (\"-CertificatePrivateKeyExportable=True\"). This is not recommended.");
 
-                            loNewCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword
-                                    , X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+                            loNewCertificate = new X509Certificate2(lsCertPfxPathFile, lsCertificatePassword, loX509KeyStorageFlags | X509KeyStorageFlags.Exportable);
                         }
                     }
 
@@ -5719,7 +5727,6 @@ Export-ACMECertificate  ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                             File.WriteAllBytes(lsNewPfxPathFile, loCertificate.Export(X509ContentType.Pfx, lsNewPassword));
                                             DoGetCert.RemoveCertificatePrivateKeyFile(loCertificate);
                                         }
-
                                     }
 
                                     Env.LogSuccess();
