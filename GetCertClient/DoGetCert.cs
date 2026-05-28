@@ -2753,15 +2753,25 @@ try {Set-AdfsSslCertificate -Thumbprint ""{NewCertificateThumbprint}""} catch {}
 
                     Env.LogIt("");
                     Env.LogIt(String.Format("Certificate override thumbprint: {0} (\"{1}\")", loCertOverrideReady.Thumbprint, Env.sCertName(loCertOverrideReady)));
-                    Env.LogIt("");
 
-                    using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                    if ( loCertOverrideReady.Thumbprint == aoOldCertificate.Thumbprint )
                     {
-                        loGetCertServiceClient.NotifyCertOverrideCertificateReady(asHash, abtArrayMinProfile, loCertOverrideReady.Thumbprint);
-                        if ( CommunicationState.Faulted == loGetCertServiceClient.State )
-                            loGetCertServiceClient.Abort();
-                        else
-                            loGetCertServiceClient.Close();
+                        Env.LogIt(String.Format("    The certificate override matches the current certificate (\"{0}\")!", aoOldCertificate.Thumbprint));
+                        Env.LogIt(String.Format("    The override file (\"{0}\") will be ignored and should be removed.", lsCertOverridePfxPathFile));
+                        Env.LogIt("");
+                    }
+                    else
+                    {
+                        Env.LogIt("");
+
+                        using (GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel())
+                        {
+                            loGetCertServiceClient.NotifyCertOverrideCertificateReady(asHash, abtArrayMinProfile, loCertOverrideReady.Thumbprint);
+                            if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                                loGetCertServiceClient.Abort();
+                            else
+                                loGetCertServiceClient.Close();
+                        }
                     }
                 }
 
