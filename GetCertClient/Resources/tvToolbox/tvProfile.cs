@@ -1544,13 +1544,37 @@ namespace tvToolbox
             {
                 if ( String.IsNullOrEmpty(msExePathFile) )
                 {
-                    try
+                    Assembly loEntryAssembly = Assembly.GetEntryAssembly();
+                    if ( null == loEntryAssembly )
                     {
-                        msExePathFile = Assembly.GetEntryAssembly().Location;
-                    }
-                    catch
-                    {
+                        // This handles profiles used via a DLL - not in an EXE.
                         msExePathFile = Assembly.GetExecutingAssembly().Location;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            // "Environment.ProcessPath" is .Net 6+ (including single-file-safe API).
+                            PropertyInfo loProcessPathProperty = typeof(Environment).GetProperty(
+                                    "ProcessPath", BindingFlags.Public | BindingFlags.Static);
+
+                            if ( null != loProcessPathProperty )
+                                msExePathFile = (string)loProcessPathProperty.GetValue(null, null);
+                        }
+                        catch {}
+
+                        if ( String.IsNullOrEmpty(msExePathFile) )
+                        {
+                            try
+                            {
+                                // This is the fallback for older machines.
+                                msExePathFile = Process.GetCurrentProcess().MainModule.FileName;
+                            }
+                            catch
+                            {
+                                msExePathFile = loEntryAssembly.Location;
+                            }
+                        }
                     }
                 }
 

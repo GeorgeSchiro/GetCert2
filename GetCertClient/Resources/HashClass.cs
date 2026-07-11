@@ -9,6 +9,29 @@ namespace GetCert2
 {
     public class HashClass
     {
+        public static int iHashIt(tvProfile aoProfile, int aiMaxHashDigits)
+        {
+            StringBuilder   lsbContent = new StringBuilder();
+                            foreach ( System.Collections.DictionaryEntry loEntry in aoProfile )
+                            {
+                                lsbContent.Append(null == loEntry.Key ? "" : loEntry.Key.ToString());
+                                lsbContent.Append('=');
+                                byte[] lbtBytes = loEntry.Value as byte[];
+                                if ( null != lbtBytes )
+                                    lsbContent.Append(Convert.ToBase64String(lbtBytes));
+                                else
+                                    lsbContent.Append(null == loEntry.Value ? "" : loEntry.Value.ToString());
+                                lsbContent.Append('\n');
+                            }
+
+            byte[]          lbtArray = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(lsbContent.ToString()));
+            StringBuilder   lsbDecimal = new StringBuilder();
+                            foreach (byte lbtValue in lbtArray)
+                                lsbDecimal.Append(lbtValue.ToString());
+
+            return int.Parse(lsbDecimal.ToString().Substring(0, aiMaxHashDigits));
+        }
+
         public static string sMachineKeyPathFile(tvProfile aoProfile, X509Certificate2 aoCertificate)
         {
             try

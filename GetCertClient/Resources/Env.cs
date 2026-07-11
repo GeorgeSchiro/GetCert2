@@ -19,7 +19,7 @@ using tvToolbox;
 
 namespace GetCert2
 {
-    public class Env
+    public partial class Env
     {
         public static event EventHandler<string> AppendOutputTextLine;  
 
@@ -162,21 +162,6 @@ namespace GetCert2
         }
         private static tvProfile goDomainProfile = null;
 
-        public static tvProfile oMinProfile(tvProfile aoProfile)
-        {
-            if ( null == goMinProfile )
-            {
-                goMinProfile = new tvProfile(aoProfile.ToString());
-                goMinProfile.Remove("-Help");
-                goMinProfile.Remove("-PreviousProcessOutputText");
-                goMinProfile.Add("-CurrentLocalTime", DateTime.Now);
-                goMinProfile.Add("-COMPUTERNAME", Env.sComputerName);
-            }
-
-            return goMinProfile;
-        }
-        private static tvProfile goMinProfile = null;
-
         /// <summary>
         /// Returns the certificate name from a certificate.
         /// </summary>
@@ -191,17 +176,6 @@ namespace GetCert2
             string      lsCertName = loDomainProfile.sValue(Env.sStarCertNameKey, tvProfile.oGlobal().sValue(Env.sStarCertNameKey, ""));
 
             return null != asCertNameOrSanItem && "" != lsCertName ? lsCertName : asCertNameOrSanItem;
-        }
-
-        /// <summary>
-        /// Returns the current server computer name.
-        /// </summary>
-        public static string sComputerName
-        {
-            get
-            {
-                return Env.oEnvProfile.sValue("-COMPUTERNAME", "Computer name not found.");
-            }
         }
 
         /// <summary>
@@ -235,25 +209,6 @@ namespace GetCert2
             }
         }
 
-
-        private static tvProfile oEnvProfile
-        {
-            get
-            {
-                if ( null == goEnvProfile )
-                {
-                    goEnvProfile = new tvProfile();
-
-                    foreach (DictionaryEntry loEntry in Environment.GetEnvironmentVariables())
-                    {
-                        goEnvProfile.Add("-" + loEntry.Key.ToString(), loEntry.Value);
-                    }
-                }
-
-                return goEnvProfile;
-            }
-        }
-        private static tvProfile goEnvProfile = null;
 
         /// <summary>
         /// Returns the current "LogPathFile" base name.

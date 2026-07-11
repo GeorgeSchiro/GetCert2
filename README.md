@@ -100,7 +100,7 @@ Options and Features
 ====================
 
 
-                                                                          The main options for this utility are listed below with their default values.
+The main options for this utility are listed below with their default values.
 A brief description of each feature follows.
 
 -AcmeAccountFile='Account.xml'

@@ -100,6 +100,7 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="Resources\Env.cs" />
+    <Compile Include="Resources\EnvMin.cs" />
     <Compile Include="Resources\HashClass.cs" />
     <Compile Include="Service References\GetCertService\Reference.cs">
       <AutoGen>True</AutoGen>

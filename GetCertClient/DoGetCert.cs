@@ -719,6 +719,7 @@ Notes:
                             try
                             {
                                 loMain = new DoGetCert(loProfile);
+                                loMain.DispatcherUnhandledException += loMain.DispatcherUnhandledExceptionHandler;
 
                                 // Load the UI.
                                 UI  loUI = new UI(loMain);
@@ -837,6 +838,7 @@ Notes:
         private static string gsDashboardZipFile            = "ACdashboard.zip";
         private static string gsInAndOut1LbReleaseCertKey   = "-LoadBalancerReleaseCert";
         private static string gsInAndOut2ServiceCallKey     = "-SCS";
+        private static string gsInAndOut3DoTestsKey         = "-DoTests";
         private static string gsMaintWindBegKey             = "-MaintenanceWindowBeginTime";
         private static string gsMaintWindEndKey             = "-MaintenanceWindowEndTime";
         private static string gsSsoThumbprintFilesKey       = "-SsoThumbprintFiles";
@@ -1489,6 +1491,9 @@ Notes:
             if ( this.bCallAnySCS() )
                 return true;
             else
+            if ( this.iTests() != 0 )
+                return true;
+            else
                 return false;
         }
 
@@ -1502,6 +1507,10 @@ Notes:
                     && "" != tvProfile.oGlobal().sValue(gsInAndOut2ServiceCallKey, "") )
                 return true;
             else
+            if ( tvProfile.oGlobal().ContainsKey(gsInAndOut3DoTestsKey)
+                    && "" != tvProfile.oGlobal().sValue(gsInAndOut3DoTestsKey, "") )
+                return true;
+            else
                 return false;
         }
 
@@ -1510,6 +1519,7 @@ Notes:
             // This is a command-line only switch. If it's not already there, don't add it.
             if ( !moProfile.ContainsKey(gsInAndOut1LbReleaseCertKey) || !moProfile.bValue(gsInAndOut1LbReleaseCertKey, false) )
                 return false;
+
 
             if ( moProfile.bValue("-UseStandAloneMode", true) )
                 return true;
@@ -1716,6 +1726,105 @@ Notes:
             }
 
             return true;
+        }
+
+        public int iTests()
+        {
+            // This is a command-line only parameter. If it's not already there, don't add it.
+            if ( !moProfile.ContainsKey(gsInAndOut3DoTestsKey) )
+                return 0;
+
+            if ( moProfile.bValue("-UseStandAloneMode", true) )
+                return 0;
+
+            Env.LogIt("");
+            Env.LogIt("Running tests ...");
+
+
+            tvProfile loResults = new tvProfile();
+            tvProfile loMinProfile = Env.oMinProfile(moProfile);
+
+            byte[]  abtArrayMinProfile     = loMinProfile.btArrayZipped();
+            string  asHash                 = HashClass.sHashIt(loMinProfile);
+
+            byte[]  abtArrayCertificate    = Convert.FromBase64String("yAAAAB+LCAAAAAAAAApdjUsKwyAUAK8i7g36TFoouNAXF91kYy6QBEMtzQd93r80y8LsZmCYCNN2fqLBmCmtaZkoMhHq/I4LGRxMuXRDKadjL0tplmNj4llKjdlwHEygOgcMbIyFGFrOxPiq23zmtJOx1lqllHLOOQAAREStte77vm/btvXe+67rOiaGg1xcjxwNBwk3IZWQapTyccGvwK70m4KE+7//Avb6FzfIAAAA");
+            byte[]  abtArrayCerts          = Array.Empty<byte>();
+            byte[]  abtArrayClientLog      = Array.Empty<byte>();
+            byte[]  abtArrayErrorLog       = Convert.FromBase64String("eQAAAB+LCAAAAAAAAApdyzEKwzAMBdCrCO++QCCjt5KAk6GrcX+CiWwZVYbm9h0L3d8jv6XaGXNQFX3IST4003t2IcY1TrQM5ogDipYRPhndijRKRlVeg0FP91/2UiHDftgSX6WdZEKjv02RqvsCrp1J5XkAAAA=");
+            byte[]  abtArrayMethodProfile  = Convert.FromBase64String("TQAAAB+LCAAAAAAAAApT0A1OzC3ISbX1TS3JyE8JKMpPy8xJVdCFcG1d8oPzc1NLMjLz0hV0HYvSbdMyi4pLIMzi1OT8vBQFXcfiyrxk25Ci0lQAYYm6w00AAAA=");
+            byte[]  abtArrayResults        = Array.Empty<byte>();
+            string  asCurrentThumbprint    = "4C83C03556C32DE0A7E623E9EB73DE5ED4210E2D";
+            string  asInstalledVersion     = "2.995";
+            string  asSsoThumbprint        = "AAAA1111BBBB2222CCCC3333DDDD4444EEEE5555";
+            string  asThumbprint           = "";
+            ulong   aiPreviousHash         = 1234567890UL;
+
+            using ( GetCertService.IGetCertServiceChannel loGetCertServiceClient = Env.oGetCertServiceFactory.CreateChannel() )
+            {
+                loResults.Add("-bClientCheckIn()",              loGetCertServiceClient.bClientCheckIn                   (asHash, abtArrayMinProfile, abtArrayErrorLog));
+                loResults.Add("-bClientCheckOut()",             loGetCertServiceClient.bClientCheckOut                  (asHash, abtArrayMinProfile));
+                loResults.Add("-bLockCertificateRenewal()",     loGetCertServiceClient.bLockCertificateRenewal          (asHash, abtArrayMinProfile));
+                loResults.Add("-bNewCertificateUploaded()",     loGetCertServiceClient.bNewCertificateUploaded          (asHash, abtArrayMinProfile, abtArrayCertificate));
+                loResults.Add("-bOldCertificateRemoved()",      loGetCertServiceClient.bOldCertificateRemoved           (asHash, abtArrayMinProfile));
+                loResults.Add("-bSetSsoThumbprint()",           loGetCertServiceClient.bSetSsoThumbprint                (asHash, abtArrayMinProfile, asSsoThumbprint));
+                loResults.Add("-bUnlockCertificateRenewal()",   loGetCertServiceClient.bUnlockCertificateRenewal        (asHash, abtArrayMinProfile));
+                loResults.Add("-btArrayClientCertificateList()",loGetCertServiceClient.btArrayClientCertificateList     (asHash, abtArrayMinProfile, aiPreviousHash));
+                loResults.Add("-btArrayDashboardData()",        loGetCertServiceClient.btArrayDashboardData             (asHash, abtArrayMinProfile));
+                loResults.Add("-btArrayDashboardZipUpdate()",   loGetCertServiceClient.btArrayDashboardZipUpdate        (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-btArrayFailSafeExeUpdate()",    loGetCertServiceClient.btArrayFailSafeExeUpdate         (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-btArrayGetCertExeUpdate()",     loGetCertServiceClient.btArrayGetCertExeUpdate          (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-btArrayGoPcBackupExeUpdate()",  loGetCertServiceClient.btArrayGoPcBackupExeUpdate       (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-btArrayNewCertificate()",       loGetCertServiceClient.btArrayNewCertificate            (asHash, abtArrayMinProfile));
+                loResults.Add("-btArraySetupCertificate()",     loGetCertServiceClient.btArraySetupCertificate          (asHash, abtArrayMinProfile, asCurrentThumbprint));
+                loResults.Add("-sCallAnyMethod()",              loGetCertServiceClient.sCallAnyMethod                   (asHash, abtArrayMinProfile, abtArrayMethodProfile));
+                loResults.Add("-sCfgUpdate()",                  loGetCertServiceClient.sCfgUpdate                       (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-sDomainProfile()",              loGetCertServiceClient.sDomainProfile                   (asHash, abtArrayMinProfile));
+                loResults.Add("-sFailSafeCfgUpdate()",          loGetCertServiceClient.sFailSafeCfgUpdate               (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-sFailSafeIniUpdate()",          loGetCertServiceClient.sFailSafeIniUpdate               (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-sGpcIniUpdate()",               loGetCertServiceClient.sGpcIniUpdate                    (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-sHostsEntryUpdate()",           loGetCertServiceClient.sHostsEntryUpdate                (asHash, abtArrayMinProfile, asInstalledVersion));
+                loResults.Add("-sIniUpdate()",                  loGetCertServiceClient.sIniUpdate                       (asHash, abtArrayMinProfile, asInstalledVersion));
+
+                loGetCertServiceClient.NotifyCertOverrideCertificateReady                                               (asHash, abtArrayMinProfile, asThumbprint);
+                loGetCertServiceClient.NotifyClientCertificateListInstalled                                             (asHash, abtArrayMinProfile, abtArrayCerts);
+                loGetCertServiceClient.NotifyClientCertificateListFailure                                               (asHash, abtArrayMinProfile, abtArrayCerts);
+                loGetCertServiceClient.NotifyFailSafeInternalValidationResults                                          (asHash, abtArrayMinProfile, abtArrayResults);
+                loGetCertServiceClient.NotifyLoadBalancerCertificateExeFailure                                          (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.NotifyLoadBalancerCertificateExeSuccess                                          (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.NotifyLoadBalancerCertificatePending                                             (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.NotifyLoadBalancerCertificateReady                                               (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.NotifySsoThumbprintReplacementFailure                                            (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.NotifySsoThumbprintReplacementSuccess                                            (asHash, abtArrayMinProfile);
+                loGetCertServiceClient.ReportErrors                                                                     (asHash, abtArrayMinProfile, abtArrayErrorLog);
+                loGetCertServiceClient.ReportEverything                                                                 (asHash, abtArrayMinProfile, abtArrayClientLog);
+
+                if ( CommunicationState.Faulted == loGetCertServiceClient.State )
+                    loGetCertServiceClient.Abort();
+                else
+                    loGetCertServiceClient.Close();
+            }
+
+            // Fold-in the three args that only feed bool-returning SCS methods.
+            Env.AddArgs(loResults, abtArrayCertificate, abtArrayErrorLog, asSsoThumbprint);
+
+            int liTests = HashClass.iHashIt(loResults, 8);
+
+
+            Env.LogIt("");
+            Env.LogIt("Tests completed.");
+
+            bool    lbNoPromptsBackup = moProfile.bValue("-NoPrompts", false);
+                    moProfile["-NoPrompts"] = false;
+            int     liExpectedTestsResult =  moProfile.iValue("-ExpectedTestsResult", 23315919);
+            string  lsMessage = String.Format("{1} ({0}).", liTests, liTests == liExpectedTestsResult
+                            ? "Success! Expected received" : String.Format("Failure! Expected: {0}", liExpectedTestsResult));
+
+            moProfile["-NoPrompts"] = lbNoPromptsBackup;
+            moProfile.Save();
+
+            this.Show(lsMessage, "Tests Result");
+
+            return liTests;
         }
 
         public void LogStage(string asStageId)
@@ -2518,8 +2627,30 @@ certutil -repairstore my {NewCertificateThumbprint}
             Env.LogIt("");
             Env.LogIt(String.Format("{0} exiting due to log-off or system shutdown.", Path.GetFileName(ResourceAssembly.Location)));
 
-            if ( null != this.oUI )
-            this.oUI.HandleShutdown();
+            if ( null == this.oUI )
+                this.Shutdown();
+            else
+                this.oUI.HandleShutdown();
+        }
+
+        private void DispatcherUnhandledExceptionHandler(object aoSender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs aoArgs)
+        {
+            Environment.ExitCode = 1;
+            Env.LogIt(Env.sExceptionMessage(aoArgs.Exception));
+
+            try
+            {
+                string  lsLogFileTextReported = null;
+                DoGetCert.ReportErrors(aoArgs.Exception, out lsLogFileTextReported);
+            }
+            catch {}
+
+            aoArgs.Handled = true;
+
+            if ( null == this.oUI )
+                this.Shutdown();
+            else
+                this.oUI.HandleShutdown();
         }
 
         private bool bRunPowerScript(string asScript)
