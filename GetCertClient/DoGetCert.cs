@@ -965,6 +965,7 @@ Notes:
         -SsoThumbprintFiles
         -SsoThumbprintReplacementArgs
         -SubmissionWaitSecs
+        -UseCheckInDelays
         -UseDnsChallenge
         -UseNonIISBindingAlso
         -UseNonIISBindingOnly
@@ -4672,7 +4673,7 @@ Checklist for {EXE} setup:
 
                 if ( !moProfile.bValue("-UseStandAloneMode", true) )
                 {
-                    if ( lbAuto && !lbSetup && null != loOldCertificate && !String.IsNullOrEmpty(DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", "")) )
+                    if ( lbAuto && !lbSetup && !String.IsNullOrEmpty(DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", "")) )
                     {
                         if ( lbLoadBalancerCertReady )
                         {
@@ -4768,7 +4769,6 @@ Checklist for {EXE} setup:
                             && (lbRepositoryCertsOnly || liCertCount > 1)
                             && (lbLoadBalancerCertReady || Env.sComputerName != DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", ""))
                             && DateTime.Now < DoGetCert.oDomainProfile.dtValue("-BindingDate", DateTime.MinValue)
-                            && null != loOldCertificate
                             )
                     {
                         Env.LogIt(String.Format("Nothing to do until the certificate binding date (\"{0}\").{1}"
@@ -4785,7 +4785,6 @@ Checklist for {EXE} setup:
                         if (       lbAuto && !lbSetup
                                 && (DateTime.Now < ldtMaintenanceWindowBeginTime || DateTime.Now >= ldtMaintenanceWindowEndTime)
                                 && (lbLoadBalancerCertReady || Env.sComputerName != DoGetCert.oDomainProfile.sValue("-LoadBalancerComputerName", ""))
-                                && null != loOldCertificate
                                 )
                         {
                             bool lbProceedAnywayRenewASAP = !lbRepositoryCertsOnly && lbRenewASAP;
@@ -5337,7 +5336,7 @@ $challenge | Complete-ACMEChallenge ""{AcmeWorkPath}""
                                     while ( !this.bMainLoopStopped && DateTime.Now < ltdTimeout )
                                     {
                                         System.Windows.Forms.Application.DoEvents();
-                                        System.Threading.Thread.Sleep(moProfile.iValue("-UpdateChallengeSleepMS", 200));
+                                        Thread.Sleep(moProfile.iValue("-UpdateChallengeSleepMS", 200));
                                     }
                                 }
 
@@ -5496,7 +5495,7 @@ Complete-ACMEOrder      ""{AcmeWorkPath}"" -Order $order -CertificateKey $certKe
                                     while ( !this.bMainLoopStopped && DateTime.Now < ltdTimeout )
                                     {
                                         System.Windows.Forms.Application.DoEvents();
-                                        System.Threading.Thread.Sleep(moProfile.iValue("-UpdateChallengeSleepMS", 200));
+                                        Thread.Sleep(moProfile.iValue("-UpdateChallengeSleepMS", 200));
                                     }
                                 }
 

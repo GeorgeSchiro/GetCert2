@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetCert2", "GetCert2.csproj", "{801D9779-B42A-43BD-B9E8-ACD27AA19C06}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcFailSafe", "\\main\GcFailSafe\GcFailSafeApp\GcFailSafe.csproj", "{5E631C80-EFD3-4559-AFF5-B3364A029E7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcFailSafe", "..\..\GcFailSafe\GcFailSafeApp\GcFailSafe.csproj", "{5E631C80-EFD3-4559-AFF5-B3364A029E7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

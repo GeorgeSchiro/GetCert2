@@ -540,8 +540,12 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                 {
                     Env.LogIt(ex.Message);
 
-                    if ( i <= liPowerScriptOutputRetries - 1 )
+                    if ( i < liPowerScriptOutputRetries - 1 )
                         Env.LogIt(String.Format("Proceeding to retry #{0} ...", i + 1));
+
+                    System.Windows.Forms.Application.DoEvents();
+                    Thread.Sleep(tvProfile.oGlobal().iValue("-PowerScriptOutputRetryMS", 1000));
+                    continue;
                 }
 
                 loProcess.BeginErrorReadLine();
@@ -1450,6 +1454,7 @@ C:PFXtoPEM2.cmd ""{PfxPathFile}"" ""{PemPathFile}"" -CertificateKey {PfxPassword
                                 )
                         {
                             System.Windows.Forms.OpenFileDialog loOpenDialog = new System.Windows.Forms.OpenFileDialog();
+                                                                loOpenDialog.Title = "Locate the Setup Certificate File";
                                                                 loOpenDialog.FileName = Env.sNewClientSetupPfxName;
                             System.Windows.Forms.DialogResult   leDialogResult = System.Windows.Forms.DialogResult.None;
                                                                 leDialogResult = loOpenDialog.ShowDialog();
